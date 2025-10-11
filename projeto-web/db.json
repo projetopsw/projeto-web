@@ -515,9 +515,7 @@
       "email": "anabel@email.com",
       "password": "bebel",
       "userPlaylists": [
-        "0",
-        "952f",
-        "1d9f"
+        "0"
       ],
       "friends": [
         "2",
@@ -535,13 +533,14 @@
       "name": "Bia",
       "email": "bia@email.com",
       "password": "bia",
-      "playlists": [],
+      "userPlaylists": [
+        "0"
+      ],
       "friends": [
         "1",
         "3",
         "4"
       ],
-      "likedSongs": [],
       "following": [
         "artist-05"
       ]
@@ -567,8 +566,7 @@
       "password": "malu",
       "userPlaylists": [
         "0",
-        "952f",
-        "d295"
+        "89dd"
       ],
       "friends": [
         "1",
@@ -577,14 +575,6 @@
       ],
       "following": [
         "artist-02"
-      ],
-      "likedSongs": [
-        "song-02",
-        "song-04",
-        "song-01",
-        "song-03",
-        "song-05",
-        "song-07"
       ]
     },
     {
@@ -615,46 +605,17 @@
       "songs": [
         "song-02",
         "song-04",
-        "song-01",
-        "song-03",
-        "song-05",
-        "song-07"
+        "song-01"
       ]
     },
     {
-      "id": "952f",
+      "id": "89dd",
       "name": "maria",
-      "creatorId": "1",
-      "img": "/assets/img/vacateste.jpg",
-      "type": "Playlist do Usuário",
-      "description": "Playlist criada por 1.",
-      "songs": [
-        "song-01"
-      ],
-      "duration": "0 min",
-      "songCount": 0
-    },
-    {
-      "id": "1d9f",
-      "name": "teste",
-      "creatorId": "1",
-      "img": "/assets/img/vacateste.jpg",
-      "type": "Playlist do Usuário",
-      "description": "Playlist criada por 1.",
-      "songs": [],
-      "duration": "0 min",
-      "songCount": 0
-    },
-    {
-      "id": "d295",
-      "name": "teste2",
       "creatorId": "4",
       "img": "/assets/img/vacateste.jpg",
       "type": "Playlist do Usuário",
       "description": "Playlist criada por Malu.",
-      "songs": [
-        "song-05"
-      ],
+      "songs": [],
       "duration": "0 min",
       "songCount": 0
     }
