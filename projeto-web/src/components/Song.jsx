@@ -25,7 +25,6 @@ export default function Song({ song }) {
 
     const { user, userPlaylistsDetail } = useSelector(state => state.auth);
 
-    // 💡 LENDO user.likedSongs diretamente do objeto user (que é sincronizado pelo Redux)
     const userLikedSongs = user?.likedSongs || [];
     const isLiked = userLikedSongs.includes(songId); 
 
@@ -54,11 +53,11 @@ export default function Song({ song }) {
             const wasLiked = isLiked;
 
             try {
-                // 💡 CORREÇÃO: Passando todos os argumentos que a thunk espera
+                // CORREÇÃO: Passando userId e currentLikedSongs
                 await dispatch(toggleLikeSongAsync({
                     userId: user.id,
                     songId: songId,
-                    currentLikedSongs: userLikedSongs, // Passando o array atual do Redux
+                    currentLikedSongs: userLikedSongs,
                 })).unwrap();
 
                 if (wasLiked) {
@@ -94,15 +93,12 @@ export default function Song({ song }) {
         }
     };
     
-    // Ação que abre o menu de seleção de playlists
     const handleAddPlaylistClick = (event) => {
         if (!user) {
             navigate('/login');
             return;
         }
-        // Fecha o menu principal ANTES de abrir o secundário.
         setAnchorEl(null); 
-        // Define o novo âncora para o menu de playlists
         setPlaylistAnchorEl(event); 
     };
 

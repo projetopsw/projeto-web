@@ -575,6 +575,9 @@
       ],
       "following": [
         "artist-02"
+      ],
+      "likedSongs": [
+        "song-01"
       ]
     },
     {
@@ -603,8 +606,6 @@
       "description": "Todas as músicas que você curtiu. Clicando no coração.",
       "creator": "Você",
       "songs": [
-        "song-02",
-        "song-04",
         "song-01"
       ]
     },
@@ -615,7 +616,9 @@
       "img": "/assets/img/vacateste.jpg",
       "type": "Playlist do Usuário",
       "description": "Playlist criada por Malu.",
-      "songs": [],
+      "songs": [
+        "song-01"
+      ],
       "duration": "0 min",
       "songCount": 0
     }
