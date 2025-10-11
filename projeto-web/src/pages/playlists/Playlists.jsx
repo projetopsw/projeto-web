@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
     Modal,
     Box,
@@ -8,10 +8,25 @@ import {
     Button,
     styled
 } from '@mui/material';
+import api from '../../services/api';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchUserPlaylistsDetail } from '../../redux/loginSlice'; // Importe a thunk se necessário
 
-import playlistsData from '../musicas/playlists.json';
+const LIKED_SONGS_COVER = '/assets/img/liked_cover_0.png';
+const DEFAULT_PLAYLIST_COVER = '/assets/img/vacateste.jpg';
 
-const playlists = playlistsData;
+// REMOVEMOS O USER_ID FIXO AQUI
+
+const LIKED_SONGS_PLAYLIST = {
+    id: "0",
+    name: "Músicas Curtidas",
+    img: LIKED_SONGS_COVER,
+    type: "Playlist Especial",
+    description: "Todas as músicas que você curtiu.",
+    creator: "Você",
+    songCount: 0, 
+    duration: "0 min",
+};
 
 const ModalStyle = {
     position: 'absolute',
@@ -27,9 +42,106 @@ const ModalStyle = {
     color: 'var(--text-color)',
 };
 
+const PlaylistBox = styled('div')({
+    width: '220px', 
+    marginBottom: '25px', 
+    textDecoration: 'none',
+    color: 'inherit',
+    transition: 'transform 0.2s ease',
+    '&:hover': {
+        cursor: 'pointer',
+        transform: 'scale(1.03)',
+    },
+    
+    '& .box-content': {
+        backgroundColor: 'var(--card-bg-light)', 
+        borderRadius: '8px',
+        padding: '15px',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%', 
+    },
+    
+    '& .image-container img': {
+        width: '100%',
+        height: '180px', 
+        objectFit: 'cover',
+        borderRadius: '6px',
+        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.3)',
+    },
+    
+    '& p': {
+        marginTop: '10px',
+        fontWeight: 'bold',
+        fontSize: '1rem',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
+});
+
 function Playlists() {
+    const dispatch = useDispatch();
+    const location = useLocation();
+    
+    // PEGANDO O USUÁRIO LOGADO E O ID CORRETO
+    const { user, userPlaylistsDetail } = useSelector(state => state.auth);
+    const USER_ID = user?.id; // ID dinâmico do usuário logado
+    const userLikedSongs = user?.likedSongs || []; // Usado para re-renderizar em caso de curtida/descurtida
+
+    const [playlists, setPlaylists] = useState([]); 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newPlaylistName, setNewPlaylistName] = useState('');
+
+    const fetchPlaylists = async () => {
+        if (!USER_ID) return; 
+
+        try {
+            const userResponse = await api.get(`/users/${USER_ID}`);
+            const userData = userResponse.data;
+            const userPlaylistsIds = userData.userPlaylists || [];
+            
+            const likedSongsCount = (userData.likedSongs || []).filter(id => id).length; 
+
+            // Busca todas as playlists do usuário
+            const playlistsPromises = userPlaylistsIds.map(id => api.get(`/userPlaylists/${id}`));
+            const playlistsResponses = await Promise.all(playlistsPromises);
+            let userAllPlaylists = playlistsResponses.map(res => res.data);
+            
+            // Filtra a playlist "0" (Músicas Curtidas) e a insere manualmente com dados atualizados.
+            let userCustomPlaylists = userAllPlaylists.filter(p => p.id !== LIKED_SONGS_PLAYLIST.id);
+
+            const updatedLikedPlaylist = {
+                ...LIKED_SONGS_PLAYLIST,
+                songCount: likedSongsCount,
+                duration: `${likedSongsCount} músicas`
+            };
+
+            const finalPlaylists = [updatedLikedPlaylist, ...userCustomPlaylists];
+            setPlaylists(finalPlaylists);
+
+            // Opcional: Atualizar o Redux com a lista detalhada para uso em Song.jsx
+            dispatch(fetchUserPlaylistsDetail(USER_ID)); 
+
+        } catch (error) {
+            console.error("Erro ao buscar playlists:", error);
+            // Se houver erro, garante que a playlist de curtidas ainda seja exibida
+            setPlaylists([LIKED_SONGS_PLAYLIST]); 
+        }
+    };
+    
+    useEffect(() => {
+        fetchPlaylists();
+        // Dispara o fetch toda vez que o usuário logado muda ou a lista de músicas curtidas muda
+    }, [USER_ID, userLikedSongs.length]); 
+
+    // EFEITO para abrir o modal se houver o query param
+    useEffect(() => {
+        const query = new URLSearchParams(location.search);
+        if (query.get('openCreateModal') === 'true') {
+            handleOpen();
+        }
+    }, [location.search]);
 
     const handleOpen = () => setIsModalOpen(true);
     const handleClose = () => {
@@ -37,38 +149,104 @@ function Playlists() {
         setNewPlaylistName('');
     }
 
-    const handleCreatePlaylist = (e) => {
+    const handleCreatePlaylist = async (e) => {
         e.preventDefault();
-        if (newPlaylistName.trim()) {
-            console.log(`Criando playlist com o nome: ${newPlaylistName}`);
-            handleClose();
+        const name = newPlaylistName.trim();
+        
+        if (!USER_ID) {
+            alert("Faça login para criar uma playlist.");
+            return;
+        }
+
+        if (name) {
+            try {
+                const newPlaylist = {
+                    name,
+                    creatorId: USER_ID,
+                    img: DEFAULT_PLAYLIST_COVER, 
+                    type: "Playlist do Usuário",
+                    description: `Playlist criada por ${user.name || 'usuário'}.`, // Usa o nome do usuário
+                    songs: [], 
+                    duration: "0 min",
+                    songCount: 0,
+                };
+                
+                // 1. Cria a nova playlist na coleção userPlaylists
+                const response = await api.post('/userPlaylists', newPlaylist);
+                const createdPlaylist = response.data;
+
+                // 2. Busca a lista atual de playlists do usuário
+                const userResponse = await api.get(`/users/${USER_ID}`);
+                const currentUserPlaylists = userResponse.data.userPlaylists || [];
+                
+                // 3. Adiciona o ID da nova playlist à lista do usuário
+                const updatedPlaylistsList = [...currentUserPlaylists, createdPlaylist.id];
+
+                // 4. Atualiza o objeto do usuário na API
+                await api.patch(`/users/${USER_ID}`, { userPlaylists: updatedPlaylistsList });
+                
+                // 5. Atualiza o estado da aplicação
+                fetchPlaylists(); 
+                handleClose();
+
+            } catch (error) {
+                console.error("Erro ao criar playlist:", error);
+                alert("Não foi possível criar a playlist. Verifique a conexão com o json-server.");
+            }
         }
     };
+
 
     return (
         <main className="content-area">
             <h1>Minhas Playlists</h1>
 
-            <div className="playlists-container">
-                <div className="add-playlist" onClick={handleOpen} style={{ cursor: 'pointer' }}>
-                    <button className="btn-add-playlist"><i className="fas fa-plus"></i></button>
-                    <p>Nova Playlist</p>
-                </div>
+            <Box className="playlists-container" sx={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                gap: '25px', 
+                padding: '10px 0' 
+            }}>
+                
+                <PlaylistBox onClick={handleOpen}>
+                    <div className="box-content" style={{ 
+                        justifyContent: 'center', 
+                        alignItems: 'center', 
+                        height: '100%', 
+                        backgroundColor: 'var(--card-bg)', 
+                        border: '2px dashed var(--border-color)' 
+                    }}>
+                        <button className="btn-add-playlist" style={{ 
+                            fontSize: '40px', 
+                            color: 'var(--orange)', 
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: 0,
+                        }}>
+                            <i className="fas fa-plus"></i>
+                        </button>
+                        <p style={{ color: 'var(--secondary-text-color)', marginTop: '15px' }}>Nova Playlist</p>
+                    </div>
+                </PlaylistBox>
 
                 {playlists.map((playlist) => (
                     <Link
                         key={playlist.id}
                         to={`/playlists/${playlist.id}`}
+                        style={{ textDecoration: 'none', color: 'inherit' }}
                     >
-                        <div className="box-playlist">
-                            <div className="image-container">
-                                <img src={playlist.img} alt={`IMG Playlist: ${playlist.name}`} />
+                        <PlaylistBox>
+                            <div className="box-content">
+                                <div className="image-container">
+                                    <img src={playlist.img} alt={`IMG Playlist: ${playlist.name}`} />
+                                </div>
+                                <p>{playlist.name}</p>
                             </div>
-                            <p>{playlist.name}</p>
-                        </div>
+                        </PlaylistBox>
                     </Link>
                 ))}
-            </div>
+            </Box>
 
             <Modal
                 open={isModalOpen}

@@ -393,70 +393,70 @@
       "title": "Today’s Top Hits",
       "artist": "Spotify",
       "id": "playlist-01",
-      "userId": 1
+      "userId": "1"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Viral Hits",
       "artist": "Spotify",
       "id": "playlist-02",
-      "userId": 2
+      "userId": "2"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Pop Up",
       "artist": "Spotify",
       "id": "playlist-03",
-      "userId": 3
+      "userId": "3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Esquenta Sertanejo",
       "artist": "Spotify",
       "id": "playlist-04",
-      "userId": 4
+      "userId": "4"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Pagodeira",
       "artist": "Spotify",
       "id": "playlist-05",
-      "userId": 1
+      "userId": "1"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Funk Hits",
       "artist": "Spotify",
       "id": "playlist-06",
-      "userId": 2
+      "userId": "2"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Rock Classics",
       "artist": "Spotify",
       "id": "playlist-07",
-      "userId": 3
+      "userId": "3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Peaceful Piano",
       "artist": "Spotify",
       "id": "playlist-08",
-      "userId": 4
+      "userId": "4"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "R&B Vibes",
       "artist": "Spotify",
       "id": "playlist-09",
-      "userId": 1
+      "userId": "1"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Latin Party",
       "artist": "Spotify",
       "id": "playlist-10",
-      "userId": 2
+      "userId": "2"
     }
   ],
   "sectionsData": [
@@ -514,24 +514,15 @@
       "name": "anabel",
       "email": "anabel@email.com",
       "password": "bebel",
-      "playlists": [],
+      "userPlaylists": [
+        "0",
+        "952f",
+        "1d9f"
+      ],
       "friends": [
         "2",
         "3",
         "4"
-      ],
-      "likedSongs": [
-        null,
-        "song-02",
-        "song-01",
-        "song-06",
-        "song-12",
-        "song-16",
-        "song-11",
-        "song-04",
-        "song-09",
-        "song-07",
-        "song-15"
       ],
       "following": [
         "artist-11",
@@ -544,13 +535,14 @@
       "name": "Bia",
       "email": "bia@email.com",
       "password": "bia",
-      "playlists": [],
+      "userPlaylists": [
+        "0"
+      ],
       "friends": [
         "1",
         "3",
         "4"
       ],
-      "likedSongs": [],
       "following": [
         "artist-05"
       ]
@@ -559,7 +551,9 @@
       "id": "3",
       "name": "IgorGodoy",
       "email": "igorgodoy@email.com",
-      "likedSongs": [],
+      "userPlaylists": [
+        "0"
+      ],
       "following": [],
       "friends": [
         "1",
@@ -572,15 +566,26 @@
       "name": "Malu",
       "email": "malu@email.com",
       "password": "malu",
-      "playlists": [],
+      "userPlaylists": [
+        "0",
+        "952f",
+        "d295"
+      ],
       "friends": [
         "1",
         "2",
         "3"
       ],
-      "likedSongs": [],
       "following": [
         "artist-02"
+      ],
+      "likedSongs": [
+        "song-02",
+        "song-04",
+        "song-01",
+        "song-03",
+        "song-05",
+        "song-07"
       ]
     },
     {
@@ -588,15 +593,251 @@
       "username": "Hello",
       "email": "hello@gmail.com",
       "password": "hello",
-      "playlists": [],
+      "userPlaylists": [
+        "0"
+      ],
       "friends": [
         "1",
         "2",
         "3",
         "4"
       ],
-      "likedSongs": [],
       "following": []
+    }
+  ],
+  "userPlaylists": [
+    {
+      "id": "0",
+      "name": "Músicas Curtidas",
+      "img": "/assets/img/liked_cover_0.png",
+      "type": "Playlist do Usuário",
+      "description": "Todas as músicas que você curtiu. Clicando no coração.",
+      "creator": "Você",
+      "songs": [
+        "song-02",
+        "song-04",
+        "song-01",
+        "song-03",
+        "song-05",
+        "song-07"
+      ]
+    },
+    {
+      "id": "952f",
+      "name": "maria",
+      "creatorId": "1",
+      "img": "/assets/img/vacateste.jpg",
+      "type": "Playlist do Usuário",
+      "description": "Playlist criada por 1.",
+      "songs": [
+        "song-01"
+      ],
+      "duration": "0 min",
+      "songCount": 0
+    },
+    {
+      "id": "1d9f",
+      "name": "teste",
+      "creatorId": "1",
+      "img": "/assets/img/vacateste.jpg",
+      "type": "Playlist do Usuário",
+      "description": "Playlist criada por 1.",
+      "songs": [],
+      "duration": "0 min",
+      "songCount": 0
+    },
+    {
+      "id": "d295",
+      "name": "teste2",
+      "creatorId": "4",
+      "img": "/assets/img/vacateste.jpg",
+      "type": "Playlist do Usuário",
+      "description": "Playlist criada por Malu.",
+      "songs": [
+        "song-05"
+      ],
+      "duration": "0 min",
+      "songCount": 0
+    }
+  ],
+  "allSongs": [
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Houdini",
+      "artist": "Dua Lipa",
+      "id": "song-01",
+      "artistId": "artist-01",
+      "album": "Radical Optimism",
+      "added": "2 meses atrás",
+      "duration": "3:05",
+      "caminho": "/assets/audio/ambientpiano.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Espresso",
+      "artist": "Sabrina Carpenter",
+      "id": "song-02",
+      "artistId": "artist-11",
+      "album": "Short n' Sweet",
+      "added": "1 mês atrás",
+      "duration": "2:55",
+      "caminho": "/assets/audio/deepsnowcap.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Cruel Summer",
+      "artist": "Taylor Swift",
+      "id": "song-03",
+      "artistId": "artist-02",
+      "album": "Lover",
+      "added": "10 meses atrás",
+      "duration": "2:58",
+      "caminho": "/assets/audio/fastrock.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Flowers",
+      "artist": "Miley Cyrus",
+      "id": "song-04",
+      "artistId": "artist-12",
+      "album": "Endless Summer Vacation",
+      "added": "1 ano atrás",
+      "duration": "3:20",
+      "caminho": "/assets/audio/happybirthday.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Blinding Lights",
+      "artist": "The Weeknd",
+      "id": "song-05",
+      "artistId": "artist-03",
+      "album": "After Hours",
+      "added": "2 anos atrás",
+      "duration": "3:21",
+      "caminho": "/assets/audio/relaxingpiano.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Despacito",
+      "artist": "Luis Fonsi, Daddy Yankee",
+      "id": "song-06",
+      "artistId": "artist-13",
+      "album": "Vida",
+      "added": "4 anos atrás",
+      "duration": "3:49",
+      "caminho": "/assets/audio/rockmotivational.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Shivers",
+      "artist": "Ed Sheeran",
+      "id": "song-07",
+      "artistId": "artist-04",
+      "album": "=",
+      "added": "2 anos atrás",
+      "duration": "3:27",
+      "caminho": "/assets/audio/rockthunder.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Leão",
+      "artist": "Marília Mendonça",
+      "id": "song-08",
+      "artistId": "artist-05",
+      "album": "Ao Vivo",
+      "added": "8 meses atrás",
+      "duration": "3:01",
+      "caminho": "/assets/audio/runningnight.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Nosso Quadro",
+      "artist": "Ana Castela",
+      "id": "song-09",
+      "artistId": "artist-14",
+      "album": "Boiadeira Internacional",
+      "added": "1 ano atrás",
+      "duration": "2:36",
+      "caminho": "/assets/audio/softpiano.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "OLHO MARROM - Ao Vivo",
+      "artist": "Luan Santana",
+      "id": "song-10",
+      "artistId": "artist-15",
+      "album": "LUAN CITY 2.0",
+      "added": "5 meses atrás",
+      "duration": "3:10",
+      "caminho": "/assets/audio/ambientpiano.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Coração Cachorro",
+      "artist": "Ávine Vinny, Matheus Fernandes",
+      "id": "song-11",
+      "artistId": "artist-16",
+      "album": "Singles",
+      "added": "3 anos atrás",
+      "duration": "2:50",
+      "caminho": "/assets/audio/deepsnowcap.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Tá Ok",
+      "artist": "Dennis, Kevin O Chris",
+      "id": "song-12",
+      "artistId": "artist-17",
+      "album": "O Mais Brabo do Funk",
+      "added": "7 meses atrás",
+      "duration": "2:45",
+      "caminho": "/assets/audio/fastrock.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Lovezinho",
+      "artist": "Trell, Anitta",
+      "id": "song-13",
+      "artistId": "artist-08",
+      "album": "Love",
+      "added": "9 meses atrás",
+      "duration": "3:00",
+      "caminho": "/assets/audio/happybirthday.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Calm Down",
+      "artist": "Rema, Selena Gomez",
+      "id": "song-14",
+      "artistId": "artist-18",
+      "album": "Rave & Roses Ultra",
+      "added": "1 ano atrás",
+      "duration": "3:59",
+      "caminho": "/assets/audio/relaxingpiano.mp3"
+    },
+    {
+      "cover": "https://placehold.co/600x600",
+      "title": "Die For You",
+      "artist": "The Weeknd, Ariana Grande",
+      "id": "song-15",
+      "artistId": "artist-03",
+      "album": "Starboy",
+      "added": "2 anos atrás",
+      "duration": "3:11",
+      "caminho": "/assets/audio/rockmotivational.mp3"
+    },
+    {
+      "id": "song-16",
+      "title": "Una Noche Más",
+      "artist": "TINI",
+      "artistId": "artist-19",
+      "cover": "https://placehold.co/600x600",
+      "duration": "2:39",
+      "album": "Cupido",
+      "added": "1 semana atrás",
+      "releaseDate": "2025-10-09T00:00:00.000Z",
+      "recordLabel": "Hollywood Records",
+      "caminho": "/assets/audio/rockthunder.mp3"
     }
   ]
 }

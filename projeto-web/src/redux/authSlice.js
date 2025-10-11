@@ -4,129 +4,72 @@ import axios from 'axios';
 
 const LIKED_SONGS_ID = "0";
 
-// Tenta carregar o usuário do localStorage e garante que as listas sejam arrays
-const loadUserFromLocalStorage = () => {
-    try {
-        const serializedUser = localStorage.getItem('user');
-        if (serializedUser === null) {
-            return null;
-        }
-        const user = JSON.parse(serializedUser);
-        if (user) {
-            user.likedSongs = user.likedSongs || [];
-            user.userPlaylists = user.userPlaylists || [];
-        }
-        return user;
-    } catch (e) {
-        console.error("Erro ao carregar usuário do localStorage:", e);
-        return null;
-    }
-};
-
-const initialUser = loadUserFromLocalStorage();
-
-
-// ----------------------------------------------------
-// THUNKS ASSÍNCRONOS (COM SINCRONIZAÇÃO DUPLA)
-// ----------------------------------------------------
-
 export const toggleLikeSongAsync = createAsyncThunk(
     'auth/toggleLikeSong',
-    // Não precisa de currentLikedSongs nos argumentos, pegamos via getState se necessário,
-    // mas o Song.jsx já envia, então podemos manter a assinatura atual para simplificar.
     async ({ userId, songId, currentLikedSongs }, { rejectWithValue }) => {
-        const cleanLikedSongs = (currentLikedSongs || []).filter(Boolean);
-        const isLiked = cleanLikedSongs.includes(songId);
+        const isLiked = currentLikedSongs.includes(songId);
         
-        // Determina a nova lista de likedSongs do usuário
         const newLikedSongs = isLiked
-            ? cleanLikedSongs.filter(id => id !== songId) // Descurtir
-            : [...cleanLikedSongs, songId]; // Curtir
+            ? currentLikedSongs.filter(id => id !== songId) 
+            : [...currentLikedSongs, songId]; 
         
         try {
-            // 1. ATUALIZAÇÃO DO USUÁRIO (users.likedSongs)
             await api.patch(`/users/${userId}`, { likedSongs: newLikedSongs });
-
-            // 2. ATUALIZAÇÃO DA PLAYLIST FÍSICA 'MÚSICAS CURTIDAS' (userPlaylists/0)
-            // No json-server, o PATCH em um array sobrescreve. 
-            // Como newLikedSongs é o array desejado, o PATCH diretamente é o ideal.
-            await api.patch(`/userPlaylists/${LIKED_SONGS_ID}`, { songs: newLikedSongs });
-
-            // Retorna o novo array de likedSongs para atualizar o estado Redux do usuário
             return newLikedSongs; 
-
         } catch (error) {
-            console.error("Erro na dupla atualização de curtir:", error);
-            return rejectWithValue(error.response?.data || 'Falha ao curtir/descurtir música na API.');
+            return rejectWithValue(error.response.data);
         }
     }
 );
 
 export const addSongToPlaylistAsync = createAsyncThunk(
     'auth/addSongToPlaylist',
-    // Pegamos o estado atual via getState
-    async ({ userId, playlistId, songId }, { rejectWithValue, dispatch, getState }) => {
-        
+    async ({ userId, playlistId, songId }, { rejectWithValue }) => {
         try {
             if (playlistId === LIKED_SONGS_ID) {
-                // Se o usuário está tentando adicionar à playlist "Músicas Curtidas"
-                const state = getState();
-                const currentLikedSongs = state.auth.user?.likedSongs || [];
+                const userResponse = await api.get(`/users/${userId}`);
+                const currentLikedSongs = userResponse.data.likedSongs || [];
                 
-                // Se a música já estiver curtida, avisa e não faz nada
-                if (currentLikedSongs.includes(songId)) {
-                    return { songId: null, playlistId: LIKED_SONGS_ID, added: false, message: "Música já curtida." };
+                if (!currentLikedSongs.includes(songId)) {
+                    const newLikedSongs = [...currentLikedSongs, songId].filter(Boolean);
+                    await api.patch(`/users/${userId}`, { likedSongs: newLikedSongs });
+                    return { songId, playlistId: LIKED_SONGS_ID, added: true };
                 }
-                
-                // Se não estiver, chamamos a thunk principal de toggle para curtir a música.
-                // Isso garante a sincronização completa (users + userPlaylists/0)
-                await dispatch(toggleLikeSongAsync({ userId, songId, currentLikedSongs })).unwrap();
-                
-                return { songId, playlistId: LIKED_SONGS_ID, added: true, message: "Música curtida com sucesso!" };
-
+                return { songId: null, playlistId: LIKED_SONGS_ID, added: false };
             } else {
-                // Lógica para playlists personalizadas (inalterada)
                 const playlistResponse = await api.get(`/userPlaylists/${playlistId}`);
                 const currentSongs = playlistResponse.data.songs || [];
 
                 if (!currentSongs.includes(songId)) {
                     const updatedSongs = [...currentSongs, songId];
                     await api.patch(`/userPlaylists/${playlistId}`, { songs: updatedSongs });
-                    
-                    // Retorna a lista completa de músicas atualizada da playlist personalizada
-                    return { songId, playlistId, updatedSongs, added: true, message: "Adicionada à playlist com sucesso!" };
+                    return { songId, playlistId, added: true };
                 }
-                
-                return { songId: null, playlistId, added: false, message: "Música já está nesta playlist." };
+                return { songId: null, playlistId, added: false };
             }
         } catch (error) {
-            // Trata o erro, incluindo os erros da toggleLikeSongAsync
-            const errorMessage = error.message || 'Falha ao adicionar música à playlist.';
-            return rejectWithValue(errorMessage);
+            return rejectWithValue(error.response.data);
         }
     }
 );
 
-// Thunk de busca de detalhes de playlist (Ajustada para usar o userPlaylistsIds)
 export const fetchUserPlaylistsDetail = createAsyncThunk(
     'auth/fetchUserPlaylistsDetail',
     async (userId, { rejectWithValue }) => {
         try {
             const userResponse = await api.get(`/users/${userId}`);
-            // Pega todos os IDs, incluindo '0'
-            const userPlaylistsIds = userResponse.data.userPlaylists || []; 
+            const userPlaylistsIds = userResponse.data.userPlaylists || [];
             
             const promises = userPlaylistsIds.map(id => api.get(`/userPlaylists/${id}`));
             const responses = await Promise.all(promises);
 
             return responses.map(response => response.data);
         } catch (error) {
-            return rejectWithValue(error.response?.data || 'Falha ao buscar detalhes das playlists.');
+            return rejectWithValue(error.response.data);
         }
     }
 );
 
-// ... (toggleFollowArtistAsync e fetchUsersByIds inalteradas)
 export const toggleFollowArtistAsync = createAsyncThunk(
     'auth/toggleFollowArtist',
     async ({ userId, artistId, currentFollowing }, { rejectWithValue }) => {
@@ -140,7 +83,7 @@ export const toggleFollowArtistAsync = createAsyncThunk(
             await api.patch(`/users/${userId}`, { following: newFollowing });
             return newFollowing;
         } catch (error) {
-            return rejectWithValue(error.response?.data || 'Falha ao seguir/deixar de seguir artista.');
+            return rejectWithValue(error.response.data);
         }
     }
 );
@@ -168,9 +111,9 @@ export const fetchUsersByIds = createAsyncThunk(
 
 
 const initialState = {
-    user: initialUser,
-    isAuthenticated: !!initialUser, 
-    token: localStorage.getItem('token') || null,
+    user: null,
+    isAuthenticated: false,
+    token: null,
     userPlaylistsDetail: [], 
     playlistsStatus: 'idle',
     friends: {
@@ -204,30 +147,12 @@ const authSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            // ************ HANDLER CORAÇÃO/MÚSICAS CURTIDAS ************
-            // toggleLikeSongAsync: Atualiza user.likedSongs
             .addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
-                // A payload é o novo array likedSongs, já validado pela API
                 if (state.user) {
                     state.user.likedSongs = action.payload;
                     localStorage.setItem('user', JSON.stringify(state.user));
                 }
             })
-            // addSongToPlaylistAsync.fulfilled: O case LIKED_SONGS_ID chama toggleLikeSongAsync acima,
-            // então ele só precisa atualizar playlists personalizadas.
-            .addCase(addSongToPlaylistAsync.fulfilled, (state, action) => {
-                const { songId, playlistId, added, updatedSongs } = action.payload;
-                
-                if (added && songId && playlistId !== LIKED_SONGS_ID) {
-                    // Atualiza apenas playlists PERSONALIZADAS (Id != 0) no Redux
-                    const playlist = state.userPlaylistsDetail.find(p => p.id === playlistId);
-                    if (playlist) {
-                        playlist.songs = updatedSongs;
-                    }
-                }
-                // Se playlistId === LIKED_SONGS_ID, a atualização é feita pelo handler toggleLikeSongAsync.fulfilled
-            })
-            // ************ OUTROS HANDLERS ************
             .addCase(toggleFollowArtistAsync.fulfilled, (state, action) => {
                 if (state.user) {
                     state.user.following = action.payload;
@@ -244,6 +169,24 @@ const authSlice = createSlice({
             .addCase(fetchUserPlaylistsDetail.rejected, (state) => {
                 state.playlistsStatus = 'failed';
                 state.userPlaylistsDetail = [];
+            })
+            .addCase(addSongToPlaylistAsync.fulfilled, (state, action) => {
+                const { songId, playlistId, added } = action.payload;
+                
+                if (added && songId) {
+                    if (playlistId === LIKED_SONGS_ID) {
+                        if (state.user && !state.user.likedSongs.includes(songId)) {
+                            state.user.likedSongs.push(songId);
+                            localStorage.setItem('user', JSON.stringify(state.user));
+                        }
+                    } else {
+                        const playlist = state.userPlaylistsDetail.find(p => p.id === playlistId);
+                        if (playlist && !playlist.songs.includes(songId)) {
+                            playlist.songs.push(songId);
+                            playlist.songCount = playlist.songs.length;
+                        }
+                    }
+                }
             })
             .addCase(fetchUsersByIds.pending, (state) => {
                 state.friends.status = 'loading';
