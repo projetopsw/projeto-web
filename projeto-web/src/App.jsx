@@ -18,6 +18,8 @@ import Perfil from './pages/perfil/Perfil.jsx'
 import ProtectedRoute from './components/ProtectedRoute'
 import MainLayout from './components/MainLayout'
 import ProfileEdition from "./components/ProfileEdition.jsx";
+import Conexoes from './components/Conexoes';
+
 
 function App() {
   return (
@@ -42,8 +44,10 @@ function App() {
           <Route path="/artistDetail/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
           <Route path="/artist/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
           <Route path="/fila" element={<ProtectedRoute><FilaPage /></ProtectedRoute>} />
-           <Route path="/perfil/editar" element={<ProfileEdition />} /> 
-
+          <Route path="/perfil/editar" element={<ProfileEdition />} /> 
+          <Route path="/perfil/:userId" element={<Perfil />} /> 
+          <Route path="/conexoes" element={<ProtectedRoute><Conexoes /></ProtectedRoute>} /> 
+          
         </Route>
         <Route path="*" element={<main><h1>Página Não Encontrada (404)</h1></main>} />
       </Routes>

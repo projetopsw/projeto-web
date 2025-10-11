@@ -55,43 +55,26 @@ body.light-theme {
 
 
 .main-content-area {
-    /* Define a área de conteúdo como uma caixa que ocupa o espaço restante */
-    position: absolute;
-    top: 50px; /* Ajuste para começar logo abaixo do menu-cima (aprox. 50px) */
-    bottom: 0;    /* Mantém o espaço acima do footer */
-    left: 0;
-    right: 0;
-    
-    /* Permite scroll SÓ aqui dentro */
-    overflow-y: auto;
-    
-    z-index: 1; /* Garante que fique acima do fundo fixo (-1) */
-    background-color: transparent; /* Mantenha transparente para ver o fundo */
+    position: relative; 
+    z-index: 1; 
+    background-color: var(--main-bg); 
+    overflow: hidden; 
 }
 
-/* Remova background-color: var(--main-bg) e overflow: hidden do main-content-area, 
-   se ainda estiverem lá, para usar os estilos acima. */
-
-/* Ajuste o left no media query para a sidebar */
-@media (min-width: 900px) {
-    .main-content-area {
-        left: 80px; /* Se a sidebar tem 60px e você quer 20px de padding, use 80px */
-    }
-}
 /* 4. Overlay de Padrão de Vaca (Padrão/Escuro) */
 .main-content-area::before {
     content: "";
-    position: fixed; /* MUDANÇA CRUCIAL 1: Fixa a posição na viewport */
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    height: 100vh; 
+    height: 100%;
     
     background-image: url('/assets/img/cowpatterns.png');
     background-repeat: repeat;
-    background-attachment: fixed;
     
-    opacity: var(--cow-opacity);
+    /* A opacidade é dinâmica, lendo a variável */
+    opacity: var(--cow-opacity); 
     
     z-index: -1; 
 }
@@ -441,25 +424,19 @@ body.light-theme {
 }
 
 .main-content-area {
-  /* Define a área de conteúdo como uma caixa que ocupa o espaço restante */
   position: absolute;
   top: 0;      
   bottom: 0;    
   left: 0;        
   right: 0;    
-  
-  /* Permite scroll SÓ aqui dentro */
   overflow-y: auto;
   
-  /* Adiciona um espaçamento interno mais ajustado */
-  /* padding-right: 2.5rem;  */
 }
 
-/* Adiciona espaçamento para a Sidebar APENAS em telas de desktop */
-/* O valor 900px corresponde ao breakpoint 'md' do Material-UI */
 @media (min-width: 900px) {
   .main-content-area {
-    /* Afasta o conteúdo da Sidebar (80px) */
     left: 20px;
   }
 }
+
+

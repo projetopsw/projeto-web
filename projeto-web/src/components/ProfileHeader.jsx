@@ -2,11 +2,12 @@ import React from 'react';
 import { Box, Typography, Avatar, Button, IconButton } from '@mui/material';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 
-export default function ProfileHeader({ user, onEditClick, onImageEditClick }) {
+export default function ProfileHeader({ user, onEditClick, onImageEditClick, onFriendsClick }) {
     
     const DYNAMIC_TEXT_COLOR = 'var(--secondary-text-color)'; 
-    const ORANGE_COLOR = 'var(--orange)';                     
-    const BUTTON_HOVER_BG = 'var(--button-hover-bg)';         
+    const ORANGE_COLOR = 'var(--orange)'; 
+    const BUTTON_HOVER_BG = 'var(--button-hover-bg)'; 
+    const CLICKABLE_HOVER_COLOR = 'var(--text-primary)';
 
     const safeUser = {
         username: 'Carregando...',
@@ -16,7 +17,6 @@ export default function ProfileHeader({ user, onEditClick, onImageEditClick }) {
         ...user
     };
     
-    // ADICIONE ESTE LOG DE DEBUG
     console.log("ProfileHeader - SafeUser Recebido:", safeUser);
 
     return (
@@ -63,14 +63,31 @@ export default function ProfileHeader({ user, onEditClick, onImageEditClick }) {
                     {safeUser.username}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: { xs: 'center', sm: 'flex-start' }, flexWrap: 'wrap' }}>
+                    
                     <Typography variant="body1" sx={{ color: DYNAMIC_TEXT_COLOR }}>
                         {safeUser.playlists} Playlists 
                     </Typography>
                     <Typography variant="body1" sx={{ color: DYNAMIC_TEXT_COLOR }}>•</Typography>
-                    <Typography variant="body1" sx={{ color: DYNAMIC_TEXT_COLOR }}>
+                    
+                    <Typography 
+                        variant="body1" 
+                        onClick={onFriendsClick}
+                        sx={{ 
+                            color: DYNAMIC_TEXT_COLOR,
+                            ...(onFriendsClick && {
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                                '&:hover': {
+                                    color: CLICKABLE_HOVER_COLOR,
+                                }
+                            })
+                        }}
+                    >
                         {safeUser.friends} Peões Amigos
                     </Typography>
+                    
                     <Typography variant="body1" sx={{ color: DYNAMIC_TEXT_COLOR }}>•</Typography>
+                    
                     <Typography variant="body1" sx={{ color: DYNAMIC_TEXT_COLOR }}>
                         Seguindo {safeUser.following.length} artista(s)
                     </Typography>
