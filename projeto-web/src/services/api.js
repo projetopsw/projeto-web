@@ -25,8 +25,13 @@ function resolveBaseURL() {
   return `${protocol}://${hostPart}:${port}`;
 }
 
+const finalBaseURL = resolveBaseURL();
+
+// ⚠️ COMANDO DE LOG ADICIONADO AQUI PARA DIAGNÓSTICO
+console.log("Axios Base URL para a API:", finalBaseURL);
+
 const api = axios.create({
-  baseURL: resolveBaseURL(),
+  baseURL: finalBaseURL,
   timeout: 8000,
 });
 
