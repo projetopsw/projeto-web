@@ -511,9 +511,10 @@
   "users": [
     {
       "id": "1",
-      "name": "anabel",
+      "name": "Anabel",
       "email": "anabel@email.com",
       "password": "bebel",
+      "image": "/assets/img/user_anabel.png",
       "userPlaylists": [
         "0"
       ],
@@ -526,6 +527,14 @@
         "artist-11",
         "artist-01",
         "artist-02"
+      ],
+      "likedSongs": [
+        "song-01",
+        "song-02"
+      ],
+      "pendingRequests": [
+        "101",
+        "102"
       ]
     },
     {
@@ -533,6 +542,7 @@
       "name": "Bia",
       "email": "bia@email.com",
       "password": "bia",
+      "image": "/assets/img/user_bia.png",
       "userPlaylists": [
         "0"
       ],
@@ -543,12 +553,15 @@
       ],
       "following": [
         "artist-05"
-      ]
+      ],
+      "likedSongs": []
     },
     {
       "id": "3",
       "name": "IgorGodoy",
       "email": "igorgodoy@email.com",
+      "password": "igor",
+      "image": "https://placehold.co/400x400?text=Igor",
       "userPlaylists": [
         "0"
       ],
@@ -564,6 +577,7 @@
       "name": "Malu",
       "email": "malu@email.com",
       "password": "malu",
+      "image": "https://placehold.co/400x400?text=Malu",
       "userPlaylists": [
         "0",
         "89dd"
@@ -582,18 +596,55 @@
     },
     {
       "id": "e297",
+      "name": "Hello",
       "username": "Hello",
       "email": "hello@gmail.com",
       "password": "hello",
+      "image": "https://placehold.co/400x400?text=Hello",
       "userPlaylists": [
         "0"
       ],
-      "friends": [
-        "1",
-        "2",
-        "3",
-        "4"
-      ],
+      "friends": [],
+      "following": []
+    },
+    {
+      "id": "101",
+      "name": "Maria Fofoqueira",
+      "username": "maria.fofo",
+      "email": "maria@fofo.com",
+      "password": "123",
+      "image": "https://placehold.co/400x400?text=Pedido+1",
+      "friends": [],
+      "following": []
+    },
+    {
+      "id": "102",
+      "name": "Zé Capataz",
+      "username": "zecapataz",
+      "email": "ze@capataz.com",
+      "password": "123",
+      "image": "https://placehold.co/400x400?text=Pedido+2",
+      "friends": [],
+      "following": []
+    },
+    {
+      "id": "201",
+      "name": "Pedro Mugido",
+      "username": "pedro.mugido",
+      "email": "pedro@mugido.com",
+      "password": "123",
+      "image": "https://placehold.co/400x400?text=Sugestão+1",
+      "friends": [],
+      "following": []
+    },
+    {
+      "id": "202",
+      "name": "Carla Cangaia",
+      "username": "carla.cangaia",
+      "email": "carla@cangaia.com",
+      "password": "123",
+      "image": "https://placehold.co/400x400?text=Sugestão+2",
+      "friends": [],
       "following": []
     }
   ],
@@ -605,9 +656,7 @@
       "type": "Playlist do Usuário",
       "description": "Todas as músicas que você curtiu. Clicando no coração.",
       "creator": "Você",
-      "songs": [
-        "song-01"
-      ]
+      "songs": []
     },
     {
       "id": "89dd",
