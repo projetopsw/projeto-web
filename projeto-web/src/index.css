@@ -24,27 +24,34 @@
     --button-hover-bg: #333;
     --button-hover-color: #e0e0e0;
 }
-
 body.light-theme {
-    --bg-color: #fcf9f2;
+    --bg-color: #fdfaf5;
+    --main-bg: #f9f5ef; /* levemente mais escuro que branco */
     --header-bg: #e8e3d9;
     --sidebar-bg: #e8e3d9;
     --card-bg: #ffffff;
-    --text-color: #3b2c21;
-    --secondary-text-color: #69645e;
-    --input-bg: #d1cbc0;
-    --input-text-color: #554433;
-    --icon-color: #554433;
-    --orange: #ff7533;
+    --text-color: #2a1f15;
+    --secondary-text-color: #5a4e40;
+    --title-color: #1c140c;
+    --artist-color: #3c3024;
+    --input-bg: #d8d2c8;
+    --input-text-color: #3c3327;
+    --icon-color: #3c3327;
+    --orange: #ff7b33;
     --darker-orange: #a64c1e;
-    --footer-bg: #e8e3d9;
-    --shadow-color-dark: rgba(0, 0, 0, 0.1);
-    --shadow-color-light: rgba(0, 0, 0, 0.2);
-    --border-color: #e5e0d6;
+    --footer-bg: #ece6dc;
+    --shadow-color-dark: rgba(0, 0, 0, 0.08);
+    --shadow-color-light: rgba(0, 0, 0, 0.18);
+    --border-color: #eae3d8;
     --theme-icon: #2c2c2c;
-    --button-hover-bg: #ddd;
-    --button-hover-color: #333;
+    --button-hover-bg: #efeae1;
+    --button-hover-color: #1a1a1a;
+    --cow-opacity: 0.05; /* menos visível */
 }
+
+
+
+
 :root {
     --cow-opacity: 0.5; 
 }
