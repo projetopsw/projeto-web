@@ -77,7 +77,7 @@ export default function Conexoes() {
                                                  : { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } })
                                          }}
                                          onClick={() => handleToggleRequest(sug)}>
-=                                         {isSent ? 'Enviado' : 'Adicionar'}
+                                         {isSent ? 'Enviado' : 'Adicionar'}
                                      </Button>
                                  </Box>
                              );
