@@ -1,11 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
-// 🚨 CERTIFIQUE-SE DE QUE ESTA IMPORTAÇÃO ESTÁ CORRETA 🚨
 import { setUserData } from './userSlice'; 
 
 const API_URL = 'http://localhost:3001/users';
 
-// --- Thunks Assíncronos ---
 
 export const fetchConnectionsData = createAsyncThunk(
     'connections/fetchData',
@@ -90,22 +88,18 @@ export const toggleFriendRequest = createAsyncThunk(
 
 export const acceptFriendRequest = createAsyncThunk(
     'connections/acceptRequest',
-    // O requester agora é robusto para ser o objeto ou apenas o ID (caso o componente envie errado)
     async ({ accepterId, requester }, { dispatch, rejectWithValue }) => {
         const accepterIdStr = String(accepterId);
         
-        // CORREÇÃO ROBUSTA: Pega o ID seja de requester.id ou se requester for o próprio ID
         const requesterIdStr = String(requester.id || requester); 
 
         try {
-            // Se o requester não for um objeto completo, buscamos ele (garantindo o objeto para o retorno)
             let requesterProfile = requester;
             if (!requesterProfile.name) { 
                 const res = await fetch(`${API_URL}/${requesterIdStr}`);
                 requesterProfile = await res.json();
             }
 
-            // 1. Atualiza o Aceitador (Você) - Remove de pendentes e adiciona a amigos
             const accepterResponse = await fetch(`${API_URL}/${accepterIdStr}`);
             const accepter = await accepterResponse.json();
 
@@ -119,7 +113,6 @@ export const acceptFriendRequest = createAsyncThunk(
                 body: JSON.stringify(updatedAccepterFields),
             }).then(res => res.json());
 
-            // 2. Atualiza o Requerente (Novo Amigo) - Adiciona você a lista de amigos dele
             const updatedRequesterFields = {
                 friends: [...(requesterProfile.friends || []).map(String), accepterIdStr]
             };
@@ -129,10 +122,8 @@ export const acceptFriendRequest = createAsyncThunk(
                 body: JSON.stringify(updatedRequesterFields),
             }).then(res => res.json());
             
-            // 3. Atualiza o usuário logado no Redux principal
             dispatch(setUserData(accepterUpdate));
             
-            // Retorna o perfil COMPLETO do novo amigo (requerido pelo reducer)
             return requesterUpdate; 
 
         } catch (error) {
@@ -177,7 +168,6 @@ export const declineFriendRequest = createAsyncThunk(
     }
 );
 
-// --- SLICE ---
 const connectionsSlice = createSlice({
     name: 'connections',
     initialState: {
@@ -191,7 +181,6 @@ const connectionsSlice = createSlice({
     reducers: {},
     extraReducers: (builder) => {
         builder
-            // --- fetchConnectionsData ---
             .addCase(fetchConnectionsData.pending, (state) => {
                 state.status = 'loading';
             })
@@ -207,7 +196,6 @@ const connectionsSlice = createSlice({
                 state.error = action.payload;
             })
             
-            // --- toggleFriendRequest (Enviar/Cancelar) ---
             .addCase(toggleFriendRequest.fulfilled, (state, action) => {
                 const { updatedTargetUser, type } = action.payload;
                 const targetIdStr = String(updatedTargetUser.id);
@@ -226,7 +214,6 @@ const connectionsSlice = createSlice({
                 }
             })
 
-            // --- acceptFriendRequest (Aceitar) ---
             .addCase(acceptFriendRequest.fulfilled, (state, action) => {
                 const newFriend = action.payload;
                 
@@ -237,19 +224,15 @@ const connectionsSlice = createSlice({
 
                 const newFriendIdStr = String(newFriend.id);
                 
-                // 1. Adiciona à lista de Amigos (checa duplicidade)
                 if (!state.friends.some(f => String(f.id) === newFriendIdStr)) {
                     state.friends.push(newFriend);
                 }
                 
-                // 2. Remove de Pedidos Pendentes
                 state.pendingRequests = state.pendingRequests.filter(req => String(req.id) !== newFriendIdStr);
                 
-                // 3. Remove de sugestões
                 state.suggestions = state.suggestions.filter(sug => String(sug.id) !== newFriendIdStr);
             })
 
-            // --- declineFriendRequest (Recusar) ---
             .addCase(declineFriendRequest.fulfilled, (state, action) => {
                 const { declinedRequestId } = action.payload;
                 const declinedIdStr = String(declinedRequestId);

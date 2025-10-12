@@ -36,13 +36,11 @@ export default function Conexoes() {
         if (sentRequests.some(req => req.id === targetUser.id)) {
             alert(`Pedido para ${targetUser.name} cancelado.`);
         } else {
-            // Alterado de 'Conectar' para 'Adicionar'
             alert(`Pedido para ${targetUser.name} enviado!`); 
         }
     };
 
     const handleAcceptRequest = (requester) => {
-        // CORREÇÃO CRÍTICA: Passando o OBJETO COMPLETO 'requester'
         dispatch(acceptFriendRequest({ accepterId: currentUser.id, requester: requester }));
         alert(`Você agora está conectado com ${requester.name}!`);
     };
@@ -79,8 +77,7 @@ export default function Conexoes() {
                                                  : { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } })
                                          }}
                                          onClick={() => handleToggleRequest(sug)}>
-                                         {/* 🟢 ALTERADO DE 'Conectar' PARA 'Adicionar' */}
-                                         {isSent ? 'Enviado' : 'Adicionar'}
+=                                         {isSent ? 'Enviado' : 'Adicionar'}
                                      </Button>
                                  </Box>
                              );
