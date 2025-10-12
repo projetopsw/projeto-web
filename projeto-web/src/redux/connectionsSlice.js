@@ -1,58 +1,35 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
-import { setUserData } from './userSlice'; 
-
 const API_URL = 'http://localhost:3001/users';
-
 
 export const fetchConnectionsData = createAsyncThunk(
     'connections/fetchData',
     async (currentUserId, { rejectWithValue }) => {
         try {
-            const currentUserIdStr = String(currentUserId);
             const allUsers = await (await fetch(API_URL)).json();
-            
-            const userMap = allUsers.reduce((map, user) => {
-                map[String(user.id)] = user;
-                return map;
-            }, {});
+            const currentUser = allUsers.find(u => u.id === currentUserId);
 
-            const currentUser = userMap[currentUserIdStr];
             if (!currentUser) {
-                return rejectWithValue('Usuário atual não encontrado no banco de dados.');
+                return rejectWithValue('Usuário atual não encontrado.');
             }
 
-            const friendsIds = new Set((currentUser.friends || []).map(String));
-            const pendingIds = new Set((currentUser.friendshipRequests || []).map(String));
-            
-            const knownIds = new Set([...friendsIds, ...pendingIds, currentUserIdStr]);
+            const fetchDetails = (ids) => allUsers.filter(u => ids.includes(u.id));
 
-            const friends = Array.from(friendsIds)
-                                .map(id => userMap[id])
-                                .filter(user => user != null); 
+            const friends = fetchDetails(currentUser.friends);
+            const pendingRequests = fetchDetails(currentUser.friendshipRequests);
 
-            const pendingRequests = Array.from(pendingIds)
-                                        .map(id => userMap[id])
-                                        .filter(user => user != null);
+            const sentRequestsUsers = allUsers.filter(u => u.friendshipRequests.includes(currentUserId));
+            const sentRequestIds = sentRequestsUsers.map(u => u.id);
 
-
-            const sentRequests = allUsers.filter(user => {
-                const userIdStr = String(user.id);
-                if (userIdStr !== currentUserIdStr && (user.friendshipRequests || []).map(String).includes(currentUserIdStr)) {
-                    knownIds.add(userIdStr);
-                    return true;
-                }
-                return false;
-            });
-            
-            const suggestions = allUsers.filter(user => 
-                !knownIds.has(String(user.id))
+            const suggestions = allUsers.filter(user =>
+                user.id !== currentUserId &&
+                !currentUser.friends.includes(user.id) &&
+                !currentUser.friendshipRequests.includes(user.id) &&
+                !sentRequestIds.includes(user.id)
             );
             
-            return { friends, pendingRequests, sentRequests, suggestions };
-
+            return { friends, pendingRequests, sentRequests: sentRequestsUsers, suggestions };
         } catch (error) {
-            console.error("Erro ao buscar dados de conexões:", error);
             return rejectWithValue(error.message);
         }
     }
@@ -62,24 +39,19 @@ export const fetchConnectionsData = createAsyncThunk(
 export const toggleFriendRequest = createAsyncThunk(
     'connections/toggleRequest',
     async ({ currentUserId, targetUser }, { rejectWithValue }) => {
-        const currentUserIdStr = String(currentUserId);
-        const targetUserIdStr = String(targetUser.id);
-
-        const isRequestPending = (targetUser.friendshipRequests || []).map(String).includes(currentUserIdStr);
-        
-        const updatedRequests = isRequestPending
-            ? (targetUser.friendshipRequests || []).map(String).filter(id => id !== currentUserIdStr)
-            : [...(targetUser.friendshipRequests || []).map(String), currentUserIdStr];
+        const isAlreadySent = targetUser.friendshipRequests.includes(currentUserId);
+        const updatedRequests = isAlreadySent
+            ? targetUser.friendshipRequests.filter(id => id !== currentUserId)
+            : [...targetUser.friendshipRequests, currentUserId];
 
         try {
-            const response = await fetch(`${API_URL}/${targetUserIdStr}`, {
+            const response = await fetch(`${API_URL}/${targetUser.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ friendshipRequests: updatedRequests }),
             });
             const data = await response.json();
-            
-            return { updatedTargetUser: data, type: isRequestPending ? 'cancel' : 'send' };
+            return { updatedTargetUser: data, wasSent: isAlreadySent };
         } catch (error) {
             return rejectWithValue(error.message);
         }
@@ -88,80 +60,53 @@ export const toggleFriendRequest = createAsyncThunk(
 
 export const acceptFriendRequest = createAsyncThunk(
     'connections/acceptRequest',
-    async ({ accepterId, requester }, { dispatch, rejectWithValue }) => {
-        const accepterIdStr = String(accepterId);
-        
-        const requesterIdStr = String(requester.id || requester); 
-
+    async ({ accepterId, requester }, { rejectWithValue }) => {
         try {
-            let requesterProfile = requester;
-            if (!requesterProfile.name) { 
-                const res = await fetch(`${API_URL}/${requesterIdStr}`);
-                requesterProfile = await res.json();
-            }
-
-            const accepterResponse = await fetch(`${API_URL}/${accepterIdStr}`);
+            const accepterResponse = await fetch(`${API_URL}/${accepterId}`);
             const accepter = await accepterResponse.json();
 
-            const updatedAccepterFields = {
-                friends: [...(accepter.friends || []).map(String), requesterIdStr],
-                friendshipRequests: (accepter.friendshipRequests || []).map(String).filter(id => id !== requesterIdStr)
+            const updatedAccepter = {
+                friends: [...accepter.friends, requester.id],
+                friendshipRequests: accepter.friendshipRequests.filter(id => id !== requester.id)
             };
-            const accepterUpdate = await fetch(`${API_URL}/${accepterIdStr}`, {
+            await fetch(`${API_URL}/${accepterId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedAccepterFields),
-            }).then(res => res.json());
+                body: JSON.stringify(updatedAccepter),
+            });
 
-            const updatedRequesterFields = {
-                friends: [...(requesterProfile.friends || []).map(String), accepterIdStr]
+            const updatedRequester = {
+                friends: [...requester.friends, accepterId]
             };
-            const requesterUpdate = await fetch(`${API_URL}/${requesterIdStr}`, {
+            await fetch(`${API_URL}/${requester.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedRequesterFields),
-            }).then(res => res.json());
+                body: JSON.stringify(updatedRequester),
+            });
             
-            dispatch(setUserData(accepterUpdate));
-            
-            return requesterUpdate; 
+            return requester;
 
         } catch (error) {
-            console.error("Erro ao aceitar pedido:", error);
-            return rejectWithValue("Falha ao aceitar solicitação e sincronizar perfis.");
+            return rejectWithValue(error.message);
         }
     }
 );
 
 export const declineFriendRequest = createAsyncThunk(
     'connections/declineRequest',
-    async ({ recipientId, requesterId }, { dispatch, rejectWithValue }) => {
-        const recipientIdStr = String(recipientId);
-        const requesterIdStr = String(requesterId);
-
+    async ({ recipientId, requesterId }, { getState, rejectWithValue }) => {
         try {
-            const recipientResponse = await fetch(`${API_URL}/${recipientIdStr}`);
-            if (!recipientResponse.ok) {
-                 throw new Error('Falha ao buscar o perfil do recipiente.');
-            }
-            const recipient = await recipientResponse.json();
-            
-            const updatedRequests = (recipient.friendshipRequests || []).map(String).filter(id => id !== requesterIdStr);
-            
-            const response = await fetch(`${API_URL}/${recipientIdStr}`, {
+            const state = getState();
+            const recipient = state.auth.user; 
+
+            const updatedRequests = recipient.friendshipRequests.filter(id => id !== requesterId);
+            await fetch(`${API_URL}/${recipientId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ friendshipRequests: updatedRequests }),
             });
             
-            if (!response.ok) {
-                 throw new Error('Falha ao atualizar o servidor.');
-            }
-            const recipientUpdate = await response.json();
-
-            dispatch(setUserData(recipientUpdate));
-            
-            return { declinedRequestId: requesterIdStr };
+            return { declinedRequestId: requesterId };
         } catch (error) {
             return rejectWithValue(error.message);
         }
@@ -169,13 +114,13 @@ export const declineFriendRequest = createAsyncThunk(
 );
 
 const connectionsSlice = createSlice({
-    name: 'connections',
+   name: 'connections',
     initialState: {
         friends: [],
         pendingRequests: [],
         sentRequests: [],
         suggestions: [],
-        status: 'idle', 
+        status: 'idle',
         error: null,
     },
     reducers: {},
@@ -195,49 +140,24 @@ const connectionsSlice = createSlice({
                 state.status = 'failed';
                 state.error = action.payload;
             })
-            
             .addCase(toggleFriendRequest.fulfilled, (state, action) => {
-                const { updatedTargetUser, type } = action.payload;
-                const targetIdStr = String(updatedTargetUser.id);
-                
-                if (type === 'cancel') {
-                    state.sentRequests = state.sentRequests.filter(req => String(req.id) !== targetIdStr);
-                    
-                    if (!state.friends.some(f => String(f.id) === targetIdStr) &&
-                        !state.suggestions.some(sug => String(sug.id) === targetIdStr)) {
-                        state.suggestions.push(updatedTargetUser);
-                    }
-                } 
-                else if (type === 'send') {
-                    state.sentRequests.push(updatedTargetUser); 
-                    state.suggestions = state.suggestions.filter(sug => String(sug.id) !== targetIdStr);
+                const { updatedTargetUser, wasSent } = action.payload;
+                if (wasSent) { 
+                    state.sentRequests = state.sentRequests.filter(u => u.id !== updatedTargetUser.id);
+                } else { 
+                    state.sentRequests.push(updatedTargetUser);
                 }
             })
-
             .addCase(acceptFriendRequest.fulfilled, (state, action) => {
                 const newFriend = action.payload;
-                
-                if (!newFriend || !newFriend.id) {
-                    console.error("Payload do acceptFriendRequest incompleto ou nulo:", newFriend);
-                    return; 
-                }
-
-                const newFriendIdStr = String(newFriend.id);
-                
-                if (!state.friends.some(f => String(f.id) === newFriendIdStr)) {
-                    state.friends.push(newFriend);
-                }
-                
-                state.pendingRequests = state.pendingRequests.filter(req => String(req.id) !== newFriendIdStr);
-                
-                state.suggestions = state.suggestions.filter(sug => String(sug.id) !== newFriendIdStr);
+                state.friends.push(newFriend);
+                state.pendingRequests = state.pendingRequests.filter(req => req.id !== newFriend.id);
             })
-
             .addCase(declineFriendRequest.fulfilled, (state, action) => {
                 const { declinedRequestId } = action.payload;
-                const declinedIdStr = String(declinedRequestId);
-                
-                state.pendingRequests = state.pendingRequests.filter(req => String(req.id) !== declinedIdStr);
+                state.pendingRequests = state.pendingRequests.filter(
+                    req => req.id !== declinedRequestId
+                );
             });
     },
 });
