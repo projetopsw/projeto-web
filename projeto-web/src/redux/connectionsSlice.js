@@ -1,16 +1,17 @@
+// src/redux/connectionsSlice.js
+
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-// IMPORTANTE: Ajuste o caminho se userSlice.js não estiver na pasta acima
 import { setUserData } from './userSlice'; 
 
 const API_URL = 'http://localhost:3001/users';
 
-// --- Thunks Assíncronos (Não exportados individualmente para evitar o Duplicate export) ---
+// --- Thunks Assíncronos (SEM o 'export' aqui) ---
 
 const fetchConnectionsData = createAsyncThunk(
     'connections/fetchData',
     async (currentUserId, { rejectWithValue }) => {
+        // ... (resto do código do fetchConnectionsData) ...
         try {
-            // Usando a URL completa para fetchAll
             const allUsers = await (await fetch('http://localhost:3001/users')).json(); 
             const currentUser = allUsers.find(u => u.id === currentUserId);
 
@@ -23,8 +24,8 @@ const fetchConnectionsData = createAsyncThunk(
             const friends = fetchDetails(currentUser.friends);
             const pendingRequests = fetchDetails(currentUser.friendshipRequests);
 
-            // Re-calcula sentRequests (usuários que têm o currentUserId em seus friendshipRequests)
             const sentRequestsUsers = allUsers.filter(u => u.friendshipRequests.includes(currentUserId));
+            
             const sentRequestIds = sentRequestsUsers.map(u => u.id);
 
             const suggestions = allUsers.filter(user =>
@@ -44,13 +45,13 @@ const fetchConnectionsData = createAsyncThunk(
 const toggleFriendRequest = createAsyncThunk(
     'connections/toggleRequest',
     async ({ currentUserId, targetUser }, { rejectWithValue }) => {
+        // ... (resto do código do toggleFriendRequest) ...
         const isAlreadySent = targetUser.friendshipRequests.includes(currentUserId);
         const updatedRequests = isAlreadySent
             ? targetUser.friendshipRequests.filter(id => id !== currentUserId)
             : [...targetUser.friendshipRequests, currentUserId];
 
         try {
-            // Atualiza o targetUser (PATCH)
             const response = await fetch(`${API_URL}/${targetUser.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -58,7 +59,6 @@ const toggleFriendRequest = createAsyncThunk(
             });
             const data = await response.json();
             
-            // Retorna o usuário alvo atualizado e a flag
             return { updatedTargetUser: data, wasSent: isAlreadySent };
         } catch (error) {
             return rejectWithValue(error.message);
@@ -69,6 +69,7 @@ const toggleFriendRequest = createAsyncThunk(
 const acceptFriendRequest = createAsyncThunk(
     'connections/acceptRequest',
     async ({ accepterId, requester }, { dispatch, rejectWithValue }) => {
+        // ... (resto do código do acceptFriendRequest) ...
         try {
             // 1. Atualizar o ACENTER (Usuário Logado)
             const accepterResponse = await fetch(`${API_URL}/${accepterId}`);
@@ -98,8 +99,7 @@ const acceptFriendRequest = createAsyncThunk(
             // 3. ATUALIZAÇÃO CRÍTICA DO ESTADO GLOBAL DO USUÁRIO LOGADO
             dispatch(setUserData(freshAccepter));
             
-            return requester; // Retorna o amigo que foi aceito para o reducer
-
+            return requester; 
         } catch (error) {
             return rejectWithValue(error.message);
         }
@@ -109,8 +109,8 @@ const acceptFriendRequest = createAsyncThunk(
 const declineFriendRequest = createAsyncThunk(
     'connections/declineRequest',
     async ({ recipientId, requesterId }, { dispatch, rejectWithValue }) => {
+        // ... (resto do código do declineFriendRequest) ...
         try {
-            // Busca o usuário mais recente (importante para atualização do userSlice)
             const recipientResponse = await fetch(`${API_URL}/${recipientId}`);
             const recipient = await recipientResponse.json(); 
 
@@ -123,7 +123,6 @@ const declineFriendRequest = createAsyncThunk(
             });
             const freshRecipient = await response.json();
             
-            // ATUALIZAÇÃO CRÍTICA DO ESTADO GLOBAL DO USUÁRIO LOGADO
             dispatch(setUserData(freshRecipient));
 
             return { declinedRequestId: requesterId };
@@ -133,11 +132,11 @@ const declineFriendRequest = createAsyncThunk(
     }
 );
 
-const removeFriend = createAsyncThunk(
+const removeFriend = createAsyncThunk( // <-- SEM 'export' aqui
     'connections/removeFriend',
     async ({ currentUserId, targetUserId }, { dispatch, rejectWithValue }) => {
+        // ... (resto do código do removeFriend) ...
         try {
-            // 1. Fetch do usuário logado e do alvo para obter os dados mais recentes
             const [currentUserRes, targetUserRes] = await Promise.all([
                 fetch(`${API_URL}/${currentUserId}`),
                 fetch(`${API_URL}/${targetUserId}`)
@@ -150,18 +149,15 @@ const removeFriend = createAsyncThunk(
             const currentUser = await currentUserRes.json();
             const targetUser = await targetUserRes.json();
 
-            // 2. Lógica de remoção: filtra o ID do amigo de ambas as listas de 'friends'
             const updatedCurrentUserFriends = currentUser.friends.filter(id => String(id) !== String(targetUserId));
             const updatedTargetUserFriends = targetUser.friends.filter(id => String(id) !== String(currentUserId));
 
-            // 3. Persistência: Atualiza o usuário logado no servidor (PATCH)
             const [updatedCurrentUserRes, updatedTargetUserRes] = await Promise.all([
                 fetch(`${API_URL}/${currentUserId}`, {
                     method: 'PATCH', 
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ friends: updatedCurrentUserFriends })
                 }),
-                // 4. Persistência: Atualiza o usuário alvo no servidor (PATCH)
                 fetch(`${API_URL}/${targetUserId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -175,11 +171,7 @@ const removeFriend = createAsyncThunk(
             
             const freshCurrentUser = await updatedCurrentUserRes.json();
             
-            // 5. ATUALIZAÇÃO CRÍTICA: Atualiza o estado global do usuário logado
             dispatch(setUserData(freshCurrentUser));
-            
-            // 6. Dispara o fetch para garantir que todas as listas (friends, suggestions, etc.) sejam reconstruídas
-            // Isso é importante, especialmente se a remoção afetar a lista de sugestões.
             dispatch(fetchConnectionsData(currentUserId));
             
             return { targetUserId }; 
@@ -246,7 +238,6 @@ const connectionsSlice = createSlice({
             })
             // REMOVE FRIEND
             .addCase(removeFriend.fulfilled, (state, action) => {
-                // A lista local é atualizada. O fetchConnectionsData cuidará da lista de sugestões.
                 const { targetUserId } = action.payload;
                 state.friends = state.friends.filter(f => String(f.id) !== String(targetUserId));
             });

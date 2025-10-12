@@ -1,3 +1,5 @@
+// src/components/ProfileEdition.jsx
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Box, TextField, Button, Divider, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
@@ -6,8 +8,9 @@ import { updateProfile } from '../redux/userSlice';
 import ProfileHeader from './ProfileHeader'; 
 
 const API_URL = 'http://localhost:3001'; 
+const SESSION_STORAGE_KEY = (userId) => `tempProfileImage_${userId}`; 
 
-export default function ProfileEdition() {
+export default function ProfileEdition() { // <-- CORREÇÃO: Deve ser exportado como default
     const navigate = useNavigate();
     const dispatch = useDispatch();
     
@@ -26,14 +29,23 @@ export default function ProfileEdition() {
     
     const [newProfileImage, setNewProfileImage] = useState(null);
     const fileInputRef = useRef(null); 
-
+    
+    // Efeito para carregar dados e a imagem persistente
     useEffect(() => {
         if (user && userId) {
+            const key = SESSION_STORAGE_KEY(userId);
+            
+            // 1. Carrega a imagem temporária (se existir)
+            const tempImage = sessionStorage.getItem(key);
+            setNewProfileImage(tempImage);
+            
+            // 2. Carrega os dados do formulário
             setFormData(prev => ({
                 ...prev,
                 name: user.name || user.username || '', 
                 email: user.email || '',
             }));
+            
             setIsLoading(false);
         } else {
             setIsLoading(false);
@@ -50,7 +62,14 @@ export default function ProfileEdition() {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onload = (upload) => setNewProfileImage(upload.target.result);
+            
+            reader.onload = (upload) => {
+                const imageDataUrl = upload.target.result;
+                setNewProfileImage(imageDataUrl);
+                
+                // Salva a imagem temporária no sessionStorage
+                sessionStorage.setItem(SESSION_STORAGE_KEY(userId), imageDataUrl);
+            };
             reader.readAsDataURL(file);
         }
     };
@@ -62,7 +81,6 @@ export default function ProfileEdition() {
         setIsSaving(true);
         
         if (!userId) {
-            // Usando uma div de mensagem customizada em vez de alert()
             console.error("ID do usuário não encontrado. Não é possível salvar. Por favor, faça login novamente.");
             setIsSaving(false);
             return;
@@ -76,24 +94,23 @@ export default function ProfileEdition() {
 
         if (isChangingPassword) {
             if (currentPassword === '') {
-                 // Usando uma div de mensagem customizada em vez de alert()
-                 console.error("Você deve fornecer a Senha Atual para alterar a senha.");
-                 setIsSaving(false);
-                 return;
+                console.error("Você deve fornecer a Senha Atual para alterar a senha.");
+                setIsSaving(false);
+                return;
             }
             if (currentPassword !== currentUserData.password) {
-                // Usando uma div de mensagem customizada em vez de alert()
                 console.error("A Senha Atual inserida está incorreta. Não é possível salvar a nova senha.");
                 setIsSaving(false);
                 return;
             }
         }
 
+        // 1. Cria o objeto de atualização completo (para o Redux/localStorage)
         let fullUserUpdate = {
             ...currentUserData, 
             name: name,
             email: email,
-            img: newProfileImage || currentUserData.img,
+            img: newProfileImage || currentUserData.img, 
         };
         
         if (isChangingPassword) {
@@ -103,37 +120,61 @@ export default function ProfileEdition() {
         if (fullUserUpdate.username && fullUserUpdate.name) {
             delete fullUserUpdate.username;
         }
+        
+        // 2. Cria o objeto para enviar ao JSON-SERVER (Omite a Data URL longa)
+        const dataToSendToServer = {
+            ...currentUserData, 
+            name: fullUserUpdate.name,
+            email: fullUserUpdate.email,
+        };
+        
+        if (isChangingPassword) {
+            dataToSendToServer.password = fullUserUpdate.password;
+        } else {
+            dataToSendToServer.password = currentUserData.password;
+        }
+        
+        // Remove a imagem se ela for a Data URL longa para evitar erro de payload
+        if (dataToSendToServer.img && dataToSendToServer.img.startsWith('data:image')) {
+             delete dataToSendToServer.img;
+        }
 
         try {
             const response = await fetch(`${API_URL}/users/${userId}`, {
                 method: 'PUT', 
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify(fullUserUpdate) 
+                body: JSON.stringify(dataToSendToServer) 
             });
 
             if (response.ok) {
-                const updatedData = await response.json();
-                setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
+                // 1. Limpa o estado de Data URL temporária
+                sessionStorage.removeItem(SESSION_STORAGE_KEY(userId));
+                setNewProfileImage(null); 
                 
-                dispatch(updateProfile(updatedData));
-                // Usando uma div de mensagem customizada em vez de alert()
-                console.log("Perfil atualizado com sucesso!");
+                // 2. Atualiza o Redux/localStorage com a versão COMPLETA (incluindo a imagem LONGA)
+                dispatch(updateProfile(fullUserUpdate));
+                
+                setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
+                console.log("Perfil atualizado com sucesso! (Imagem salva localmente)");
                 navigate('/perfil'); 
             } else {
                 console.error("Erro ao salvar perfil. Status:", response.status);
-                // Usando uma div de mensagem customizada em vez de alert()
-                console.error(`Falha ao atualizar. Verifique se o json-server está rodando e tem permissão.`);
+                console.error(`Falha ao atualizar. O servidor não aceitou os dados.`);
             }
         } catch (error) {
             console.error("Erro de rede ao salvar perfil:", error);
-            // Usando uma div de mensagem customizada em vez de alert()
             console.error("Erro de conexão. Verifique se o json-server está online.");
         } finally {
             setIsSaving(false);
         }
     };
 
-    const handleCancel = () => navigate('/perfil'); 
+    const handleCancel = () => {
+        // Limpa a imagem temporária se o usuário cancelar
+        sessionStorage.removeItem(SESSION_STORAGE_KEY(userId));
+        setNewProfileImage(null); 
+        navigate('/perfil'); 
+    }; 
 
     if (isLoading) return <main><Typography color="white">Carregando dados para edição...</Typography></main>;
     
@@ -172,11 +213,9 @@ export default function ProfileEdition() {
     
     const profileHeaderProps = {
         username: userDataToDisplay.name || userDataToDisplay.username, 
-        // Playlists e Friends são passados como NÚMEROS (length)
         playlists: userDataToDisplay.playlists ? userDataToDisplay.playlists.length : 0, 
-        friends: userDataToDisplay.friends ? userDataToDisplay.friends.length : 0,      
-        // CORREÇÃO: Following é passado como ARRAY (de IDs) para ProfileHeader.jsx usar .length
-        following: userDataToDisplay.following || [],   
+        friends: userDataToDisplay.friends ? userDataToDisplay.friends.length : 0,       
+        following: userDataToDisplay.following || [],      
         img: newProfileImage || userDataToDisplay.img 
     };
 
