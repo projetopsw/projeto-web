@@ -12,7 +12,8 @@ import { fetchUsersByIds } from '../../redux/loginSlice';
 // Ações centralizadas de Conexão
 import { 
     toggleFriendRequest, 
-    acceptFriendRequest 
+    acceptFriendRequest, 
+    removeFriend // <<-- NOVO: Importação para remover amigo
 } from '../../redux/connectionsSlice';
 
 // Componentes
@@ -44,7 +45,7 @@ export default function Perfil() {
 
     const userLogado = useSelector(state => state.user.user); 
     
-    // Selecionar o estado de conexões para o usuário logado (Fonte de Verdade Única)
+    // Selecionar o estado de conexões para o usuário logado
     const { 
         friends: loggedInFriends, 
         sentRequests: loggedInSentRequests,
@@ -123,15 +124,33 @@ export default function Perfil() {
     ]); 
 
 
-    // --- Handler UNIFICADO de Ação de Amizade ---
+    // --- Handler UNIFICADO de Ação de Amizade (Adicionar/Remover/Cancelar/Aceitar) ---
     const handleToggleAction = async () => {
         if (!userLogado || !targetUser) return;
         
-        if (currentHasReceivedRequest) {
+        if (currentIsFriend) {
+            // SE JÁ É AMIGO: REMOVER AMIGO
+            dispatch(removeFriend({ 
+                currentUserId: userLogado.id, 
+                targetUserId: targetUser.id 
+            }));
+            alert(`Você removeu ${targetUser.name} de seus amigos.`);
+            
+        } else if (currentHasReceivedRequest) {
+            // SE RECEBEU PEDIDO: ACEITAR
             dispatch(acceptFriendRequest({ accepterId: userLogado.id, requester: targetUser }));
             alert(`Você aceitou o pedido de ${targetUser.name}!`);
+            
         } else {
+            // CASO CONTRÁRIO: ADICIONAR / CANCELAR PEDIDO
             dispatch(toggleFriendRequest({ currentUserId: userLogado.id, targetUser }));
+            
+            // Feedback simples:
+            if (currentHasRequested) {
+                alert(`Pedido para ${targetUser.name} cancelado.`);
+            } else {
+                alert(`Pedido para ${targetUser.name} enviado!`);
+            }
         }
     };
 
@@ -264,7 +283,7 @@ export default function Perfil() {
                                     name={friend.name || friend.username || `Amigo ${friend.id}`} 
                                     onClick={() => handleFriendClick(friend.id)}
                                     sx={{ cursor: 'pointer' }}
-                                    isUser={true} // <<-- CORRIGIDO: Oculta o Player
+                                    isUser={true}
                                 />
                             ))
                         ) : (
@@ -277,11 +296,10 @@ export default function Perfil() {
 
                 <Divider sx={{ my: 4 }} />
 
-                {/* 5. ARTISTAS SEGUIDOS (Não deve ter isUser=true) */}
+                {/* 5. ARTISTAS SEGUIDOS */}
                 {displayedFollowedArtists.length > 0 && (
                     <Section key={"Artistas Seguidos"} title={`Artistas Seguidos por ${targetUser.name || targetUser.username}`}>
                         {displayedFollowedArtists.map((artist) => (
-                            // Aqui é um artista, então isUser=false (padrão) é o correto.
                             <ArtistCircle
                                 key={artist.id}
                                 id={artist.id}

@@ -12,7 +12,8 @@ import {
     fetchConnectionsData, 
     toggleFriendRequest, 
     acceptFriendRequest, 
-    declineFriendRequest 
+    declineFriendRequest,
+    removeFriend // <<-- NOVO: Importação para remover amigo
 } from '../redux/connectionsSlice';
 
 const navItemsData = ["Amigos", "Sugestões", "Pedidos", "Enviados"];
@@ -46,6 +47,15 @@ export default function Conexoes() {
             ? `Pedido para ${targetUser.name} cancelado.` 
             : `Pedido para ${targetUser.name} enviado!`);
     };
+    
+    const handleRemoveFriend = (friend) => {
+        // Usa a nova ação para remover o amigo
+        dispatch(removeFriend({ 
+            currentUserId: currentUser.id, 
+            targetUserId: friend.id 
+        }));
+        alert(`Você removeu ${friend.name} de seus amigos.`);
+    };
 
     const handleAcceptRequest = (requester) => {
         dispatch(acceptFriendRequest({ accepterId: currentUser.id, requester: requester }));
@@ -66,12 +76,21 @@ export default function Conexoes() {
                 return (
                     <Section title={`Peões Amigos (${friends.length})`}>
                         {friends.map((f) => 
-                            <ArtistCircle 
-                                key={f.id} 
-                                {...f} 
-                                onClick={() => handleUserClick(f.id)} 
-                                isUser={true} // <<-- CORRIGIDO: Oculta o Player
-                            />
+                            <Box key={f.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
+                                <ArtistCircle 
+                                    {...f} 
+                                    onClick={() => handleUserClick(f.id)} 
+                                    isUser={true} 
+                                />
+                                <Button 
+                                    variant="outlined" 
+                                    size="small" 
+                                    sx={{ mt: 1, color: 'var(--text-primary)', borderColor: 'var(--text-primary)' }}
+                                    onClick={() => handleRemoveFriend(f)} // Botão de remover
+                                >
+                                    Remover Amigo
+                                </Button>
+                            </Box>
                         )}
                     </Section>
                 );
@@ -85,7 +104,7 @@ export default function Conexoes() {
                                     <ArtistCircle 
                                         {...sug} 
                                         onClick={() => handleUserClick(sug.id)} 
-                                        isUser={true} // <<-- CORRIGIDO: Oculta o Player
+                                        isUser={true} 
                                     />
                                     <Button variant={isSent ? "outlined" : "contained"} size="small"
                                         sx={{ 
@@ -111,7 +130,7 @@ export default function Conexoes() {
                                 <ArtistCircle 
                                     {...request} 
                                     onClick={() => handleUserClick(request.id)} 
-                                    isUser={true} // <<-- CORRIGIDO: Oculta o Player
+                                    isUser={true} 
                                 />
                                 <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
                                     <Button variant="contained" size="small" sx={{ bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } }}
@@ -136,7 +155,7 @@ export default function Conexoes() {
                                 <ArtistCircle 
                                     {...request} 
                                     onClick={() => handleUserClick(request.id)} 
-                                    isUser={true} // <<-- CORRIGIDO: Oculta o Player
+                                    isUser={true} 
                                 />
                                 <Button variant="outlined" size="small"
                                     sx={{ mt: 1, color: 'var(--text-primary)', borderColor: 'var(--text-primary)' }}

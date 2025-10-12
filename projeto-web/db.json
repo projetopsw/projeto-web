@@ -551,8 +551,7 @@
         "artist-05"
       ],
       "friends": [
-        "1",
-        "3"
+        "1"
       ],
       "requestsSent": [
         "4",
@@ -561,9 +560,7 @@
         "3"
       ],
       "requestsReceived": [],
-      "friendshipRequests": [
-        "3"
-      ]
+      "friendshipRequests": []
     },
     {
       "id": "3",
@@ -575,9 +572,7 @@
         "0"
       ],
       "following": [],
-      "friends": [
-        "2"
-      ],
+      "friends": [],
       "friendshipRequests": [],
       "requestsReceived": [],
       "requestsSent": [
