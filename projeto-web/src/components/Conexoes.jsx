@@ -8,7 +8,13 @@ import Navigation from './Navigation.jsx';
 import Section from './Section.jsx'; 
 import ArtistCircle from './ArtistCircle.jsx'; 
 
-import { fetchConnectionsData, toggleFriendRequest, acceptFriendRequest, declineFriendRequest } from '../redux/connectionsSlice';
+import { 
+    fetchConnectionsData, 
+    toggleFriendRequest, 
+    acceptFriendRequest, 
+    declineFriendRequest,
+    removeFriend // <<-- NOVO: Importação para remover amigo
+} from '../redux/connectionsSlice';
 
 const navItemsData = ["Amigos", "Sugestões", "Pedidos", "Enviados"];
 
@@ -20,7 +26,7 @@ export default function Conexoes() {
     const currentUser = useSelector(state => state.auth.user); 
 
     const [selectedFilter, setSelectedFilter] = useState('Amigos');
- 
+    
     const { friends, pendingRequests, sentRequests, suggestions, status } = useSelector((state) => state.connections);
 
     const handleUserClick = (id) => navigate(`/perfil/${id}`);
@@ -31,13 +37,24 @@ export default function Conexoes() {
         }
     }, [dispatch, currentUser]); 
     
+    // --- Funções de Ação Centralizadas ---
+
     const handleToggleRequest = (targetUser) => {
         dispatch(toggleFriendRequest({ currentUserId: currentUser.id, targetUser }));
-        if (sentRequests.some(req => req.id === targetUser.id)) {
-            alert(`Pedido para ${targetUser.name} cancelado.`);
-        } else {
-            alert(`Pedido para ${targetUser.name} enviado!`); 
-        }
+
+        const isSent = sentRequests.some(req => req.id === targetUser.id);
+        alert(isSent 
+            ? `Pedido para ${targetUser.name} cancelado.` 
+            : `Pedido para ${targetUser.name} enviado!`);
+    };
+    
+    const handleRemoveFriend = (friend) => {
+        // Usa a nova ação para remover o amigo
+        dispatch(removeFriend({ 
+            currentUserId: currentUser.id, 
+            targetUserId: friend.id 
+        }));
+        alert(`Você removeu ${friend.name} de seus amigos.`);
     };
 
     const handleAcceptRequest = (requester) => {
@@ -58,29 +75,49 @@ export default function Conexoes() {
             case 'Amigos':
                 return (
                     <Section title={`Peões Amigos (${friends.length})`}>
-                        {friends.map((f) => <ArtistCircle key={f.id} {...f} onClick={() => handleUserClick(f.id)} />)}
+                        {friends.map((f) => 
+                            <Box key={f.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
+                                <ArtistCircle 
+                                    {...f} 
+                                    onClick={() => handleUserClick(f.id)} 
+                                    isUser={true} 
+                                />
+                                <Button 
+                                    variant="outlined" 
+                                    size="small" 
+                                    sx={{ mt: 1, color: 'var(--text-primary)', borderColor: 'var(--text-primary)' }}
+                                    onClick={() => handleRemoveFriend(f)} // Botão de remover
+                                >
+                                    Remover Amigo
+                                </Button>
+                            </Box>
+                        )}
                     </Section>
                 );
             case 'Sugestões':
                 return (
                     <Section title={"Sugestões para Você"}>
                         {suggestions.map((sug) => {
-                             const isSent = sentRequests.some(req => req.id === sug.id);
-                             return (
-                                 <Box key={sug.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
-                                     <ArtistCircle {...sug} onClick={() => handleUserClick(sug.id)} />
-                                     <Button variant={isSent ? "outlined" : "contained"} size="small"
-                                         sx={{ 
-                                             mt: 1, 
-                                             ...(isSent 
-                                                 ? { color: 'var(--secondary-text-color)', borderColor: 'var(--secondary-text-color)' } 
-                                                 : { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } })
-                                         }}
-                                         onClick={() => handleToggleRequest(sug)}>
-                                         {isSent ? 'Enviado' : 'Adicionar'}
-                                     </Button>
-                                 </Box>
-                             );
+                            const isSent = sentRequests.some(req => req.id === sug.id);
+                            return (
+                                <Box key={sug.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
+                                    <ArtistCircle 
+                                        {...sug} 
+                                        onClick={() => handleUserClick(sug.id)} 
+                                        isUser={true} 
+                                    />
+                                    <Button variant={isSent ? "outlined" : "contained"} size="small"
+                                        sx={{ 
+                                            mt: 1, 
+                                            ...(isSent 
+                                                ? { color: 'var(--secondary-text-color)', borderColor: 'var(--secondary-text-color)' } 
+                                                : { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } })
+                                        }}
+                                        onClick={() => handleToggleRequest(sug)}>
+                                        {isSent ? 'Enviado' : 'Adicionar'}
+                                    </Button>
+                                </Box>
+                            );
                         })}
                     </Section>
                 );
@@ -90,7 +127,11 @@ export default function Conexoes() {
                     <Section title={`Pedidos Pendentes (${pendingRequests.length})`}>
                         {pendingRequests.map((request) => (
                             <Box key={request.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
-                                <ArtistCircle {...request} onClick={() => handleUserClick(request.id)} />
+                                <ArtistCircle 
+                                    {...request} 
+                                    onClick={() => handleUserClick(request.id)} 
+                                    isUser={true} 
+                                />
                                 <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
                                     <Button variant="contained" size="small" sx={{ bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } }}
                                         onClick={() => handleAcceptRequest(request)} >
@@ -111,7 +152,11 @@ export default function Conexoes() {
                     <Section title={`Pedidos Enviados (${sentRequests.length})`}>
                         {sentRequests.map((request) => (
                             <Box key={request.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
-                                <ArtistCircle {...request} onClick={() => handleUserClick(request.id)} />
+                                <ArtistCircle 
+                                    {...request} 
+                                    onClick={() => handleUserClick(request.id)} 
+                                    isUser={true} 
+                                />
                                 <Button variant="outlined" size="small"
                                     sx={{ mt: 1, color: 'var(--text-primary)', borderColor: 'var(--text-primary)' }}
 
