@@ -600,30 +600,34 @@
       "id": "e297",
       "name": "Hello",
       "username": "Hello",
-      "email": "hello@gmail.com",
+      "email": "hello@email.com",
       "password": "hello",
       "image": "https://placehold.co/400x400?text=Hello",
       "userPlaylists": [
         "0"
       ],
       "friends": [],
-      "following": []
+      "following": [],
+      "friendshipRequests": []
     },
     {
       "id": "101",
       "name": "Maria Fofoqueira",
       "username": "maria.fofo",
-      "email": "maria@fofo.com",
+      "email": "maria@email.com",
       "password": "123",
       "image": "https://placehold.co/400x400?text=Pedido+1",
-      "friends": [],
-      "following": []
+      "friends": [
+        "2"
+      ],
+      "following": [],
+      "friendshipRequests": []
     },
     {
       "id": "102",
       "name": "Zé Capataz",
       "username": "zecapataz",
-      "email": "ze@capataz.com",
+      "email": "ze@email.com",
       "password": "123",
       "image": "https://placehold.co/400x400?text=Pedido+2",
       "friends": [],

@@ -30,17 +30,20 @@ export default function Conexoes() {
             dispatch(fetchConnectionsData(currentUser.id));
         }
     }, [dispatch, currentUser]); 
+    
     const handleToggleRequest = (targetUser) => {
         dispatch(toggleFriendRequest({ currentUserId: currentUser.id, targetUser }));
         if (sentRequests.some(req => req.id === targetUser.id)) {
             alert(`Pedido para ${targetUser.name} cancelado.`);
         } else {
-            alert(`Pedido para ${targetUser.name} enviado!`);
+            // Alterado de 'Conectar' para 'Adicionar'
+            alert(`Pedido para ${targetUser.name} enviado!`); 
         }
     };
 
     const handleAcceptRequest = (requester) => {
-        dispatch(acceptFriendRequest({ accepterId: currentUser.id, requesterId: requester.id }));
+        // CORREÇÃO CRÍTICA: Passando o OBJETO COMPLETO 'requester'
+        dispatch(acceptFriendRequest({ accepterId: currentUser.id, requester: requester }));
         alert(`Você agora está conectado com ${requester.name}!`);
     };
 
@@ -61,25 +64,26 @@ export default function Conexoes() {
                     </Section>
                 );
             case 'Sugestões':
-                 return (
+                return (
                     <Section title={"Sugestões para Você"}>
                         {suggestions.map((sug) => {
                              const isSent = sentRequests.some(req => req.id === sug.id);
                              return (
-                                <Box key={sug.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
-                                    <ArtistCircle {...sug} onClick={() => handleUserClick(sug.id)} />
-                                    <Button variant={isSent ? "outlined" : "contained"} size="small"
-                                        sx={{ 
-                                            mt: 1, 
-                                            ...(isSent 
-                                                ? { color: 'var(--secondary-text-color)', borderColor: 'var(--secondary-text-color)' } 
-                                                : { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } })
-                                        }}
-                                        onClick={() => handleToggleRequest(sug)}>
-                                        {isSent ? 'Enviado' : 'Conectar'}
-                                    </Button>
-                                </Box>
-                            );
+                                 <Box key={sug.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
+                                     <ArtistCircle {...sug} onClick={() => handleUserClick(sug.id)} />
+                                     <Button variant={isSent ? "outlined" : "contained"} size="small"
+                                         sx={{ 
+                                             mt: 1, 
+                                             ...(isSent 
+                                                 ? { color: 'var(--secondary-text-color)', borderColor: 'var(--secondary-text-color)' } 
+                                                 : { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } })
+                                         }}
+                                         onClick={() => handleToggleRequest(sug)}>
+                                         {/* 🟢 ALTERADO DE 'Conectar' PARA 'Adicionar' */}
+                                         {isSent ? 'Enviado' : 'Adicionar'}
+                                     </Button>
+                                 </Box>
+                             );
                         })}
                     </Section>
                 );
