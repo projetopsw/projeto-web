@@ -1,5 +1,3 @@
-// src/components/ArtistCircle.jsx (NOVA VERSÃO REVISADA)
-
 import React from 'react';
 import { FaPlay } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
@@ -28,7 +26,7 @@ const ArtistCircle = ({ id, image, name, onClick, isArtist = true, isUser = fals
             />
             <h3 className="artist-name">{name}</h3>
             
-            {/* CORREÇÃO APLICADA: O ícone de play SÓ é exibido se NÃO for um usuário. */}
+            {/* O ícone de play SÓ é exibido se for um artista E NÃO for um usuário. */}
             {isArtist && !isUser && <FaPlay className="play-icon" />}
         </div>
     );
