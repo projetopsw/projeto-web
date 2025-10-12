@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchSongById, fetchAlbumsByArtist } from '../../redux/catalogoSlice';
-import { playSong } from '../../redux/playerSliceBebel.js';
+import { playSong } from '../../redux/playerSlice.js';
 import AlbumHeader from '../../components/AlbumHeader.jsx';
 import SongList from '../../components/SongList.jsx';
 import Section from '../../components/Section.jsx';

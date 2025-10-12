@@ -1,18 +1,22 @@
-import { configureStore } from '@reduxjs/toolkit';
-import playerReducer from './playerSlice';
-import loginReducer from '../redux/loginSlice';
-import catalogoReducer from '../redux/catalogoSlice';
-import playerBebelReducer from '../redux/playerSliceBebel';
-import playlistsReducer from '../redux/playlistsSlice';
-import userReducer from '../redux/userSlice';
+import { configureStore } from '@reduxjs/toolkit'
+import playerReducer from '../redux/playerSlice'
+import loginReducer from '../redux/loginSlice'
+import catalogoReducer from '../redux/catalogoSlice'
+import playlistsReducer from '../redux/playlistsSlice'
+import userReducer from '../redux/userSlice'
+import commentsReducer from '../redux/comentarioSlice'
+import votesReducer from '../redux/votesSlice'
+import connectionsReducer from '../redux/connectionsSlice'
 
 export const store = configureStore({
   reducer: {
     player: playerReducer,
-    playerBebel: playerBebelReducer,
     auth: loginReducer,
     catalog: catalogoReducer,
     playlists: playlistsReducer,
     user: userReducer,
+    connections: connectionsReducer, 
+    comments: commentsReducer,
+    votes: votesReducer,
   },
 });

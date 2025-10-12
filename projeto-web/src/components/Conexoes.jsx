@@ -1,7 +1,5 @@
-// src/pages/Conexoes/Conexoes.jsx
-
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Divider, Button } from '@mui/material';
+import { Box, Typography, Divider, Button, CircularProgress } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import '../index.css'; 
@@ -10,128 +8,115 @@ import Navigation from './Navigation.jsx';
 import Section from './Section.jsx'; 
 import ArtistCircle from './ArtistCircle.jsx'; 
 
+import { fetchConnectionsData, toggleFriendRequest, acceptFriendRequest, declineFriendRequest } from '../redux/connectionsSlice';
 
-const API_URL = 'http://localhost:3001'; 
-const navItemsData = ["Amigos", "Sugestões", "Pedidos"];
+const navItemsData = ["Amigos", "Sugestões", "Pedidos", "Enviados"];
+
 
 export default function Conexoes() {
-    const dispatch = useDispatch();
     const navigate = useNavigate();
-    
+    const dispatch = useDispatch();
+
+    const currentUser = useSelector(state => state.auth.user); 
+
     const [selectedFilter, setSelectedFilter] = useState('Amigos');
-    const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-    const [suggestions, setSuggestions] = useState([]);
-    
-    const user = useSelector(state => state.user.user); 
-    const { items: friendDetails } = useSelector(state => state.auth.friends);
-    
-    const pendingRequests = [
-        { id: '101', name: 'Maria Fofoqueira', image: 'https://placehold.co/400x400?text=Pedido+1' },
-        { id: '102', name: 'Zé Capataz', image: 'https://placehold.co/400x400?text=Pedido+2' },
-    ];
+ 
+    const { friends, pendingRequests, sentRequests, suggestions, status } = useSelector((state) => state.connections);
 
-    const handleUserClick = (id) => {
-        navigate(`/perfil/${id}`); 
-    };
-    
+    const handleUserClick = (id) => navigate(`/perfil/${id}`);
+
     useEffect(() => {
-        if (selectedFilter === 'Sugestões' && user && user.id) {
-            const fetchSuggestions = async () => {
-                setIsLoadingSuggestions(true);
-                await new Promise(resolve => setTimeout(resolve, 500)); 
-                
-                const data = [
-                    { id: '201', name: 'Pedro Mugido', image: 'https://placehold.co/400x400?text=Sugestão+1' },
-                    { id: '202', name: 'Carla Cangaia', image: 'https://placehold.co/400x400?text=Sugestão+2' },
-                    { id: '203', name: 'João Vaqueiro', image: 'https://placehold.co/400x400?text=Sugestão+3' },
-                ];
-                setSuggestions(data);
-                setIsLoadingSuggestions(false);
-            };
-
-            fetchSuggestions();
+        if (currentUser && currentUser.id) {
+            dispatch(fetchConnectionsData(currentUser.id));
         }
-    }, [selectedFilter, user]);
+    }, [dispatch, currentUser]); 
+    const handleToggleRequest = (targetUser) => {
+        dispatch(toggleFriendRequest({ currentUserId: currentUser.id, targetUser }));
+        if (sentRequests.some(req => req.id === targetUser.id)) {
+            alert(`Pedido para ${targetUser.name} cancelado.`);
+        } else {
+            alert(`Pedido para ${targetUser.name} enviado!`);
+        }
+    };
+
+    const handleAcceptRequest = (requester) => {
+        dispatch(acceptFriendRequest({ accepterId: currentUser.id, requesterId: requester.id }));
+        alert(`Você agora está conectado com ${requester.name}!`);
+    };
+
+    const handleDeclineRequest = (requester) => {
+        dispatch(declineFriendRequest({ recipientId: currentUser.id, requesterId: requester.id }));
+        alert(`Pedido de ${requester.name} recusado.`);
+    };
 
     const renderContent = () => {
+        if (status === 'loading') {
+            return <CircularProgress sx={{ mt: 3, color: 'var(--orange)' }} />;
+        }
         switch (selectedFilter) {
             case 'Amigos':
-                if (friendDetails.length === 0) {
-                    return <Typography sx={{ mt: 3, color: 'var(--secondary-text-color)' }}>Você não tem amigos conectados ainda.</Typography>;
-                }
                 return (
-                    <Section key={"Amigos"} title={`Peões Amigos (${friendDetails.length})`}>
-                        {friendDetails.map((friend) => (
-                            <ArtistCircle 
-                                key={friend.id}
-                                id={friend.id}
-                                image={friend.image || 'https://placehold.co/400x400?text=Amigo'}
-                                name={friend.name}
-                                onClick={() => handleUserClick(friend.id)}
-                            />
-                        ))}
+                    <Section title={`Peões Amigos (${friends.length})`}>
+                        {friends.map((f) => <ArtistCircle key={f.id} {...f} onClick={() => handleUserClick(f.id)} />)}
+                    </Section>
+                );
+            case 'Sugestões':
+                 return (
+                    <Section title={"Sugestões para Você"}>
+                        {suggestions.map((sug) => {
+                             const isSent = sentRequests.some(req => req.id === sug.id);
+                             return (
+                                <Box key={sug.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
+                                    <ArtistCircle {...sug} onClick={() => handleUserClick(sug.id)} />
+                                    <Button variant={isSent ? "outlined" : "contained"} size="small"
+                                        sx={{ 
+                                            mt: 1, 
+                                            ...(isSent 
+                                                ? { color: 'var(--secondary-text-color)', borderColor: 'var(--secondary-text-color)' } 
+                                                : { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } })
+                                        }}
+                                        onClick={() => handleToggleRequest(sug)}>
+                                        {isSent ? 'Enviado' : 'Conectar'}
+                                    </Button>
+                                </Box>
+                            );
+                        })}
                     </Section>
                 );
 
-            case 'Sugestões':
-                if (isLoadingSuggestions) {
-                    return <Typography sx={{ mt: 3 }}>Carregando sugestões...</Typography>;
-                }
-                if (suggestions.length === 0) {
-                    return <Typography sx={{ mt: 3, color: 'var(--secondary-text-color)' }}>Sem sugestões de conexão no momento.</Typography>;
-                }
+            case 'Pedidos':
                 return (
-                    <Section key={"Sugestões"} title={"Sugestões para Você"}>
-                        {suggestions.map((sug) => (
-                            <Box key={sug.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
-                                <ArtistCircle 
-                                    id={sug.id}
-                                    image={sug.image}
-                                    name={sug.name}
-                                    onClick={() => handleUserClick(sug.id)} 
-                                />
-                                <Button 
-                                    variant="contained" 
-                                    size="small"
-                                    sx={{ mt: 1, bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } }}
-                                >
-                                    Conectar
-                                </Button>
+                    <Section title={`Pedidos Pendentes (${pendingRequests.length})`}>
+                        {pendingRequests.map((request) => (
+                            <Box key={request.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
+                                <ArtistCircle {...request} onClick={() => handleUserClick(request.id)} />
+                                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                                    <Button variant="contained" size="small" sx={{ bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } }}
+                                        onClick={() => handleAcceptRequest(request)} >
+                                        Aceitar
+                                    </Button>
+                                    <Button variant="outlined" size="small" sx={{ color: 'var(--text-primary)', borderColor: 'var(--text-primary)' }}
+                                        onClick={() => handleDeclineRequest(request)} >
+                                        Recusar
+                                    </Button>
+                                </Box>
                             </Box>
                         ))}
                     </Section>
                 );
 
-            case 'Pedidos':
-                if (pendingRequests.length === 0) {
-                    return <Typography sx={{ mt: 3, color: 'var(--secondary-text-color)' }}>Você não tem pedidos de conexão pendentes.</Typography>;
-                }
+            case 'Enviados':
                 return (
-                    <Section key={"Pedidos"} title={`Pedidos Pendentes (${pendingRequests.length})`}>
-                        {pendingRequests.map((request) => (
+                    <Section title={`Pedidos Enviados (${sentRequests.length})`}>
+                        {sentRequests.map((request) => (
                             <Box key={request.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
-                                <ArtistCircle 
-                                    id={request.id}
-                                    image={request.image}
-                                    name={request.name}
-                                    onClick={() => handleUserClick(request.id)}
-                                />
-                                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                                    <Button 
-                                        variant="contained" 
-                                        size="small"
-                                        sx={{ bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } }}
-                                    >
-                                        Aceitar
-                                    </Button>
-                                    <Button 
-                                        variant="outlined" 
-                                        size="small"
-                                        sx={{ color: 'var(--text-primary)', borderColor: 'var(--text-primary)' }}
-                                    >
-                                        Recusar
-                                    </Button>
-                                </Box>
+                                <ArtistCircle {...request} onClick={() => handleUserClick(request.id)} />
+                                <Button variant="outlined" size="small"
+                                    sx={{ mt: 1, color: 'var(--text-primary)', borderColor: 'var(--text-primary)' }}
+
+                                    onClick={() => handleToggleRequest(request)} >
+                                    Cancelar Pedido
+                                </Button>
                             </Box>
                         ))}
                     </Section>
@@ -144,27 +129,15 @@ export default function Conexoes() {
 
     return (
         <main>
-            <Box 
-                sx={{ 
-                    p: { xs: 2, md: 4, lg: 6 }, 
-                    pb: 15,
-                }} 
-                className="conexoes-font"
-            >
+            <Box sx={{ p: { xs: 2, md: 4, lg: 6 }, pb: 15 }} className="conexoes-font">
                 <Typography variant="h4" sx={{ mb: 3, color: 'var(--text-primary)' }}>
                     Peões Conectados 🔗
                 </Typography>
 
-                <Navigation 
-                    navItemsData={navItemsData}
-                    selectedItem={selectedFilter}
-                    setSelectedItem={setSelectedFilter} 
-                />
-
+                <Navigation navItemsData={navItemsData} selectedItem={selectedFilter} setSelectedItem={setSelectedFilter} />
                 <Divider sx={{ my: 4 }} />
 
                 {renderContent()}
-
                 <div className="margin-bottom"></div>
             </Box>
         </main>

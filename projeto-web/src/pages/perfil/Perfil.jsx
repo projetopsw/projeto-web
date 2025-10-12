@@ -79,14 +79,10 @@ export default function Perfil() {
     const { items: followedArtistsRedux } = useSelector(state => state.catalog?.followedArtists || { items: [] });
     const { items: likedSongsDetailsRedux } = useSelector(state => state.catalog?.likedSongsDetails || { items: [] });
 
-    // --- LÓGICA DE ESTADO DE AMIZADE ---
-    // Checa o status do relacionamento com o targetUser
     const currentIsFriend = userLogado?.friends?.includes(String(targetUser?.id));
     const currentHasRequested = userLogado?.requestsSent?.includes(String(targetUser?.id));
     const currentHasReceivedRequest = targetUser?.requestsSent?.includes(String(userLogado?.id)); // Checa se o TARGET enviou solicitação para o LOGADO
     
-
-    // --- EFEITO 1: Busca o usuário alvo e dispara as ações do Redux ---
     useEffect(() => {
         if (!targetId) {
             setIsLoading(false);
@@ -95,8 +91,7 @@ export default function Perfil() {
 
         const loadProfileData = async () => {
             setIsLoading(true);
-            
-            // Prioriza o estado do Redux se for o dono
+         
             let userToDisplay = userLogado && isOwner ? userLogado : await fetchTargetUser(targetId);
             
             if (userToDisplay) {

@@ -10,7 +10,7 @@ import {
     setDuration,
     skipNext,
     skipPrevious,
-} from '../store/playerSlice';
+} from '../redux/playerSlice';
 
 const MUSIC_DETAIL_PATH_BASE = '/musica/';
 

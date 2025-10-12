@@ -3,7 +3,7 @@ import { Box, IconButton, Typography, styled } from '@mui/material';
 import { Link, useLocation } from 'react-router-dom'; 
 
 import { useSelector, useDispatch } from 'react-redux'; 
-import { togglePlayPause, skipNext } from '../store/playerSlice'; 
+import { togglePlayPause, skipNext } from '../redux/playerSlice'; 
 
 import Player from './Player'; 
 

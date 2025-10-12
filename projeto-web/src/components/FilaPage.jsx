@@ -5,7 +5,7 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useSelector, useDispatch } from 'react-redux'; 
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'; 
 
-import { reorderQueue, togglePlayPause, setQueue } from '../store/playerSlice'; 
+import { reorderQueue, togglePlayPause, setQueue } from '../redux/playerSlice'; 
 
 const VolumeIcon = () => (<i className="fas fa-volume-up" style={{ color: 'var(--orange)', fontSize: '12px' }} />);
 const INACTIVE_COLOR = 'var(--secondary-text-color)';

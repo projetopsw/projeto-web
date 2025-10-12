@@ -24,7 +24,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useSelector, useDispatch } from 'react-redux';
-import { setQueue, togglePlayPause } from '../../store/playerSlice';
+import { setQueue, togglePlayPause } from '../../redux/playerSlice';
 import api from '../../services/api';
 
 const INACTIVE_ICON_COLOR = 'var(--secondary-text-color)';

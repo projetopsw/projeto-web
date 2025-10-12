@@ -24,38 +24,28 @@ const loadUserFromLocalStorage = () => {
 const initialUser = loadUserFromLocalStorage();
 
 
-// ----------------------------------------------------
-// THUNKS ASSÍNCRONOS (CORRIGIDAS)
-// ----------------------------------------------------
-
 export const toggleLikeSongAsync = createAsyncThunk(
     'auth/toggleLikeSong',
-    // Removemos currentLikedSongs dos argumentos. A thunk buscará a lista atual.
     async ({ userId, songId }, { rejectWithValue }) => {
         
         try {
-            // 1. BUSCA O ESTADO ATUAL (user.likedSongs e userPlaylists/0.songs)
             const userResponse = await api.get(`/users/${userId}`);
             const currentLikedSongs = userResponse.data.likedSongs || [];
             
             const isLiked = currentLikedSongs.includes(songId);
-            
-            // Determina a nova lista de likedSongs
+    
             const newLikedSongs = isLiked
                 ? currentLikedSongs.filter(id => id !== songId)
                 : [...currentLikedSongs, songId];
 
-            // 2. ATUALIZAÇÃO DO USUÁRIO (users.likedSongs)
             await api.patch(`/users/${userId}`, { likedSongs: newLikedSongs });
 
-            // 3. ATUALIZAÇÃO DA PLAYLIST FÍSICA 'MÚSICAS CURTIDAS' (userPlaylists/0)
             await api.patch(`/userPlaylists/${LIKED_SONGS_ID}`, { songs: newLikedSongs });
 
             return newLikedSongs; 
 
         } catch (error) {
             console.error("Erro na dupla atualização de curtir:", error);
-            // Retorna o erro exato da API para melhor debug
             return rejectWithValue(error.response?.data || error.message || 'Falha ao curtir/descurtir música na API.');
         }
     }
@@ -68,8 +58,6 @@ export const addSongToPlaylistAsync = createAsyncThunk(
         try {
             if (playlistId === LIKED_SONGS_ID) {
                 
-                // Se a ação é adicionar à playlist 0, chamamos a thunk principal de toggle
-                // Ela fará o GET/PATCH necessário e atualizará o estado
                 const result = await dispatch(toggleLikeSongAsync({ userId, songId })).unwrap();
                 
                 const isNowInList = result.includes(songId);
@@ -77,13 +65,11 @@ export const addSongToPlaylistAsync = createAsyncThunk(
                 if (isNowInList) {
                      return { songId, playlistId: LIKED_SONGS_ID, added: true, message: "Música curtida com sucesso!" };
                 } else {
-                    // Se foi removida (curtida -> descurtida) por engano, ou já existia
                     return { songId: null, playlistId: LIKED_SONGS_ID, added: false, message: "Música já curtida (ou removida inesperadamente)." };
                 }
 
 
             } else {
-                // Lógica para playlists personalizadas
                 const playlistResponse = await api.get(`/userPlaylists/${playlistId}`);
                 const currentSongs = playlistResponse.data.songs || [];
 
@@ -103,7 +89,6 @@ export const addSongToPlaylistAsync = createAsyncThunk(
     }
 );
 
-// O restante das thunks e do slice permanece inalterado.
 export const fetchUserPlaylistsDetail = createAsyncThunk(
     'auth/fetchUserPlaylistsDetail',
     async (userId, { rejectWithValue }) => {
@@ -156,8 +141,8 @@ export const fetchUsersByIds = createAsyncThunk(
 
         } catch (error) {
             return rejectWithValue('Falha ao buscar os detalhes dos amigos.');
-        }
     }
+  }
 );
 
 
@@ -198,24 +183,19 @@ const authSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            // ************ HANDLER CORAÇÃO/MÚSICAS CURTIDAS ************
-            // toggleLikeSongAsync: Atualiza user.likedSongs no estado local
             .addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
                 if (state.user) {
                     state.user.likedSongs = action.payload;
                     localStorage.setItem('user', JSON.stringify(state.user));
                 }
-                // Tenta atualizar userPlaylistsDetail se a lista já estiver carregada
                 const likedPlaylist = state.userPlaylistsDetail.find(p => p.id === LIKED_SONGS_ID);
                 if (likedPlaylist) {
                      likedPlaylist.songs = action.payload;
                 }
             })
-            // ************ HANDLER PARA PLAYLISTS PERSONALIZADAS ************
             .addCase(addSongToPlaylistAsync.fulfilled, (state, action) => {
                 const { songId, playlistId, added, updatedSongs } = action.payload;
                 
-                // Atualiza playlists PERSONALIZADAS (Id != 0) no Redux
                 if (added && songId && playlistId !== LIKED_SONGS_ID) {
                     const playlist = state.userPlaylistsDetail.find(p => p.id === playlistId);
                     if (playlist) {
@@ -223,7 +203,6 @@ const authSlice = createSlice({
                     }
                 }
             })
-            // ************ OUTROS HANDLERS ************
             .addCase(toggleFollowArtistAsync.fulfilled, (state, action) => {
                 if (state.user) {
                     state.user.following = action.payload;
@@ -252,7 +231,7 @@ const authSlice = createSlice({
                 state.friends.status = 'failed';
                 state.friends.error = action.error.message;
             });
-    },
+            },
 });
 
 export const { loginSuccess, logout } = authSlice.actions;
