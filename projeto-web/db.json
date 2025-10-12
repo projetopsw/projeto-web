@@ -580,7 +580,8 @@
       "image": "https://placehold.co/400x400?text=Malu",
       "userPlaylists": [
         "0",
-        "89dd"
+        "89dd",
+        "3628"
       ],
       "friends": [
         "1",
@@ -668,7 +669,22 @@
     },
     {
       "id": "89dd",
-      "name": "maria",
+      "name": "paz",
+      "creatorId": "4",
+      "img": "https://admin.cnnbrasil.com.br/wp-content/uploads/sites/12/2024/07/felicidade-3.jpg?w=1200&h=900&crop=1",
+      "type": "Playlist do Usuário",
+      "description": "Minha playlist de paz.",
+      "songs": [
+        "song-01",
+        "song-02"
+      ],
+      "duration": "0 min",
+      "songCount": 0,
+      "isPublic": true
+    },
+    {
+      "id": "3628",
+      "name": "abc",
       "creatorId": "4",
       "img": "/assets/img/vacateste.jpg",
       "type": "Playlist do Usuário",

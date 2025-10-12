@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, IconButton } from '@mui/material';
+import { Menu, MenuItem, Typography } from '@mui/material';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import AddIcon from '@mui/icons-material/Add';
@@ -9,12 +9,11 @@ import QueueIcon from '@mui/icons-material/Queue';
 import ShareIcon from '@mui/icons-material/Share';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
-import CloseIcon from '@mui/icons-material/Close';
 
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toggleLikeSongAsync, addSongToPlaylistAsync, fetchUserPlaylistsDetail } from '../redux/loginSlice';
-import { playSong, togglePlayPause } from '../redux/playerSlice';
+import { playSong, togglePlayPause, addSingleSongToQueue } from '../redux/playerSlice';
 
 const COR_LARANJA = 'var(--orange)';
 const LIKED_SONGS_ID = "0";
@@ -27,7 +26,7 @@ export default function Song({ song }) {
     const { user, userPlaylistsDetail } = useSelector(state => state.auth);
 
     const userLikedSongs = user?.likedSongs || [];
-    const isLiked = userLikedSongs.includes(songId);
+    const isLiked = userLikedSongs.includes(songId); 
 
     const { currentSong, isPlaying } = useSelector(state => state.player);
     const isThisSongCurrentlySelected = currentSong?.id === songId;
@@ -36,10 +35,6 @@ export default function Song({ song }) {
     const [anchorEl, setAnchorEl] = useState(null);
     const [playlistAnchorEl, setPlaylistAnchorEl] = useState(null);
     
-    const [shareModalOpen, setShareModalOpen] = useState(false);
-    const [copied, setCopied] = useState(false);
-
-
     const aberto = Boolean(anchorEl);
     const playlistMenuAberto = Boolean(playlistAnchorEl);
 
@@ -97,16 +92,16 @@ export default function Song({ song }) {
         }
     };
     
-    const handleAddPlaylistClick = (event) => {
+    const handleAddPlaylistClick = (currentTarget) => {
         if (!user) {
             navigate('/login');
             return;
         }
         setAnchorEl(null); 
-        setPlaylistAnchorEl(event); 
+        setPlaylistAnchorEl(currentTarget); 
     };
 
-    const handleAddToSpecificPlaylist = (playlistId, playlistTitle) => {
+    const handleAddToSpecificPlaylist = (playlistId, playlistName) => {
         if (!user) {
             navigate('/login');
             return;
@@ -116,43 +111,37 @@ export default function Song({ song }) {
             userId: user.id,
             playlistId: playlistId,
             songId: songId
-        }));
+        })).unwrap().then(() => {
+            alert(`"${title}" adicionada com sucesso à playlist "${playlistName}"!`);
+        }).catch((error) => {
+            console.error("Erro ao adicionar música à playlist:", error);
+            alert(`Erro ao adicionar "${title}" à playlist "${playlistName}".`);
+        });
         
         handlePlaylistMenuClose();
     };
 
     const handleCreatePlaylist = () => {
         handlePlaylistMenuClose();
-        navigate('/playlists?openCreateModal=true');
+        navigate('/playlists?openCreateModal=true'); 
+    };
+
+    // NOVA FUNÇÃO: Adiciona a música à fila de reprodução
+    const handleAddToQueue = () => {
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        dispatch(addSingleSongToQueue(song));
+        alert(`"${title}" adicionada à fila.`);
     };
     
-    const handleOpenShareModal = () => {
-        setShareModalOpen(true);
-        handleMenuClose(); 
-    };
-
-    const handleCloseShareModal = () => {
-        setShareModalOpen(false);
-        setCopied(false); 
-    };
-
-    const handleCopyLink = () => {
-        const shareLink = `${window.location.origin}/song/${songId}`;
-        navigator.clipboard.writeText(shareLink).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000); 
-        }).catch(err => {
-            console.error('Erro ao copiar o link: ', err);
-            alert('Não foi possível copiar o link.');
-        });
-    };
-
     const menuOptions = [
-        { icon: <AddIcon fontSize="small" />, label: 'Adicionar à playlist', action: (e) => handleAddPlaylistClick(e.currentTarget), requiresEvent: true },
+        { icon: <AddIcon fontSize="small" />, label: 'Adicionar à playlist', action: handleAddPlaylistClick, requiresEvent: true }, 
         { icon: <PersonIcon fontSize="small" />, label: 'Ir para o artista', action: () => navigate(`/artista/${artistId}`) },
-        { icon: <AlbumIcon fontSize="small" />, label: 'Ir para o álbum', action: () => navigate(`/song/${songId}`) },
-        { icon: <QueueIcon fontSize="small" />, label: 'Adicionar à fila', action: () => console.log(`Adicionar ${title}`) },
-        { icon: <ShareIcon fontSize="small" />, label: 'Compartilhar', action: handleOpenShareModal },
+        { icon: <AlbumIcon fontSize="small" />, label: 'Ir para o álbum', action: () => navigate(`/album/${albumId}`) }, 
+        { icon: <QueueIcon fontSize="small" />, label: 'Adicionar à fila', action: handleAddToQueue }, // Ação atualizada
+        { icon: <ShareIcon fontSize="small" />, label: 'Compartilhar', action: () => console.log(`Compartilhar ${title}`) },
     ];
     
     const corIcone = isLiked ? COR_LARANJA : 'var(--secondary-text-color)';
@@ -165,8 +154,10 @@ export default function Song({ song }) {
                     <div onClick={handlePlayPauseClick} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                         {isThisSongPlaying ? (
                             <PauseIcon
+                                style={{ color: COR_LARANJA }} 
                                 onMouseEnter={(e) => (e.target.style.color = COR_LARANJA)}
-                                onMouseLeave={(e) => (e.target.style.color = 'white')}/>
+                                onMouseLeave={(e) => (e.target.style.color = COR_LARANJA)}
+                            />
                         ) : (
                             <PlayArrowIcon
                                 onMouseEnter={(e) => (e.target.style.color = COR_LARANJA)}
@@ -177,6 +168,7 @@ export default function Song({ song }) {
                     <div className="song-info flex" style={{ marginLeft: '15px' }}>
                         <span
                             className="song-title"
+                            style={{ color: isThisSongCurrentlySelected ? COR_LARANJA : 'white' }}
                             >{title}</span>
                         <span className="song-artist">{artist}</span>
                     </div>
@@ -203,23 +195,23 @@ export default function Song({ song }) {
                 anchorEl={anchorEl}
                 open={aberto}
                 onClose={handleMenuClose}
+                onClick={handleMenuClose} 
             >
                 {menuOptions.map((option) => (
                     <MenuItem
                         key={option.label}
                         onClick={(e) => {
                             if (option.requiresEvent) {
+                                e.stopPropagation(); 
                                 option.action(e.currentTarget);
                             } else {
                                 option.action();
-                                if (option.label !== 'Compartilhar') {
-                                     handleMenuClose();
-                                }
+                                handleMenuClose();
                             }
                         }}
                     >
                         {option.icon}
-                        <Typography variant="body1">{option.label}</Typography>
+                        <Typography variant="body1" style={{ marginLeft: '8px' }}>{option.label}</Typography>
                     </MenuItem>
                 ))}
             </Menu>
@@ -233,7 +225,7 @@ export default function Song({ song }) {
                     'aria-labelledby': 'basic-button',
                 }}
             >
-                <MenuItem disabled>
+                <MenuItem disabled style={{ opacity: 1 }}>
                     <Typography variant="subtitle2" style={{ fontWeight: 'bold' }}>Adicionar a:</Typography>
                 </MenuItem>
                 
@@ -244,7 +236,7 @@ export default function Song({ song }) {
                 
                 <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #333' }} />
 
-                {userPlaylistsDetail
+                {userPlaylistsDetail && userPlaylistsDetail
                     .filter(p => p.id !== LIKED_SONGS_ID)
                     .map((playlist) => (
                         <MenuItem
@@ -260,41 +252,6 @@ export default function Song({ song }) {
                     <Typography variant="body1" style={{ fontWeight: 'bold' }}>Criar playlist</Typography>
                 </MenuItem>
             </Menu>
-
-            <Dialog open={shareModalOpen} onClose={handleCloseShareModal}>
-                <DialogTitle>
-                    Compartilhar Múúúsica
-                    <IconButton
-                        aria-label="close"
-                        onClick={handleCloseShareModal}
-                        sx={{
-                            position: 'absolute',
-                            right: 8,
-                            top: 8,
-                            color: (theme) => theme.palette.grey[500],
-                        }}
-                    >
-                        <CloseIcon />
-                    </IconButton>
-                </DialogTitle>
-                <DialogContent>
-                    <Typography gutterBottom>Copie o link abaixo para compartilhar "{title}":</Typography>
-                    <TextField
-                        fullWidth
-                        variant="outlined"
-                        value={`${window.location.origin}/song/${songId}`}
-                        InputProps={{
-                            readOnly: true,
-                        }}
-                        onFocus={(event) => event.target.select()}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCopyLink} variant="contained" style={{ backgroundColor: COR_LARANJA }}>
-                        {copied ? 'Copiado!' : 'Copiar Link'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
         </>
     )
 }
