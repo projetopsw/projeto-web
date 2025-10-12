@@ -32,6 +32,8 @@ function TelaMusica() {
     const musicaImagem = musicaAtual.cover || musicaAtual.imagem; 
     const musicaTitulo = musicaAtual.title || musicaAtual.titulo; 
     const musicaArtista = musicaAtual.artist || musicaAtual.artista; 
+    // ✅ CORREÇÃO AQUI: Declaração da variável musicaId a partir de musicaAtual
+    const musicaId = musicaAtual.id;
 
 
     const [abaAtiva, setAbaAtiva] = useState('letra');
@@ -147,6 +149,7 @@ function TelaMusica() {
                     {abaAtiva === 'descricao' && (<Typography>{musicaAtual.descricao || 'Descrição indisponível.'}</Typography>)}
                     {abaAtiva === 'letra' && (<Typography>{musicaAtual.letra || 'Letra indisponível.'}</Typography>)}
                     
+                    {/* ✅ Agora a prop musicaId é passada corretamente */}
                     {abaAtiva === 'comentarios' && (
                         <Comentarios musicaId={musicaId} />
                     )}

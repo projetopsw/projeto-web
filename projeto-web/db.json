@@ -556,7 +556,7 @@
     {
       "id": "3",
       "name": "IgorGodoy",
-      "email": "igorgodoy@email.com",
+      "email": "igor@email.com",
       "password": "igor",
       "image": "https://placehold.co/400x400?text=Igor",
       "userPlaylists": [
@@ -570,6 +570,9 @@
       "friendshipRequests": [],
       "requestsReceived": [
         "2"
+      ],
+      "likedSongs": [
+        "song-01"
       ]
     },
     {
@@ -668,12 +671,7 @@
       "description": "Todas as músicas que você curtiu. Clicando no coração.",
       "creator": "Você",
       "songs": [
-        "song-03",
-        "song-02",
-        "song-14",
-        "song-04",
-        "song-01",
-        "song-06"
+        "song-01"
       ]
     },
     {

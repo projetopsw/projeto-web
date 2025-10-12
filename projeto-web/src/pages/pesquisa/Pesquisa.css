@@ -1,0 +1,250 @@
+/* --- Estilos Gerais da Página Home --- */
+.pagina-inicial {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem; 
+  margin-left: 0;
+}
+
+main {
+  /* Garante que o conteúdo não fique escondido atrás do player */
+  padding-bottom: 125px; 
+  color: var(--text-color);
+}
+
+/* --- Seção e Carrossel --- */
+.section-container {
+  position: relative; /* Essencial para posicionar os botões de scroll */
+  margin-bottom: 2.5rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  font-size: 1.5rem;
+}
+
+/* Container que permite o scroll horizontal */
+.section-scroll-container {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 1rem; /* Espaço para a barra de scroll não cortar o conteúdo */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Esconde a barra de scroll no Chrome/Safari */
+.section-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* --- Botões de Scroll do Carrossel --- */
+.scroll-button {
+  position: absolute;
+  top: 55%; 
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  opacity: 0; /* Escondido por padrão */
+  transition: opacity 0.3s ease;
+}
+
+.section-container:hover .scroll-button {
+  opacity: 1; /* Aparece no hover da seção */
+}
+
+.scroll-button.left { left: -20px; }
+.scroll-button.right { right: -20px; }
+
+
+/* --- Cards de Conteúdo (Unificados) --- */
+.card {
+  position: relative;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  padding: 1rem;
+  width: 180px;
+  flex-shrink: 0;
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+}
+
+.card:hover {
+  background-color: var(--shadow-color-dark);
+  color: var(--white);
+
+}
+
+.card-image {
+  width: 100%;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 24px var(--shadow-color-dark);
+}
+
+.card-info {
+  min-height: 50px;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 0 0.5rem 0;
+  color: var(--text-color);
+}
+
+.card-artist {
+  font-size: 0.875rem;
+  color: var(--secondary-text-color);
+  margin: 0;
+}
+
+/* Botão de Play que aparece no Hover do Card */
+.play-button {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 6rem;
+  background-color: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1  rem;
+  cursor: pointer;
+  box-shadow: 0 8px 16px var(--shadow-color-dark);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+}
+
+.card:hover .play-button  {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Botão de Play para Cards de Playlists */
+.playlist-card .play-button {
+  right: 0.8rem; /* Ajuste horizontal */
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  bottom: 4.5rem; /* Ajuste vertical */
+}
+
+/* Aparece no hover do PlaylistCard */
+.playlist-card:hover .play-button {
+  opacity: 1;
+  transform: translateY(0); /* Remove o deslocamento inicial */
+}
+
+
+/* Card de Artista (Circular) */
+.artist-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 180px;
+  padding: 1rem;
+  flex-shrink: 0;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+}
+
+.artist-circle:hover {
+  background-color: var(--card-bg);
+}
+
+.artist-image {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 24px var(--shadow-color-dark);
+}
+
+.artist-name {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: var(--text-color);
+}
+
+
+/* Estilos para o container da barra de navegação */
+.home-navigation {
+  display: flex;
+  flex-wrap: wrap; /* Permite que os itens quebrem a linha em telas menores */
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+}
+
+/* Estilos para cada item da navegação */
+.nav-item {
+  padding: 0.6rem 1.2rem;
+  border-radius: 50px;
+  background-color: var(--card-bg); /* Cinza um pouco mais claro */
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 0.9rem;    
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  user-select: none; /* Impede a seleção de texto ao clicar */
+}
+
+/* Efeito ao passar o mouse sobre um item */
+.nav-item:hover {
+  background-color: var(--shadow-color-dark); /* Cinza escuro para itens inativos */
+}
+
+/* Estilo específico para o item que está selecionado */
+.nav-item.selected {
+  background-color: var(--orange);
+  color: #fff;
+}
+
+/* Remover sublinhado/estilo azul dos links nos cards */
+.card,
+.artist-circle {
+  text-decoration: none;
+  color: inherit;
+}
+
+.card *,
+.artist-circle * {
+  text-decoration: none;
+}
+
+.card:link,
+.card:visited,
+.card:hover,
+.card:active,
+.artist-circle:link,
+.artist-circle:visited,
+.artist-circle:hover,
+.artist-circle:active {
+  text-decoration: none;
+  color: inherit;
+}
