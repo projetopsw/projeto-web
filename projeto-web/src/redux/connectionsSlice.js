@@ -5,39 +5,48 @@ import { setUserData } from './userSlice';
 
 const API_URL = 'http://localhost:3001/users';
 
-// --- Thunks Assíncronos (SEM o 'export' aqui) ---
+// --- Thunks Assíncronos (SINTAXE CORRIGIDA: SEM 'export' AQUI!) ---
 
-const fetchConnectionsData = createAsyncThunk(
+const fetchConnectionsData = createAsyncThunk( 
     'connections/fetchData',
     async (currentUserId, { rejectWithValue }) => {
-        // ... (resto do código do fetchConnectionsData) ...
         try {
-            const allUsers = await (await fetch('http://localhost:3001/users')).json(); 
-            const currentUser = allUsers.find(u => u.id === currentUserId);
+            const allUsers = await (await fetch(API_URL)).json(); 
+            const currentUserIdStr = String(currentUserId); 
+            const currentUser = allUsers.find(u => String(u.id) === currentUserIdStr);
 
-            if (!currentUser) {
-                return rejectWithValue('Usuário atual não encontrado.');
-            }
+            if (!currentUser) return rejectWithValue('Usuário atual não encontrado.');
 
-            const fetchDetails = (ids) => allUsers.filter(u => ids.includes(u.id));
+            const fetchDetails = (ids) => {
+                const uniqueIds = Array.from(new Set(ids.map(id => String(id))));
+                return allUsers.filter(u => uniqueIds.includes(String(u.id)));
+            };
 
-            const friends = fetchDetails(currentUser.friends);
-            const pendingRequests = fetchDetails(currentUser.friendshipRequests);
-
-            const sentRequestsUsers = allUsers.filter(u => u.friendshipRequests.includes(currentUserId));
+            const friends = fetchDetails(currentUser.friends || []);
+            const pendingRequests = fetchDetails(currentUser.friendshipRequests || []);
             
-            const sentRequestIds = sentRequestsUsers.map(u => u.id);
+            // Busca reversa dos pedidos enviados
+            const sentRequestsUsers = allUsers.filter(user => 
+                (user.friendshipRequests || []).includes(currentUserIdStr)
+            );
+            const sentRequests = sentRequestsUsers;
+            
+            const existingConnectionsIds = new Set([
+                currentUserIdStr,
+                ...(currentUser.friends || []).map(String),
+                ...(currentUser.friendshipRequests || []).map(String),
+                ...sentRequests.map(u => String(u.id))
+            ]);
 
             const suggestions = allUsers.filter(user =>
-                user.id !== currentUserId &&
-                !currentUser.friends.includes(user.id) &&
-                !currentUser.friendshipRequests.includes(user.id) &&
-                !sentRequestIds.includes(user.id)
+                !existingConnectionsIds.has(String(user.id))
             );
             
-            return { friends, pendingRequests, sentRequests: sentRequestsUsers, suggestions };
+            return { friends, pendingRequests, sentRequests, suggestions };
+
         } catch (error) {
-            return rejectWithValue(error.message);
+            console.error("Erro no fetchConnectionsData:", error);
+            return rejectWithValue(error.message || 'Falha na comunicação com o servidor.');
         }
     }
 );
@@ -45,139 +54,123 @@ const fetchConnectionsData = createAsyncThunk(
 const toggleFriendRequest = createAsyncThunk(
     'connections/toggleRequest',
     async ({ currentUserId, targetUser }, { rejectWithValue }) => {
-        // ... (resto do código do toggleFriendRequest) ...
-        const isAlreadySent = targetUser.friendshipRequests.includes(currentUserId);
+        // ... Lógica de toggle Friend Request
+        const currentUserIdStr = String(currentUserId);
+        const targetUserIdStr = String(targetUser.id);
+        const targetResponse = await fetch(`${API_URL}/${targetUserIdStr}`);
+        const freshTargetUser = await targetResponse.json();
+        const isAlreadySent = (freshTargetUser.friendshipRequests || []).includes(currentUserIdStr);
         const updatedRequests = isAlreadySent
-            ? targetUser.friendshipRequests.filter(id => id !== currentUserId)
-            : [...targetUser.friendshipRequests, currentUserId];
+            ? (freshTargetUser.friendshipRequests || []).filter(id => String(id) !== currentUserIdStr)
+            : [...(freshTargetUser.friendshipRequests || []), currentUserIdStr];
 
         try {
-            const response = await fetch(`${API_URL}/${targetUser.id}`, {
+            const response = await fetch(`${API_URL}/${targetUserIdStr}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ friendshipRequests: updatedRequests }),
             });
-            const data = await response.json();
-            
-            return { updatedTargetUser: data, wasSent: isAlreadySent };
-        } catch (error) {
-            return rejectWithValue(error.message);
-        }
+            return { updatedTargetUser: await response.json(), wasSent: isAlreadySent };
+        } catch (error) { return rejectWithValue(error.message); }
     }
 );
 
 const acceptFriendRequest = createAsyncThunk(
     'connections/acceptRequest',
     async ({ accepterId, requester }, { dispatch, rejectWithValue }) => {
-        // ... (resto do código do acceptFriendRequest) ...
-        try {
-            // 1. Atualizar o ACENTER (Usuário Logado)
-            const accepterResponse = await fetch(`${API_URL}/${accepterId}`);
-            const accepter = await accepterResponse.json();
+        // ... Lógica de Aceitar
+        const accepterIdStr = String(accepterId);
+        const requesterIdStr = String(requester.id);
+        
+        const accepterResponse = await fetch(`${API_URL}/${accepterIdStr}`);
+        const accepter = await accepterResponse.json();
 
-            const updatedAccepter = {
-                friends: [...accepter.friends, requester.id],
-                friendshipRequests: accepter.friendshipRequests.filter(id => id !== requester.id)
-            };
-            const resAccepter = await fetch(`${API_URL}/${accepterId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedAccepter),
-            });
-            const freshAccepter = await resAccepter.json();
+        const updatedAccepter = {
+            friends: [...(accepter.friends || []), requesterIdStr],
+            friendshipRequests: (accepter.friendshipRequests || []).filter(id => String(id) !== requesterIdStr)
+        };
+        const resAccepter = await fetch(`${API_URL}/${accepterIdStr}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedAccepter),
+        });
+        const freshAccepter = await resAccepter.json();
 
-            // 2. Atualizar o REQUESTER
-            const updatedRequester = {
-                friends: [...requester.friends, accepterId]
-            };
-            await fetch(`${API_URL}/${requester.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedRequester),
-            });
-            
-            // 3. ATUALIZAÇÃO CRÍTICA DO ESTADO GLOBAL DO USUÁRIO LOGADO
-            dispatch(setUserData(freshAccepter));
-            
-            return requester; 
-        } catch (error) {
-            return rejectWithValue(error.message);
-        }
+        const requesterResponse = await fetch(`${API_URL}/${requesterIdStr}`);
+        const freshRequester = await requesterResponse.json();
+        
+        const updatedRequester = {
+            friends: [...(freshRequester.friends || []), accepterIdStr]
+        };
+        await fetch(`${API_URL}/${requesterIdStr}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedRequester),
+        });
+        
+        dispatch(setUserData(freshAccepter));
+        return requester; 
     }
 );
 
 const declineFriendRequest = createAsyncThunk(
     'connections/declineRequest',
     async ({ recipientId, requesterId }, { dispatch, rejectWithValue }) => {
-        // ... (resto do código do declineFriendRequest) ...
-        try {
-            const recipientResponse = await fetch(`${API_URL}/${recipientId}`);
-            const recipient = await recipientResponse.json(); 
+        // ... Lógica de Recusar
+        const recipientIdStr = String(recipientId);
+        const requesterIdStr = String(requesterId);
+        
+        const recipientResponse = await fetch(`${API_URL}/${recipientIdStr}`);
+        const recipient = await recipientResponse.json(); 
 
-            const updatedRequests = recipient.friendshipRequests.filter(id => id !== requesterId);
-            
-            const response = await fetch(`${API_URL}/${recipientId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ friendshipRequests: updatedRequests }),
-            });
-            const freshRecipient = await response.json();
-            
-            dispatch(setUserData(freshRecipient));
-
-            return { declinedRequestId: requesterId };
-        } catch (error) {
-            return rejectWithValue(error.message);
-        }
+        const updatedRequests = (recipient.friendshipRequests || []).filter(id => String(id) !== requesterIdStr);
+        
+        const response = await fetch(`${API_URL}/${recipientIdStr}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ friendshipRequests: updatedRequests }),
+        });
+        const freshRecipient = await response.json();
+        
+        dispatch(setUserData(freshRecipient));
+        return { declinedRequestId: requesterIdStr };
     }
 );
 
-const removeFriend = createAsyncThunk( // <-- SEM 'export' aqui
+const removeFriend = createAsyncThunk(
     'connections/removeFriend',
     async ({ currentUserId, targetUserId }, { dispatch, rejectWithValue }) => {
-        // ... (resto do código do removeFriend) ...
+        // ... Lógica de Remover Amigo
+        const currentUserIdStr = String(currentUserId);
+        const targetUserIdStr = String(targetUserId);
+
         try {
             const [currentUserRes, targetUserRes] = await Promise.all([
-                fetch(`${API_URL}/${currentUserId}`),
-                fetch(`${API_URL}/${targetUserId}`)
+                fetch(`${API_URL}/${currentUserIdStr}`),
+                fetch(`${API_URL}/${targetUserIdStr}`)
             ]);
             
-            if (!currentUserRes.ok || !targetUserRes.ok) {
-                throw new Error("Falha ao buscar usuários para remoção.");
-            }
+            if (!currentUserRes.ok || !targetUserRes.ok) throw new Error("Falha ao buscar usuários para remoção.");
             
             const currentUser = await currentUserRes.json();
             const targetUser = await targetUserRes.json();
 
-            const updatedCurrentUserFriends = currentUser.friends.filter(id => String(id) !== String(targetUserId));
-            const updatedTargetUserFriends = targetUser.friends.filter(id => String(id) !== String(currentUserId));
+            const updatedCurrentUserFriends = (currentUser.friends || []).filter(id => String(id) !== targetUserIdStr);
+            const updatedTargetUserFriends = (targetUser.friends || []).filter(id => String(id) !== currentUserIdStr);
 
-            const [updatedCurrentUserRes, updatedTargetUserRes] = await Promise.all([
-                fetch(`${API_URL}/${currentUserId}`, {
-                    method: 'PATCH', 
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ friends: updatedCurrentUserFriends })
-                }),
-                fetch(`${API_URL}/${targetUserId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ friends: updatedTargetUserFriends })
-                })
+            await Promise.all([
+                fetch(`${API_URL}/${currentUserIdStr}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ friends: updatedCurrentUserFriends }) }),
+                fetch(`${API_URL}/${targetUserIdStr}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ friends: updatedTargetUserFriends }) })
             ]);
             
-            if (!updatedCurrentUserRes.ok || !updatedTargetUserRes.ok) {
-                throw new Error("Falha ao salvar a remoção no servidor.");
-            }
-            
-            const freshCurrentUser = await updatedCurrentUserRes.json();
+            const freshCurrentUser = await (await fetch(`${API_URL}/${currentUserIdStr}`)).json();
             
             dispatch(setUserData(freshCurrentUser));
-            dispatch(fetchConnectionsData(currentUserId));
+            dispatch(fetchConnectionsData(currentUserId)); 
             
-            return { targetUserId }; 
+            return { targetUserId: targetUserIdStr }; 
             
         } catch (error) {
-            console.error("Erro ao remover amigo:", error);
             return rejectWithValue(error.message);
         }
     }
@@ -189,10 +182,10 @@ const removeFriend = createAsyncThunk( // <-- SEM 'export' aqui
 const connectionsSlice = createSlice({
     name: 'connections',
     initialState: {
-        friends: [],
-        pendingRequests: [],
-        sentRequests: [],
-        suggestions: [],
+        friends: [], // Array inicializada (CORRIGE 'reading map')
+        pendingRequests: [], // Array inicializada
+        sentRequests: [], // Array inicializada
+        suggestions: [], // Array inicializada
         status: 'idle',
         error: null,
     },
@@ -200,43 +193,42 @@ const connectionsSlice = createSlice({
     extraReducers: (builder) => {
         builder
             // FETCH DATA
-            .addCase(fetchConnectionsData.pending, (state) => {
-                state.status = 'loading';
-            })
+            .addCase(fetchConnectionsData.pending, (state) => { state.status = 'loading'; state.error = null; })
             .addCase(fetchConnectionsData.fulfilled, (state, action) => {
                 state.status = 'succeeded';
-                state.friends = action.payload.friends;
-                state.pendingRequests = action.payload.pendingRequests;
-                state.sentRequests = action.payload.sentRequests;
-                state.suggestions = action.payload.suggestions;
+                // Garante que o payload é um objeto válido antes de desestruturar (defensivo)
+                if (action.payload) {
+                    state.friends = action.payload.friends || [];
+                    state.pendingRequests = action.payload.pendingRequests || [];
+                    state.sentRequests = action.payload.sentRequests || [];
+                    state.suggestions = action.payload.suggestions || [];
+                }
+                state.error = null;
             })
             .addCase(fetchConnectionsData.rejected, (state, action) => {
                 state.status = 'failed';
-                state.error = action.payload;
+                state.error = action.payload || 'Falha desconhecida na conexão.'; 
+                // CRUCIAL: Reseta para arrays vazias para evitar 'reading map' na renderização
+                state.friends = [];
+                state.pendingRequests = [];
+                state.sentRequests = [];
+                state.suggestions = [];
             })
-            // TOGGLE REQUEST
+            // ... (restante dos extraReducers)
             .addCase(toggleFriendRequest.fulfilled, (state, action) => {
                 const { updatedTargetUser, wasSent } = action.payload;
-                if (wasSent) { 
-                    state.sentRequests = state.sentRequests.filter(u => u.id !== updatedTargetUser.id);
-                } else { 
-                    state.sentRequests.push(updatedTargetUser);
-                }
+                if (!wasSent) { state.sentRequests.push(updatedTargetUser); state.suggestions = state.suggestions.filter(u => String(u.id) !== String(updatedTargetUser.id)); } 
+                else { state.sentRequests = state.sentRequests.filter(u => String(u.id) !== String(updatedTargetUser.id)); state.suggestions.push(updatedTargetUser); }
             })
-            // ACCEPT REQUEST
             .addCase(acceptFriendRequest.fulfilled, (state, action) => {
                 const newFriend = action.payload;
                 state.friends.push(newFriend);
-                state.pendingRequests = state.pendingRequests.filter(req => req.id !== newFriend.id);
+                state.pendingRequests = state.pendingRequests.filter(req => String(req.id) !== String(newFriend.id));
             })
-            // DECLINE REQUEST
             .addCase(declineFriendRequest.fulfilled, (state, action) => {
                 const { declinedRequestId } = action.payload;
-                state.pendingRequests = state.pendingRequests.filter(
-                    req => req.id !== declinedRequestId
-                );
+                state.pendingRequests = state.pendingRequests.filter(req => String(req.id) !== String(declinedRequestId));
             })
-            // REMOVE FRIEND
             .addCase(removeFriend.fulfilled, (state, action) => {
                 const { targetUserId } = action.payload;
                 state.friends = state.friends.filter(f => String(f.id) !== String(targetUserId));
@@ -246,7 +238,7 @@ const connectionsSlice = createSlice({
 
 export default connectionsSlice.reducer;
 
-// EXPORTAÇÃO ÚNICA DE TODAS AS AÇÕES PARA EVITAR O ERRO 'Duplicate export'
+// EXPORTAÇÃO ÚNICA DE TODAS AS AÇÕES (CORRIGE ERRO DE EXPORT DUPLICADO)
 export { 
     fetchConnectionsData, 
     toggleFriendRequest, 

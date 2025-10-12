@@ -7,13 +7,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { setUserData } from '../../redux/userSlice';
 import { fetchPlaylistsByUserId } from '../../redux/playlistsSlice';
 import { fetchArtistsByIds, fetchSongsByIds } from '../../redux/catalogoSlice';
-import { fetchUsersByIds } from '../../redux/loginSlice';
 
 // Ações centralizadas de Conexão
 import { 
     toggleFriendRequest, 
-    acceptFriendRequest, 
-    removeFriend // <<-- NOVO: Importação para remover amigo
+    acceptFriendRequest,
+    removeFriend
 } from '../../redux/connectionsSlice';
 
 // Componentes
@@ -45,14 +44,12 @@ export default function Perfil() {
 
     const userLogado = useSelector(state => state.user.user); 
     
-    // Selecionar o estado de conexões para o usuário logado
     const { 
         friends: loggedInFriends, 
         sentRequests: loggedInSentRequests,
         pendingRequests: loggedInPendingRequests
     } = useSelector((state) => state.connections);
 
-    // ESTADO LOCAL para o perfil que está sendo exibido (alvo)
     const [targetUser, setTargetUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [targetPlaylists, setTargetPlaylists] = useState([]);
@@ -63,7 +60,6 @@ export default function Perfil() {
     const targetId = id || (userLogado ? String(userLogado.id) : null);
     const isOwner = userLogado && targetId && String(userLogado.id) === targetId;
 
-    // Seletores do Redux (Usados apenas se isOwner for TRUE)
     const friendDetailsRedux = loggedInFriends; 
     const { items: userPlaylistsRedux } = useSelector(state => state.playlists?.userPlaylists || { items: [] });
     const { items: followedArtistsRedux } = useSelector(state => state.catalog?.followedArtists || { items: [] });
@@ -84,7 +80,7 @@ export default function Perfil() {
 
         const loadProfileData = async () => {
             setIsLoading(true);
-           
+            
             let userToDisplay = userLogado && isOwner ? userLogado : await fetchTargetUser(targetId);
             
             if (userToDisplay) {
@@ -94,8 +90,6 @@ export default function Perfil() {
                     dispatch(fetchPlaylistsByUserId(userToDisplay.id));
                     dispatch(fetchArtistsByIds(userToDisplay.following || []));
                     dispatch(fetchSongsByIds(userToDisplay.likedSongs || []));
-                    dispatch(setUserData(userToDisplay)); 
-
                 } else {
                     const fetchDetailsForFriend = async (user) => {
                         const [playlists, friendsDetails, songsDetails, artistsDetails] = await Promise.all([
@@ -117,40 +111,33 @@ export default function Perfil() {
 
         loadProfileData();
     }, [targetId, isOwner, dispatch, 
-        userLogado?.id, 
+        userLogado, 
         loggedInFriends.length, 
         loggedInSentRequests.length, 
         loggedInPendingRequests.length
     ]); 
 
 
-    // --- Handler UNIFICADO de Ação de Amizade (Adicionar/Remover/Cancelar/Aceitar) ---
+    // --- Handler UNIFICADO de Ação de Amizade ---
     const handleToggleAction = async () => {
         if (!userLogado || !targetUser) return;
         
         if (currentIsFriend) {
-            // SE JÁ É AMIGO: REMOVER AMIGO
-            dispatch(removeFriend({ 
-                currentUserId: userLogado.id, 
-                targetUserId: targetUser.id 
-            }));
-            alert(`Você removeu ${targetUser.name} de seus amigos.`);
-            
+            // Ação de REMOVER AMIGO
+            dispatch(removeFriend({ currentUserId: userLogado.id, targetUserId: targetUser.id }));
+            alert(`Você removeu ${targetUser.name || targetUser.username} de seus amigos.`);
         } else if (currentHasReceivedRequest) {
-            // SE RECEBEU PEDIDO: ACEITAR
+            // Ação de ACEITAR PEDIDO
             dispatch(acceptFriendRequest({ accepterId: userLogado.id, requester: targetUser }));
-            alert(`Você aceitou o pedido de ${targetUser.name}!`);
-            
+            alert(`Você aceitou o pedido de ${targetUser.name || targetUser.username}!`);
         } else {
-            // CASO CONTRÁRIO: ADICIONAR / CANCELAR PEDIDO
+            // Ação de ENVIAR/CANCELAR PEDIDO
+            // Se já tem solicitação pendente, o toggleFriendRequest irá CANCELAR.
+            const isPending = currentHasRequested; 
             dispatch(toggleFriendRequest({ currentUserId: userLogado.id, targetUser }));
-            
-            // Feedback simples:
-            if (currentHasRequested) {
-                alert(`Pedido para ${targetUser.name} cancelado.`);
-            } else {
-                alert(`Pedido para ${targetUser.name} enviado!`);
-            }
+            alert(isPending 
+                ? `Pedido para ${targetUser.name || targetUser.username} cancelado.`
+                : `Pedido para ${targetUser.name || targetUser.username} enviado!`);
         }
     };
 
@@ -185,19 +172,45 @@ export default function Perfil() {
         playlists: displayedPlaylists.length,
         friends: totalFriendCount, 
         following: targetUser.following || [],
+        img: targetUser.img || targetUser.image || DEFAULT_USER_IMAGE
     };
     
-    // --- Lógica do Texto e Habilitação do Botão de Amizade ---
+    // --- Lógica do Texto e Habilitação do Botão de Amizade (CORRIGIDO) ---
     let friendButtonText = "Adicionar aos Amigos";
+    let friendButtonVariant = "contained";
     let isFriendButtonDisabled = false;
+    let friendButtonCustomStyle = {};
 
     if (currentIsFriend) {
         friendButtonText = "Remover Amigo";
+        friendButtonVariant = "outlined";
+        friendButtonCustomStyle = { color: 'var(--text-primary)', borderColor: 'var(--text-primary)' };
+
     } else if (currentHasRequested) {
-        friendButtonText = "Solicitação Pendente";
+        // CORRIGIDO: O botão DEVE ser clicável para CANCELAR a solicitação.
+        friendButtonText = "CANCELAR SOLICITAÇÃO";
+        friendButtonVariant = "outlined";
+        isFriendButtonDisabled = false; // Permite o clique para cancelar
+        
+        // Estilo Laranja para alta visibilidade
+        friendButtonCustomStyle = { 
+            color: 'var(--orange)', 
+            borderColor: 'var(--orange)',
+            '&:hover': {
+                borderColor: 'var(--orange)', 
+                backgroundColor: 'rgba(255, 102, 0, 0.08)' // Um fundo sutil no hover
+            }
+        };
+        
     } else if (currentHasReceivedRequest) {
         friendButtonText = "Aceitar Pedido"; 
-    } 
+        friendButtonVariant = "contained";
+        friendButtonCustomStyle = { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } };
+        
+    } else {
+        // Padrão: Adicionar Amigo
+        friendButtonCustomStyle = { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } };
+    }
 
     return (
         <main>
@@ -209,10 +222,11 @@ export default function Perfil() {
                     onEditClick={isOwner ? handleEditProfile : null} 
                     onFriendsClick={isOwner ? handleViewFriends : null} 
                     isOwner={isOwner}
-                    currentIsFriend={currentIsFriend}
                     onFriendAction={!isOwner ? handleToggleAction : null} 
                     friendActionText={friendButtonText}
+                    friendButtonVariant={friendButtonVariant}
                     isFriendActionDisabled={isFriendButtonDisabled}
+                    friendButtonCustomStyle={friendButtonCustomStyle} 
                 />
                 
                 <Divider sx={{ my: 4 }} />
@@ -249,7 +263,7 @@ export default function Perfil() {
                 
                 <Divider sx={{ my: 4 }} />
                 
-                {/* 4. AMIGOS (CORREÇÃO DE isUser) */}
+                {/* 4. AMIGOS */}
                 <Box sx={{ mb: 4 }}>
                     <Box 
                         sx={{ 
@@ -279,11 +293,11 @@ export default function Perfil() {
                                 <ArtistCircle
                                     key={friend.id}
                                     id={friend.id}
-                                    image={friend.image || DEFAULT_USER_IMAGE}
+                                    image={friend.img || friend.image || DEFAULT_USER_IMAGE} 
                                     name={friend.name || friend.username || `Amigo ${friend.id}`} 
                                     onClick={() => handleFriendClick(friend.id)}
                                     sx={{ cursor: 'pointer' }}
-                                    isUser={true}
+                                    isUser={true} 
                                 />
                             ))
                         ) : (
