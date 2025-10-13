@@ -4,7 +4,7 @@ import NavBar from './NavBar';
 import '../pages/playlists/Playlists.css';
 import '../index.css';
 
-import SideBar from './SideBar'; // Importe o novo SideBar
+import SideBar from './SideBar'; 
 
 function Header() {
   return (

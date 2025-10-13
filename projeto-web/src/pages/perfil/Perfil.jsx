@@ -3,19 +3,16 @@ import { Box, Divider, Typography, CircularProgress, Button } from '@mui/materia
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 
-// Importações do Redux
 import { setUserData } from '../../redux/userSlice';
 import { fetchPlaylistsByUserId } from '../../redux/playlistsSlice';
 import { fetchArtistsByIds, fetchSongsByIds } from '../../redux/catalogoSlice';
 
-// Ações centralizadas de Conexão
 import { 
     toggleFriendRequest, 
     acceptFriendRequest,
     removeFriend
 } from '../../redux/connectionsSlice';
 
-// Componentes
 import Section from '../../components/Section.jsx';
 import PlaylistCard from '../../components/PlaylistCard.jsx';
 import ArtistCircle from '../../components/ArtistCircle.jsx';
@@ -25,7 +22,6 @@ import SongList from '../../components/SongList';
 const API_URL = 'http://localhost:3001';
 const DEFAULT_USER_IMAGE = 'https://placehold.co/400x400?text=User'; 
 
-// --- Função Auxiliar de Fetch para o Usuário Alvo ---
 const fetchTargetUser = async (targetId) => {
     try {
         const response = await fetch(`${API_URL}/users/${targetId}`);
@@ -65,7 +61,6 @@ export default function Perfil() {
     const { items: followedArtistsRedux } = useSelector(state => state.catalog?.followedArtists || { items: [] });
     const { items: likedSongsDetailsRedux } = useSelector(state => state.catalog?.likedSongsDetails || { items: [] });
 
-    // --- LÓGICA DE RELACIONAMENTO USANDO O CONNECTIONS SLICE ---
     const targetUserIdStr = String(targetUser?.id);
     
     const currentIsFriend = loggedInFriends.some(f => String(f.id) === targetUserIdStr);
@@ -81,7 +76,11 @@ export default function Perfil() {
         const loadProfileData = async () => {
             setIsLoading(true);
             
-            let userToDisplay = userLogado && isOwner ? userLogado : await fetchTargetUser(targetId);
+            let userToDisplay = await fetchTargetUser(targetId);
+            
+            if (isOwner && userLogado) {
+                 userToDisplay = {...userToDisplay, ...userLogado, ...userToDisplay};
+            }
             
             if (userToDisplay) {
                 setTargetUser(userToDisplay);
@@ -118,21 +117,16 @@ export default function Perfil() {
     ]); 
 
 
-    // --- Handler UNIFICADO de Ação de Amizade ---
     const handleToggleAction = async () => {
         if (!userLogado || !targetUser) return;
         
         if (currentIsFriend) {
-            // Ação de REMOVER AMIGO
             dispatch(removeFriend({ currentUserId: userLogado.id, targetUserId: targetUser.id }));
             alert(`Você removeu ${targetUser.name || targetUser.username} de seus amigos.`);
         } else if (currentHasReceivedRequest) {
-            // Ação de ACEITAR PEDIDO
             dispatch(acceptFriendRequest({ accepterId: userLogado.id, requester: targetUser }));
             alert(`Você aceitou o pedido de ${targetUser.name || targetUser.username}!`);
         } else {
-            // Ação de ENVIAR/CANCELAR PEDIDO
-            // Se já tem solicitação pendente, o toggleFriendRequest irá CANCELAR.
             const isPending = currentHasRequested; 
             dispatch(toggleFriendRequest({ currentUserId: userLogado.id, targetUser }));
             alert(isPending 
@@ -141,12 +135,10 @@ export default function Perfil() {
         }
     };
 
-    // --- Handlers de Navegação ---
     const handleFriendClick = (id) => navigate(`/perfil/${id}`);
     const handleViewFriends = () => navigate('/conexoes'); 
     const handleEditProfile = () => navigate('/perfil/editar');
     
-    // --- Renderização de Estado ---
     if (isLoading) {
         return <main><Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box></main>;
     }
@@ -155,7 +147,6 @@ export default function Perfil() {
         return <main><Box sx={{ p: 4 }}><Typography color="error">Perfil do usuário **{targetId}** não encontrado. 😢</Typography></Box></main>;
     }
 
-    // --- DETERMINAÇÃO E LIMITAÇÃO DAS LISTAS EXIBIDAS (UNIFICAÇÃO) ---
     const displayedPlaylists = isOwner ? userPlaylistsRedux : targetPlaylists;
     const allFriends = isOwner ? friendDetailsRedux : targetFriendsDetails;
     const limitedDisplayedFriends = allFriends.slice(0, 6); 
@@ -164,18 +155,20 @@ export default function Perfil() {
     const displayedFollowedArtists = isOwner ? followedArtistsRedux : targetFollowedArtistsDetails;
 
 
-    // Formatação dos dados para o ProfileHeader
     const totalFriendCount = targetUser.friends?.length || 0;
+    
+    const finalImage = targetUser.img || targetUser.image || DEFAULT_USER_IMAGE;
+    
     const profileUserData = {
         ...targetUser,
         username: targetUser.name || targetUser.username,
         playlists: displayedPlaylists.length,
         friends: totalFriendCount, 
         following: targetUser.following || [],
-        img: targetUser.img || targetUser.image || DEFAULT_USER_IMAGE
+        img: finalImage,
+        image: finalImage 
     };
     
-    // --- Lógica do Texto e Habilitação do Botão de Amizade (CORRIGIDO) ---
     let friendButtonText = "Adicionar aos Amigos";
     let friendButtonVariant = "contained";
     let isFriendButtonDisabled = false;
@@ -187,18 +180,16 @@ export default function Perfil() {
         friendButtonCustomStyle = { color: 'var(--text-primary)', borderColor: 'var(--text-primary)' };
 
     } else if (currentHasRequested) {
-        // CORRIGIDO: O botão DEVE ser clicável para CANCELAR a solicitação.
         friendButtonText = "CANCELAR SOLICITAÇÃO";
         friendButtonVariant = "outlined";
-        isFriendButtonDisabled = false; // Permite o clique para cancelar
+        isFriendButtonDisabled = false;
         
-        // Estilo Laranja para alta visibilidade
         friendButtonCustomStyle = { 
             color: 'var(--orange)', 
             borderColor: 'var(--orange)',
             '&:hover': {
                 borderColor: 'var(--orange)', 
-                backgroundColor: 'rgba(255, 102, 0, 0.08)' // Um fundo sutil no hover
+                backgroundColor: 'rgba(255, 102, 0, 0.08)'
             }
         };
         
@@ -208,7 +199,6 @@ export default function Perfil() {
         friendButtonCustomStyle = { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } };
         
     } else {
-        // Padrão: Adicionar Amigo
         friendButtonCustomStyle = { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } };
     }
 
@@ -216,7 +206,6 @@ export default function Perfil() {
         <main>
             <Box sx={{ p: { xs: 2, md: 4, lg: 6 }, pb: 15 }}>
                 
-                {/* 1. HEADER */}
                 <ProfileHeader 
                     user={profileUserData} 
                     onEditClick={isOwner ? handleEditProfile : null} 
@@ -231,7 +220,6 @@ export default function Perfil() {
                 
                 <Divider sx={{ my: 4 }} />
                 
-                {/* 2. MÚSICAS FAVORITAS */}
                 {displayedLikedSongs.length > 0 && (
                     <>
                         <SongList 
@@ -242,7 +230,6 @@ export default function Perfil() {
                     </>
                 )}
                 
-                {/* 3. PLAYLISTS */}
                 <Section key={"Playlists"} title={`Playlists de ${targetUser.name || targetUser.username}`}>
                     {displayedPlaylists.length > 0 ? (
                         displayedPlaylists.map((playlist) => (
@@ -263,7 +250,6 @@ export default function Perfil() {
                 
                 <Divider sx={{ my: 4 }} />
                 
-                {/* 4. AMIGOS */}
                 <Box sx={{ mb: 4 }}>
                     <Box 
                         sx={{ 
@@ -310,7 +296,6 @@ export default function Perfil() {
 
                 <Divider sx={{ my: 4 }} />
 
-                {/* 5. ARTISTAS SEGUIDOS */}
                 {displayedFollowedArtists.length > 0 && (
                     <Section key={"Artistas Seguidos"} title={`Artistas Seguidos por ${targetUser.name || targetUser.username}`}>
                         {displayedFollowedArtists.map((artist) => (

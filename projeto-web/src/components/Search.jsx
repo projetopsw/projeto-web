@@ -1,13 +1,9 @@
-// src/components/Search.jsx (Final Corrigido)
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { InputBase, Box, styled, IconButton } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 
-// Estilos (mantidos)
-// ... (SearchContainer, SearchIconWrapper, StyledInputBase permanecem os mesmos) ...
 const SearchContainer = styled('div')(({ theme }) => ({
     position: 'relative',
     borderRadius: '20px',
@@ -54,54 +50,42 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
     },
 }));
 
-// O componente AGORA recebe initialQuery
 function Search({ initialQuery = '' }) {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState(initialQuery); 
 
-    // Efeito para sincronizar
     useEffect(() => {
         setSearchTerm(initialQuery);
     }, [initialQuery]);
 
 
-    // Função centralizada de navegação (disparada por Enter ou Lupa)
     const handleSearchNavigation = () => {
         const trimmedTerm = searchTerm.trim();
         
-        // ✅ 1. SE ESTIVER VAZIO: Apenas impede a navegação/mudança de URL.
         if (!trimmedTerm) {
             console.log("Pesquisa vazia, navegação impedida.");
             return;
         }
 
-        // ✅ 2. SE NÃO ESTIVER VAZIO: Navega com o termo de busca.
         navigate(`/pesquisa?q=${encodeURIComponent(trimmedTerm)}`);
     };
 
-    // 💡 Lógica do botão "Limpar"
     const handleClearSearch = () => {
-        // Limpa o estado local do input imediatamente
         setSearchTerm(''); 
         
-        // Se a página atual já for a de pesquisa e tiver um termo,
-        // navega para a mesma página, mas sem o parâmetro 'q', limpando os resultados.
         if (initialQuery) {
-             // ✅ ATUALIZA A URL PARA /pesquisa SEM ?q=
              navigate(`/pesquisa`); 
         }
     };
 
-    // Lida com a digitação (captura o valor)
     const handleInputChange = (event) => {
         setSearchTerm(event.target.value);
     };
 
-    // Lida com a tecla Enter
     const handleKeyDown = (event) => {
         if (event.key === 'Enter') {
-            event.preventDefault(); // Garante que o formulário não submeta de forma padrão
-            handleSearchNavigation(); // Chama a função que verifica e navega
+            event.preventDefault(); 
+            handleSearchNavigation(); 
         }
         event.stopPropagation();
     };

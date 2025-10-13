@@ -1,6 +1,5 @@
 import axios from "axios";
 
-// Resolve a baseURL levando em conta IPv6 e variáveis de ambiente do Vite
 function resolveBaseURL() {
   const defaultHost = (typeof window !== 'undefined' && window.location && window.location.hostname)
     ? window.location.hostname
@@ -18,7 +17,6 @@ function resolveBaseURL() {
     ? import.meta.env.VITE_API_PROTOCOL
     : 'http';
 
-  // Se host for IPv6 (contém ':'), precisa usar colchetes na URL
   const isIPv6 = host.includes(':');
   const hostPart = isIPv6 ? `[${host}]` : host;
 
@@ -27,7 +25,6 @@ function resolveBaseURL() {
 
 const finalBaseURL = resolveBaseURL();
 
-// ⚠️ COMANDO DE LOG ADICIONADO AQUI PARA DIAGNÓSTICO
 console.log("Axios Base URL para a API:", finalBaseURL);
 
 const api = axios.create({

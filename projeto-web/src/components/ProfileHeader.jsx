@@ -9,11 +9,9 @@ export default function ProfileHeader({
     onFriendsClick,
     
     isOwner,
-    // Primeiro Botão (Ação Principal)
     onFriendAction,
     friendActionText,
     isFriendActionDisabled,
-    // Segundo Botão (Ação Secundária, Recusar)
     onSecondFriendAction,
     secondFriendActionText,
 }) {
@@ -23,7 +21,6 @@ export default function ProfileHeader({
     const BUTTON_HOVER_BG = 'var(--button-hover-bg)'; 
     const CLICKABLE_HOVER_COLOR = 'var(--text-primary)';
     
-    // --- ESTILO DINÂMICO DO PRIMEIRO BOTÃO (AÇÃO PRINCIPAL) ---
     const getButtonStyles = (text) => {
         let bgColor = 'transparent';
         let color = ORANGE_COLOR;
@@ -37,7 +34,6 @@ export default function ProfileHeader({
             fontWeight = 700;
             hoverBg = ORANGE_COLOR;
         } else if (text === "Solicitação Pendente" || text === "Remover Amigo") {
-             // Deixa transparente, mas usa a cor do texto padrão para Pendente
             color = text === "Solicitação Pendente" ? DYNAMIC_TEXT_COLOR : ORANGE_COLOR;
             borderColor = text === "Solicitação Pendente" ? DYNAMIC_TEXT_COLOR : ORANGE_COLOR;
         }
@@ -47,7 +43,6 @@ export default function ProfileHeader({
 
     const primaryStyles = getButtonStyles(friendActionText);
     
-    // --- ESTILO DO SEGUNDO BOTÃO (AÇÃO SECUNDÁRIA: RECUSAR) ---
     const secondaryStyles = {
         bgColor: 'transparent',
         color: DYNAMIC_TEXT_COLOR,
@@ -77,7 +72,6 @@ export default function ProfileHeader({
                 textAlign: { xs: 'center', sm: 'left' }
             }}
         >
-            {/* AVATAR E BOTÃO DE EDIÇÃO DE IMAGEM */}
             <Box sx={{ position: 'relative', width: 150, height: 150 }}>
                 <Avatar 
                     src={safeUser.img || "https://placehold.co/250?text=Icone+Vaqueiro"} 
@@ -106,14 +100,12 @@ export default function ProfileHeader({
                 )}
             </Box>
 
-            {/* INFORMAÇÕES E BOTÕES DE AÇÃO */}
             <Box>
                 <Typography variant="h2" component="h1" fontWeight={700} sx={{ mb: 1 }}>
                     {safeUser.username}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: { xs: 'center', sm: 'flex-start' }, flexWrap: 'wrap' }}>
                     
-                    {/* INFORMAÇÕES ESTATÍSTICAS */}
                     <Typography variant="body1" sx={{ color: DYNAMIC_TEXT_COLOR }}>
                         {safeUser.playlists} Playlists 
                     </Typography>
@@ -143,10 +135,8 @@ export default function ProfileHeader({
                     </Typography>
                 </Box>
 
-                {/* BOTÕES DE AÇÃO - Container para 1 ou 2 botões */}
                 <Box sx={{ display: 'flex', gap: 2, mt: 2, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
                     
-                    {/* 1. BOTÃO DE EDIÇÃO (SE FOR O DONO) */}
                     {isOwner && onEditClick && (
                         <Button 
                             onClick={onEditClick} 
@@ -166,7 +156,6 @@ export default function ProfileHeader({
                         </Button>
                     )}
                     
-                    {/* 2. PRIMEIRO BOTÃO DE AMIZADE (AÇÃO PRINCIPAL) */}
                     {!isOwner && onFriendAction && (
                         <Button 
                             onClick={onFriendAction} 
@@ -189,7 +178,6 @@ export default function ProfileHeader({
                         </Button>
                     )}
 
-                    {/* 3. SEGUNDO BOTÃO DE AMIZADE (RECUSAR) */}
                     {!isOwner && onSecondFriendAction && (
                         <Button 
                             onClick={onSecondFriendAction} 

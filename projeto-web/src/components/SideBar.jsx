@@ -5,14 +5,8 @@ import HomeIcon from '@mui/icons-material/Home';
 import QueueMusicIcon from '@mui/icons-material/QueueMusic';
 import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
 import GroupIcon from '@mui/icons-material/Group';
-
-// Importa o componente da Fila (ajuste o caminho se necessário)
 import QueueOverlay from '../components/Fila'; 
 
-// -----------------------------------------------------------------
-// 1. SideButton (Componente Auxiliar)
-// Foi usado React.forwardRef para permitir que o QueueButton obtenha a posição do botão
-// -----------------------------------------------------------------
 const SideButton = React.forwardRef(({ children, to, label, isMobile, isProfile = false, ...props }, ref) => {
     
     if (isMobile) {
@@ -65,7 +59,7 @@ const SideButton = React.forwardRef(({ children, to, label, isMobile, isProfile 
         >
             <Link to={to} style={{ textDecoration: 'none', width: '100%' }}>
                 <Box 
-                    ref={ref} // Adicionado a referência aqui
+                    ref={ref} 
                     sx={{ 
                         display: 'flex', 
                         flexDirection: 'column', 
@@ -75,7 +69,7 @@ const SideButton = React.forwardRef(({ children, to, label, isMobile, isProfile 
                         width: '100%',
                         marginTop: isProfile ? '10px' : '0', 
                     }}
-                    {...props} // Permite passar eventos de hover
+                    {...props} 
                 >
                     <IconButton 
                         aria-label={label}
@@ -99,18 +93,13 @@ const SideButton = React.forwardRef(({ children, to, label, isMobile, isProfile 
 });
 
 
-// -----------------------------------------------------------------
-// 2. QueueButton (Componente de Overlay)
-// Gerencia a visibilidade do overlay e o posicionamento de altura total
-// -----------------------------------------------------------------
+
 const QueueButton = ({ isVisible, setIsVisible }) => {
     const buttonRef = React.useRef(null);
     const [overlayTop, setOverlayTop] = useState(0);
 
-    // Efeito para calcular a posição vertical do botão e alinhar o overlay
     React.useEffect(() => {
         if (buttonRef.current) {
-            // Calcula a distância do topo da viewport
             const rect = buttonRef.current.getBoundingClientRect();
             setOverlayTop(rect.top);
         }
@@ -140,18 +129,17 @@ const QueueButton = ({ isVisible, setIsVisible }) => {
             {/* O Overlay da Fila */}
             <Box
                 sx={{
-                    position: 'fixed', // Usa 'fixed' para grudar na tela, ignorando o scroll da página
-                    top: overlayTop, // Início alinhado com o botão
-                    left: '80px', // Posição após a sidebar (largura da sidebar)
+                    position: 'fixed', 
+                    top: overlayTop, 
+                    left: '80px', 
                     zIndex: 1000,
                     
-                    // Altura que se estende até o final da tela (100vh - o topo)
                     height: `calc(100vh - ${overlayTop}px)`, 
                     
                     opacity: isVisible ? 1 : 0,
                     visibility: isVisible ? 'visible' : 'hidden',
                     transition: 'opacity 0.3s ease, visibility 0.3s ease',
-                    pointerEvents: isVisible ? 'auto' : 'none', // Permite interagir quando visível
+                    pointerEvents: isVisible ? 'auto' : 'none', 
                 }}
             >
                 <QueueOverlay />
@@ -161,13 +149,10 @@ const QueueButton = ({ isVisible, setIsVisible }) => {
 }
 
 
-// -----------------------------------------------------------------
-// 3. SideBar Principal
-// -----------------------------------------------------------------
+
 function SideBar({ isMobile = false }) {
     const [isQueueVisible, setIsQueueVisible] = useState(false);
 
-    // Versão Mobile
     if (isMobile) {
         return (
             <Box
@@ -190,7 +175,6 @@ function SideBar({ isMobile = false }) {
                     <HomeIcon sx={{ fontSize: '24px' }} />
                 </SideButton>
 
-                {/* Botão Fila para mobile continua sendo um Link */}
                 <SideButton to="/fila" label="Fila" isMobile={true}>
                     <QueueMusicIcon sx={{ fontSize: '24px' }} />
                 </SideButton>
@@ -206,19 +190,17 @@ function SideBar({ isMobile = false }) {
         );
     }
     
-    // Versão Desktop
     return (
         <Box
             component="nav" 
             sx={{
-                position: 'fixed', // Fixo para que o overlay use a viewport
+                position: 'fixed', 
                 top: 0,
                 left: 0,
-                // Largura e altura da SideBar
                 width: '80px', 
-                height: '100vh', // Ocupa a altura total da viewport
+                height: '100vh', 
                 backgroundColor: 'var(--sidebar-bg)',
-                zIndex: 100, // Z-index alto para ficar acima do conteúdo
+                zIndex: 100, 
                 
                 display: 'flex',
                 flexDirection: 'column',
@@ -234,7 +216,6 @@ function SideBar({ isMobile = false }) {
                 <HomeIcon sx={{ fontSize: '28px' }} />
             </SideButton>
 
-            {/* O componente QueueButton que lida com o hover e o overlay */}
             <QueueButton 
                 isVisible={isQueueVisible} 
                 setIsVisible={setIsQueueVisible} 

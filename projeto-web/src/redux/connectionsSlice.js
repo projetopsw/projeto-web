@@ -1,11 +1,8 @@
-// src/redux/connectionsSlice.js
-
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { setUserData } from './userSlice'; 
 
 const API_URL = 'http://localhost:3001/users';
 
-// --- Thunks Assíncronos (SINTAXE CORRIGIDA: SEM 'export' AQUI!) ---
 
 const fetchConnectionsData = createAsyncThunk( 
     'connections/fetchData',
@@ -78,7 +75,6 @@ const toggleFriendRequest = createAsyncThunk(
 const acceptFriendRequest = createAsyncThunk(
     'connections/acceptRequest',
     async ({ accepterId, requester }, { dispatch, rejectWithValue }) => {
-        // ... Lógica de Aceitar
         const accepterIdStr = String(accepterId);
         const requesterIdStr = String(requester.id);
         
@@ -116,7 +112,6 @@ const acceptFriendRequest = createAsyncThunk(
 const declineFriendRequest = createAsyncThunk(
     'connections/declineRequest',
     async ({ recipientId, requesterId }, { dispatch, rejectWithValue }) => {
-        // ... Lógica de Recusar
         const recipientIdStr = String(recipientId);
         const requesterIdStr = String(requesterId);
         
@@ -140,7 +135,6 @@ const declineFriendRequest = createAsyncThunk(
 const removeFriend = createAsyncThunk(
     'connections/removeFriend',
     async ({ currentUserId, targetUserId }, { dispatch, rejectWithValue }) => {
-        // ... Lógica de Remover Amigo
         const currentUserIdStr = String(currentUserId);
         const targetUserIdStr = String(targetUserId);
 
@@ -177,26 +171,23 @@ const removeFriend = createAsyncThunk(
 );
 
 
-// --- Slice e Reducers ---
 
 const connectionsSlice = createSlice({
     name: 'connections',
     initialState: {
-        friends: [], // Array inicializada (CORRIGE 'reading map')
-        pendingRequests: [], // Array inicializada
-        sentRequests: [], // Array inicializada
-        suggestions: [], // Array inicializada
+        friends: [],
+        pendingRequests: [], 
+        sentRequests: [], 
+        suggestions: [], 
         status: 'idle',
         error: null,
     },
     reducers: {},
     extraReducers: (builder) => {
         builder
-            // FETCH DATA
             .addCase(fetchConnectionsData.pending, (state) => { state.status = 'loading'; state.error = null; })
             .addCase(fetchConnectionsData.fulfilled, (state, action) => {
                 state.status = 'succeeded';
-                // Garante que o payload é um objeto válido antes de desestruturar (defensivo)
                 if (action.payload) {
                     state.friends = action.payload.friends || [];
                     state.pendingRequests = action.payload.pendingRequests || [];
@@ -208,13 +199,11 @@ const connectionsSlice = createSlice({
             .addCase(fetchConnectionsData.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.payload || 'Falha desconhecida na conexão.'; 
-                // CRUCIAL: Reseta para arrays vazias para evitar 'reading map' na renderização
                 state.friends = [];
                 state.pendingRequests = [];
                 state.sentRequests = [];
                 state.suggestions = [];
             })
-            // ... (restante dos extraReducers)
             .addCase(toggleFriendRequest.fulfilled, (state, action) => {
                 const { updatedTargetUser, wasSent } = action.payload;
                 if (!wasSent) { state.sentRequests.push(updatedTargetUser); state.suggestions = state.suggestions.filter(u => String(u.id) !== String(updatedTargetUser.id)); } 
@@ -238,7 +227,6 @@ const connectionsSlice = createSlice({
 
 export default connectionsSlice.reducer;
 
-// EXPORTAÇÃO ÚNICA DE TODAS AS AÇÕES (CORRIGE ERRO DE EXPORT DUPLICADO)
 export { 
     fetchConnectionsData, 
     toggleFriendRequest, 

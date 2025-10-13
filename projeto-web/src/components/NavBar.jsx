@@ -1,11 +1,8 @@
-// NavBar.jsx
-
 import React, { useState, useEffect } from 'react';
 import { AppBar, Toolbar, Box, styled, IconButton } from '@mui/material'; 
 import Search from './Search'; 
 import UserProfileIcon from './UserProfileIcon';
 
-// 💡 DEFINIÇÃO DO ThemeSwitchContainer CORRIGIDA
 const ThemeSwitchContainer = styled(Box)(({ theme }) => ({
     width: '60px',
     height: '30px',
@@ -38,7 +35,6 @@ const ThemeSwitchContainer = styled(Box)(({ theme }) => ({
 }));
 
 
-// 💡 NavBar agora recebe a initialQuery
 function NavBar({ initialQuery = '' }) {
     const [isLightTheme, setIsLightTheme] = useState(false);
 
