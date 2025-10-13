@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Divider, Typography, CircularProgress } from '@mui/material'; 
+import { Box, Divider, Typography, CircularProgress, Button } from '@mui/material'; 
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -7,7 +7,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { setUserData } from '../../redux/userSlice';
 import { fetchPlaylistsByUserId } from '../../redux/playlistsSlice';
 import { fetchArtistsByIds, fetchSongsByIds } from '../../redux/catalogoSlice';
-import { fetchUsersByIds } from '../../redux/loginSlice';
+
+// Ações centralizadas de Conexão
+import { 
+    toggleFriendRequest, 
+    acceptFriendRequest,
+    removeFriend
+} from '../../redux/connectionsSlice';
 
 // Componentes
 import Section from '../../components/Section.jsx';
@@ -31,30 +37,6 @@ const fetchTargetUser = async (targetId) => {
     }
 };
 
-// --- FUNÇÃO DE PERSISTÊNCIA GENÉRICA (PUT) ---
-const updateUserOnServer = async (userToUpdate) => {
-    const userId = userToUpdate.id;
-    try {
-        const response = await fetch(`${API_URL}/users/${userId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(userToUpdate),
-        });
-
-        if (!response.ok) {
-            throw new Error(`Falha ao atualizar o usuário ${userId} no servidor. Status: ${response.status}`);
-        }
-
-        return await response.json();
-
-    } catch (error) {
-        console.error("Erro na persistência do usuário:", error);
-        return null;
-    }
-};
-
 export default function Perfil() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -62,7 +44,12 @@ export default function Perfil() {
 
     const userLogado = useSelector(state => state.user.user); 
     
-    // ESTADO LOCAL para o perfil que está sendo exibido (alvo)
+    const { 
+        friends: loggedInFriends, 
+        sentRequests: loggedInSentRequests,
+        pendingRequests: loggedInPendingRequests
+    } = useSelector((state) => state.connections);
+
     const [targetUser, setTargetUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [targetPlaylists, setTargetPlaylists] = useState([]);
@@ -73,15 +60,17 @@ export default function Perfil() {
     const targetId = id || (userLogado ? String(userLogado.id) : null);
     const isOwner = userLogado && targetId && String(userLogado.id) === targetId;
 
-    // Seletores do Redux (Usados apenas se isOwner for TRUE)
-    const { items: friendDetailsRedux } = useSelector(state => state.auth?.friends || { items: [] });
+    const friendDetailsRedux = loggedInFriends; 
     const { items: userPlaylistsRedux } = useSelector(state => state.playlists?.userPlaylists || { items: [] });
     const { items: followedArtistsRedux } = useSelector(state => state.catalog?.followedArtists || { items: [] });
     const { items: likedSongsDetailsRedux } = useSelector(state => state.catalog?.likedSongsDetails || { items: [] });
 
-    const currentIsFriend = userLogado?.friends?.includes(String(targetUser?.id));
-    const currentHasRequested = userLogado?.requestsSent?.includes(String(targetUser?.id));
-    const currentHasReceivedRequest = targetUser?.requestsSent?.includes(String(userLogado?.id)); // Checa se o TARGET enviou solicitação para o LOGADO
+    // --- LÓGICA DE RELACIONAMENTO USANDO O CONNECTIONS SLICE ---
+    const targetUserIdStr = String(targetUser?.id);
+    
+    const currentIsFriend = loggedInFriends.some(f => String(f.id) === targetUserIdStr);
+    const currentHasRequested = loggedInSentRequests.some(req => String(req.id) === targetUserIdStr);
+    const currentHasReceivedRequest = loggedInPendingRequests.some(req => String(req.id) === targetUserIdStr);
     
     useEffect(() => {
         if (!targetId) {
@@ -91,23 +80,17 @@ export default function Perfil() {
 
         const loadProfileData = async () => {
             setIsLoading(true);
-         
+            
             let userToDisplay = userLogado && isOwner ? userLogado : await fetchTargetUser(targetId);
             
             if (userToDisplay) {
                 setTargetUser(userToDisplay);
 
                 if (isOwner) {
-                    // SE O DONO: Dispara fetches do Redux
                     dispatch(fetchPlaylistsByUserId(userToDisplay.id));
-                    dispatch(fetchUsersByIds(userToDisplay.friends || []));
                     dispatch(fetchArtistsByIds(userToDisplay.following || []));
                     dispatch(fetchSongsByIds(userToDisplay.likedSongs || []));
-                    // Garante que o Redux está atualizado com o usuário mais recente
-                    dispatch(setUserData(userToDisplay)); 
-
                 } else {
-                    // SE UM AMIGO: Busca todos os dados auxiliares na API
                     const fetchDetailsForFriend = async (user) => {
                         const [playlists, friendsDetails, songsDetails, artistsDetails] = await Promise.all([
                             fetch(`${API_URL}/userPlaylists?creatorId=${user.id}`).then(res => res.ok ? res.json() : []), 
@@ -127,76 +110,34 @@ export default function Perfil() {
         };
 
         loadProfileData();
-    // A lista de dependências deve ser reativa para que mudanças no userLogado (como adicionar amigo)
-    // disparem a re-renderização e re-busca se necessário.
-    }, [targetId, isOwner, userLogado?.friends, userLogado?.requestsSent, dispatch]); 
+    }, [targetId, isOwner, dispatch, 
+        userLogado, 
+        loggedInFriends.length, 
+        loggedInSentRequests.length, 
+        loggedInPendingRequests.length
+    ]); 
 
 
-    // --- Implementação do Handler de Ação de Amizade (COM PERSISTÊNCIA DUPLA) ---
-    const handleFriendAction = async () => {
+    // --- Handler UNIFICADO de Ação de Amizade ---
+    const handleToggleAction = async () => {
         if (!userLogado || !targetUser) return;
         
-        const targetUserIdStr = String(targetUser.id);
-        const userLogadoIdStr = String(userLogado.id);
-        
-        let updatedUserLogado = { ...userLogado };
-        // Criamos uma cópia do targetUser para não modificar o estado local diretamente
-        let updatedTargetUser = { ...targetUser }; 
-        let action = '';
-
-        // --- 1. LÓGICA DE ATUALIZAÇÃO MÚTUA ---
-
         if (currentIsFriend) {
-            // AÇÃO: Remover Amigo
-            action = 'Remover Amigo';
-
-            // 1a. Remove o amigo do array de friends do usuário logado
-            updatedUserLogado.friends = (userLogado.friends || []).filter(id => id !== targetUserIdStr);
-            
-            // 1b. Remove o usuário logado do array de friends do amigo
-            updatedTargetUser.friends = (targetUser.friends || []).filter(id => id !== userLogadoIdStr);
-
-        } else if (currentHasRequested) {
-            // AÇÃO: Cancelar Solicitação
-            action = 'Cancelar Solicitação';
-
-            // 2a. Remove a solicitação enviada do array do usuário logado
-            updatedUserLogado.requestsSent = (userLogado.requestsSent || []).filter(id => id !== targetUserIdStr);
-            
-            // 2b. Remove a solicitação recebida do array do amigo
-            updatedTargetUser.requestsReceived = (targetUser.requestsReceived || []).filter(id => id !== userLogadoIdStr);
-
+            // Ação de REMOVER AMIGO
+            dispatch(removeFriend({ currentUserId: userLogado.id, targetUserId: targetUser.id }));
+            alert(`Você removeu ${targetUser.name || targetUser.username} de seus amigos.`);
+        } else if (currentHasReceivedRequest) {
+            // Ação de ACEITAR PEDIDO
+            dispatch(acceptFriendRequest({ accepterId: userLogado.id, requester: targetUser }));
+            alert(`Você aceitou o pedido de ${targetUser.name || targetUser.username}!`);
         } else {
-            // AÇÃO: Enviar Solicitação
-            action = 'Enviar Solicitação';
-
-            // 3a. Adiciona o ID do amigo no array de requestsSent do usuário logado
-            updatedUserLogado.requestsSent = [...(userLogado.requestsSent || []), targetUserIdStr];
-            
-            // 3b. Adiciona o ID do usuário logado no array de requestsReceived do amigo
-            updatedTargetUser.requestsReceived = [...(targetUser.requestsReceived || []), userLogadoIdStr];
-        }
-        
-        console.log(`[AÇÃO] Tentando ${action} para: ${targetUser.name || targetUser.username}`);
-
-        // --- 2. PERSISTÊNCIA DAS MUDANÇAS (DOIS PUTS EM SÉRIE) ---
-        
-        // Persiste a mudança no perfil do usuário logado
-        const resultLogado = await updateUserOnServer(updatedUserLogado);
-        
-        // Persiste a mudança no perfil do amigo (targetUser)
-        const resultTarget = await updateUserOnServer(updatedTargetUser);
-
-        if (resultLogado && resultTarget) {
-            // Se ambos deram certo, atualiza os estados no front-end:
-            dispatch(setUserData(resultLogado)); // Atualiza o Redux com o perfil do usuário logado
-            setTargetUser(resultTarget);         // Atualiza o estado local com o perfil do amigo (mantém o botão reativo)
-            console.log("Ambos os perfis atualizados no DBJSON e Redux/Local.");
-        } else {
-            // Se houver falha em um dos PUTs, avisa o usuário
-            console.error("Falha ao atualizar um ou ambos os perfis. As alterações podem estar inconsistentes.");
-            alert("Erro ao salvar a alteração de amizade. Tente novamente.");
-            // Poderia re-buscar o perfil do usuário logado aqui para tentar corrigir a inconsistência.
+            // Ação de ENVIAR/CANCELAR PEDIDO
+            // Se já tem solicitação pendente, o toggleFriendRequest irá CANCELAR.
+            const isPending = currentHasRequested; 
+            dispatch(toggleFriendRequest({ currentUserId: userLogado.id, targetUser }));
+            alert(isPending 
+                ? `Pedido para ${targetUser.name || targetUser.username} cancelado.`
+                : `Pedido para ${targetUser.name || targetUser.username} enviado!`);
         }
     };
 
@@ -216,8 +157,6 @@ export default function Perfil() {
 
     // --- DETERMINAÇÃO E LIMITAÇÃO DAS LISTAS EXIBIDAS (UNIFICAÇÃO) ---
     const displayedPlaylists = isOwner ? userPlaylistsRedux : targetPlaylists;
-    
-    // LIMITAÇÃO DE AMIGOS: Exibe apenas os 6 primeiros para manter o layout limpo
     const allFriends = isOwner ? friendDetailsRedux : targetFriendsDetails;
     const limitedDisplayedFriends = allFriends.slice(0, 6); 
 
@@ -233,21 +172,45 @@ export default function Perfil() {
         playlists: displayedPlaylists.length,
         friends: totalFriendCount, 
         following: targetUser.following || [],
+        img: targetUser.img || targetUser.image || DEFAULT_USER_IMAGE
     };
     
-    // --- Lógica do Texto e Habilitação do Botão de Amizade ---
+    // --- Lógica do Texto e Habilitação do Botão de Amizade (CORRIGIDO) ---
     let friendButtonText = "Adicionar aos Amigos";
+    let friendButtonVariant = "contained";
     let isFriendButtonDisabled = false;
+    let friendButtonCustomStyle = {};
 
     if (currentIsFriend) {
         friendButtonText = "Remover Amigo";
-    } else if (currentHasRequested) {
-        friendButtonText = "Solicitação Pendente";
-        // Permite o clique para Cancelar a solicitação
-    } 
-    // OBS: Se você quisesse a lógica de "Aceitar Solicitação", ela estaria aqui.
-    // Exemplo: else if (targetUser?.requestsReceived?.includes(userLogadoIdStr)) { ... }
+        friendButtonVariant = "outlined";
+        friendButtonCustomStyle = { color: 'var(--text-primary)', borderColor: 'var(--text-primary)' };
 
+    } else if (currentHasRequested) {
+        // CORRIGIDO: O botão DEVE ser clicável para CANCELAR a solicitação.
+        friendButtonText = "CANCELAR SOLICITAÇÃO";
+        friendButtonVariant = "outlined";
+        isFriendButtonDisabled = false; // Permite o clique para cancelar
+        
+        // Estilo Laranja para alta visibilidade
+        friendButtonCustomStyle = { 
+            color: 'var(--orange)', 
+            borderColor: 'var(--orange)',
+            '&:hover': {
+                borderColor: 'var(--orange)', 
+                backgroundColor: 'rgba(255, 102, 0, 0.08)' // Um fundo sutil no hover
+            }
+        };
+        
+    } else if (currentHasReceivedRequest) {
+        friendButtonText = "Aceitar Pedido"; 
+        friendButtonVariant = "contained";
+        friendButtonCustomStyle = { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } };
+        
+    } else {
+        // Padrão: Adicionar Amigo
+        friendButtonCustomStyle = { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } };
+    }
 
     return (
         <main>
@@ -257,13 +220,13 @@ export default function Perfil() {
                 <ProfileHeader 
                     user={profileUserData} 
                     onEditClick={isOwner ? handleEditProfile : null} 
-                    onFriendsClick={isOwner ? handleViewFriends : null} // Clique para /conexoes no Header (Contagem)
+                    onFriendsClick={isOwner ? handleViewFriends : null} 
                     isOwner={isOwner}
-                    currentIsFriend={currentIsFriend}
-                    // Ação, texto e desabilitado passados para o ProfileHeader
-                    onFriendAction={!isOwner ? handleFriendAction : null} 
+                    onFriendAction={!isOwner ? handleToggleAction : null} 
                     friendActionText={friendButtonText}
+                    friendButtonVariant={friendButtonVariant}
                     isFriendActionDisabled={isFriendButtonDisabled}
+                    friendButtonCustomStyle={friendButtonCustomStyle} 
                 />
                 
                 <Divider sx={{ my: 4 }} />
@@ -300,7 +263,7 @@ export default function Perfil() {
                 
                 <Divider sx={{ my: 4 }} />
                 
-                {/* 4. AMIGOS (Contagem total e clique no título para /conexoes se for o dono) */}
+                {/* 4. AMIGOS */}
                 <Box sx={{ mb: 4 }}>
                     <Box 
                         sx={{ 
@@ -310,9 +273,8 @@ export default function Perfil() {
                             mb: 2 
                         }}
                     >
-                        {/* TÍTULO: CLICÁVEL se for o dono do perfil. Contagem usa TOTAL de amigos. */}
                         <Box
-                            onClick={isOwner ? handleViewFriends : null} // CLIQUE PARA /CONEXOES AQUI
+                            onClick={isOwner ? handleViewFriends : null} 
                             sx={{ 
                                 cursor: isOwner ? 'pointer' : 'default',
                                 '&:hover': { opacity: isOwner ? 0.8 : 1 }
@@ -326,16 +288,16 @@ export default function Perfil() {
                     </Box>
                     
                     <Box sx={{ display: 'flex', overflowX: 'auto', gap: 2 }}>
-                        {/* CORREÇÃO APLICADA: Usa a lista limitada de amigos */}
                         {limitedDisplayedFriends.length > 0 ? (
                             limitedDisplayedFriends.map((friend) => (
                                 <ArtistCircle
                                     key={friend.id}
                                     id={friend.id}
-                                    image={friend.image || DEFAULT_USER_IMAGE}
+                                    image={friend.img || friend.image || DEFAULT_USER_IMAGE} 
                                     name={friend.name || friend.username || `Amigo ${friend.id}`} 
                                     onClick={() => handleFriendClick(friend.id)}
                                     sx={{ cursor: 'pointer' }}
+                                    isUser={true} 
                                 />
                             ))
                         ) : (
