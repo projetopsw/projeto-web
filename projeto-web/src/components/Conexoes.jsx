@@ -16,12 +16,13 @@ const navItemsData = ["Amigos", "Sugestões", "Pedidos", "Enviados"];
 export default function Conexoes() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-
+    
     const currentUser = useSelector(state => state.auth.user); 
-
+    
     const [selectedFilter, setSelectedFilter] = useState('Amigos');
- 
+    
     const { friends, pendingRequests, sentRequests, suggestions, status } = useSelector((state) => state.connections);
+    console.log("DADOS DO REDUX:", { pendingRequests, sentRequests });
 
     const handleUserClick = (id) => navigate(`/perfil/${id}`);
 
@@ -58,7 +59,13 @@ export default function Conexoes() {
             case 'Amigos':
                 return (
                     <Section title={`Peões Amigos (${friends.length})`}>
-                        {friends.map((f) => <ArtistCircle key={f.id} {...f} onClick={() => handleUserClick(f.id)} />)}
+                        {friends.length > 0 ? (
+                            friends.map((f) => <ArtistCircle key={f.id} {...f} onClick={() => handleUserClick(f.id)} />)
+                        ) : (
+                            <Typography sx={{ mt: 2, color: 'var(--secondary-text-color)' }}>
+                                Você ainda não tem amigos. Que tal adicionar algumas sugestões?
+                            </Typography>
+                        )}
                     </Section>
                 );
             case 'Sugestões':
