@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux'; // Necessário para ler o ID
+import { useSelector } from 'react-redux'; 
 import { Box, Typography, Button, TextField, List, ListItem, ListItemText, ListItemAvatar, Avatar, InputBase, styled, Divider, IconButton, CircularProgress } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
@@ -8,8 +8,6 @@ import PetsIcon from '@mui/icons-material/Pets';
 import PersonIcon from '@mui/icons-material/Person';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import api from '../../services/api';
-
-// Não precisa mais do USER_ID fixo
 
 const LeaveButton = styled(Button)(({ theme }) => ({
     backgroundColor: 'var(--card-bg)',
@@ -19,8 +17,6 @@ const LeaveButton = styled(Button)(({ theme }) => ({
     fontSize: '14px',
     '&:hover': { backgroundColor: 'var(--input-bg)' },
 }));
-
-// ... (Restante de styled components) ...
 
 const SearchInputWrapper = styled(Box)(({ theme }) => ({
     position: 'relative', flexGrow: 1, backgroundColor: 'var(--input-bg)', borderRadius: '25px',
@@ -48,7 +44,6 @@ function GrupoDetalhe() {
     const [grupo, setGrupo] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     
-    // Lendo o ID e o Nome do Redux Store
     const userId = useSelector(state => state.auth.user?.id); 
     const userName = useSelector(state => state.auth.user?.username || 'Você');
     const MOCK_USER_NAME = userName;
@@ -96,7 +91,7 @@ function GrupoDetalhe() {
         let isCancelled = false;
 
         const fetchGroupAndJoin = async () => {
-            if (!userId) { // Espera o ID do Redux
+            if (!userId) { 
                 setIsLoading(true);
                 return;
             }

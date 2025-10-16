@@ -10,12 +10,11 @@ import {
 } from '@mui/material';
 import api from '../../services/api';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchUserPlaylistsDetail } from '../../redux/loginSlice'; // Importe a thunk se necessário
+import { fetchUserPlaylistsDetail } from '../../redux/loginSlice'; 
 
 const LIKED_SONGS_COVER = '/assets/img/liked_cover_0.png';
 const DEFAULT_PLAYLIST_COVER = '/assets/img/vacateste.jpg';
 
-// REMOVEMOS O USER_ID FIXO AQUI
 
 const LIKED_SONGS_PLAYLIST = {
     id: "0",
@@ -84,10 +83,9 @@ function Playlists() {
     const dispatch = useDispatch();
     const location = useLocation();
     
-    // PEGANDO O USUÁRIO LOGADO E O ID CORRETO
     const { user, userPlaylistsDetail } = useSelector(state => state.auth);
-    const USER_ID = user?.id; // ID dinâmico do usuário logado
-    const userLikedSongs = user?.likedSongs || []; // Usado para re-renderizar em caso de curtida/descurtida
+    const USER_ID = user?.id; 
+    const userLikedSongs = user?.likedSongs || []; 
 
     const [playlists, setPlaylists] = useState([]); 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -103,12 +101,10 @@ function Playlists() {
             
             const likedSongsCount = (userData.likedSongs || []).filter(id => id).length; 
 
-            // Busca todas as playlists do usuário
             const playlistsPromises = userPlaylistsIds.map(id => api.get(`/userPlaylists/${id}`));
             const playlistsResponses = await Promise.all(playlistsPromises);
             let userAllPlaylists = playlistsResponses.map(res => res.data);
             
-            // Filtra a playlist "0" (Músicas Curtidas) e a insere manualmente com dados atualizados.
             let userCustomPlaylists = userAllPlaylists.filter(p => p.id !== LIKED_SONGS_PLAYLIST.id);
 
             const updatedLikedPlaylist = {
@@ -120,22 +116,18 @@ function Playlists() {
             const finalPlaylists = [updatedLikedPlaylist, ...userCustomPlaylists];
             setPlaylists(finalPlaylists);
 
-            // Opcional: Atualizar o Redux com a lista detalhada para uso em Song.jsx
             dispatch(fetchUserPlaylistsDetail(USER_ID)); 
 
         } catch (error) {
             console.error("Erro ao buscar playlists:", error);
-            // Se houver erro, garante que a playlist de curtidas ainda seja exibida
             setPlaylists([LIKED_SONGS_PLAYLIST]); 
         }
     };
     
     useEffect(() => {
         fetchPlaylists();
-        // Dispara o fetch toda vez que o usuário logado muda ou a lista de músicas curtidas muda
     }, [USER_ID, userLikedSongs.length]); 
 
-    // EFEITO para abrir o modal se houver o query param
     useEffect(() => {
         const query = new URLSearchParams(location.search);
         if (query.get('openCreateModal') === 'true') {
@@ -165,27 +157,22 @@ function Playlists() {
                     creatorId: USER_ID,
                     img: DEFAULT_PLAYLIST_COVER, 
                     type: "Playlist do Usuário",
-                    description: `Playlist criada por ${user.name || 'usuário'}.`, // Usa o nome do usuário
+                    description: `Playlist criada por ${user.name || 'usuário'}.`, 
                     songs: [], 
                     duration: "0 min",
                     songCount: 0,
                 };
                 
-                // 1. Cria a nova playlist na coleção userPlaylists
                 const response = await api.post('/userPlaylists', newPlaylist);
                 const createdPlaylist = response.data;
 
-                // 2. Busca a lista atual de playlists do usuário
                 const userResponse = await api.get(`/users/${USER_ID}`);
                 const currentUserPlaylists = userResponse.data.userPlaylists || [];
                 
-                // 3. Adiciona o ID da nova playlist à lista do usuário
                 const updatedPlaylistsList = [...currentUserPlaylists, createdPlaylist.id];
 
-                // 4. Atualiza o objeto do usuário na API
                 await api.patch(`/users/${USER_ID}`, { userPlaylists: updatedPlaylistsList });
                 
-                // 5. Atualiza o estado da aplicação
                 fetchPlaylists(); 
                 handleClose();
 

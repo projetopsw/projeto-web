@@ -37,10 +37,8 @@ const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
         const lowerFieldValue = String(fieldValue).toLowerCase();
         
         if (mode === 'includes') {
-            // Lógica para RELACIONADOS (Contém)
             return lowerFieldValue.includes(lowerQuery);
         } else {
-            // Lógica para PRINCIPAIS RESULTADOS (Começa com)
             return lowerFieldValue.startsWith(lowerQuery);
         }
     });
@@ -55,13 +53,11 @@ const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
 function Pesquisa() {
     const [selectedFilter, setSelectedFilter] = useState('Tudo');
     
-    // ESTADOS PARA PRINCIPAIS RESULTADOS (.startsWith)
     const [mainSongs, setMainSongs] = useState([]); 
     const [mainArtists, setMainArtists] = useState([]); 
     const [mainAlbums, setMainAlbums] = useState([]); 
     const [mainPlaylists, setMainPlaylists] = useState([]); 
 
-    // ESTADOS PARA RESULTADOS RELACIONADOS (.includes)
     const [relatedSongs, setRelatedSongs] = useState([]); 
     const [relatedArtists, setRelatedArtists] = useState([]); 
     const [relatedAlbums, setRelatedAlbums] = useState([]); 
@@ -73,12 +69,8 @@ function Pesquisa() {
     const [searchParams] = useSearchParams();
     const query = searchParams.get('q'); 
 
-    // ----------------------------------------------------
-    // LÓGICA CENTRAL DE BUSCA DE DADOS NA API
-    // ----------------------------------------------------
     useEffect(() => {
         if (!query || query.trim() === "") {
-            // Limpa todos os estados
             setMainSongs([]); setMainArtists([]); setMainAlbums([]); setMainPlaylists([]);
             setRelatedSongs([]); setRelatedArtists([]); setRelatedAlbums([]); setRelatedPlaylists([]);
             return;
@@ -91,7 +83,6 @@ function Pesquisa() {
             console.log(`Iniciando busca para query: "${query}"`);
 
             try {
-                // PASSO 1: BUSCAR TODOS OS DADOS BRUTOS
                 const artistsPromise = api.get(`/topArtists`); 
                 const songsPromise = api.get(`/topSongs`);     
                 const albumsPromise = api.get(`/topAlbums`);   
@@ -105,22 +96,17 @@ function Pesquisa() {
                     playlistsPromise,
                 ]);
                 
-                // Dados brutos
                 const allArtists = artistsRes.data;
                 const allSongs = songsRes.data;
                 const allAlbums = albumsRes.data;
                 const allPlaylists = playlistsRes.data;
 
-                // PASSO 2: FILTRAGEM PARA PRINCIPAIS RESULTADOS (.startsWith)
                 const mainArtistsFiltered = filterDataByQuery(allArtists, query, 'name', 'starts_with');
                 const mainSongsFiltered = filterDataByQuery(allSongs, query, 'title', 'starts_with');
                 const mainAlbumsFiltered = filterDataByQuery(allAlbums, query, 'title', 'starts_with');
                 const mainPlaylistsFiltered = filterDataByQuery(allPlaylists, query, 'title', 'starts_with');
 
-                // PASSO 3: FILTRAGEM PARA RELACIONADOS (.includes)
-                // É CRUCIAL remover os resultados principais dos relacionados para evitar duplicidade.
                 
-                // Função para remover duplicatas (usando Set de IDs)
                 const removeDuplicates = (mainList, relatedList) => {
                     const mainIds = new Set(mainList.map(item => item.id));
                     return relatedList.filter(item => !mainIds.has(item.id));
@@ -131,20 +117,16 @@ function Pesquisa() {
                 const relatedAlbumsRaw = filterDataByQuery(allAlbums, query, 'title', 'includes');
                 const relatedPlaylistsRaw = filterDataByQuery(allPlaylists, query, 'title', 'includes');
 
-                // Aplica a remoção de duplicatas
                 const relatedArtistsClean = removeDuplicates(mainArtistsFiltered, relatedArtistsRaw);
                 const relatedSongsClean = removeDuplicates(mainSongsFiltered, relatedSongsRaw);
                 const relatedAlbumsClean = removeDuplicates(mainAlbumsFiltered, relatedAlbumsRaw);
                 const relatedPlaylistsClean = removeDuplicates(mainPlaylistsFiltered, relatedPlaylistsRaw);
 
 
-                // PASSO 4: ATUALIZA OS ESTADOS
-                // Main
                 setMainSongs(mainSongsFiltered); 
                 setMainArtists(mainArtistsFiltered);
                 setMainAlbums(mainAlbumsFiltered);
                 setMainPlaylists(mainPlaylistsFiltered);
-                // Related
                 setRelatedSongs(relatedSongsClean);
                 setRelatedArtists(relatedArtistsClean);
                 setRelatedAlbums(relatedAlbumsClean);
@@ -152,7 +134,6 @@ function Pesquisa() {
 
             } catch (err) {
                 console.error("Erro fatal na chamada da API:", err);
-                // ... (tratamento de erro)
                 setError(`Erro crítico na comunicação. Verifique se o JSON Server está ligado e acessível.`);
                 
             } finally {
@@ -169,7 +150,6 @@ function Pesquisa() {
         setSelectedFilter(item);
     };
     
-    // ESTRUTURA PARA PRINCIPAIS RESULTADOS
     const mainResults = [
         { title: "Músicas", type: "song", data: mainSongs, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Playlists", type: "playlist", data: mainPlaylists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
@@ -177,7 +157,6 @@ function Pesquisa() {
         { title: "Artistas", type: "artist", data: mainArtists, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
     ];
 
-    // ESTRUTURA PARA RELACIONADOS
     const relatedResults = [
         { title: "Músicas", type: "song", data: relatedSongs, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Playlists", type: "playlist", data: relatedPlaylists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
@@ -206,7 +185,6 @@ function Pesquisa() {
                 {isLoading && <p>Carregando resultados...</p>}
                 {error && <p style={{ color: 'red' }}>Erro: {error}</p>}
                 
-                {/* 1. PRINCIPAIS RESULTADOS */}
                 {!isLoading && !error && totalMainResults > 0 && (
                     <>
                         <h1 className='search-subtitle'>Principais resultados envolvendo "{query}"</h1>
@@ -227,7 +205,6 @@ function Pesquisa() {
                     </>
                 )}
 
-                {/* 2. RESULTADOS RELACIONADOS */}
                 {!isLoading && !error && totalRelatedResults > 0 && (
                     <>
                         <h1 className='search-subtitle' style={{ marginTop: '40px' }}>Relacionados</h1>
@@ -249,7 +226,6 @@ function Pesquisa() {
                 )}
 
 
-                {/* Mensagem se nenhum resultado for encontrado */}
                 {!isLoading && !error && query && totalResults === 0 && (
                     <p style={{ marginTop: '20px' }}>Nenhum resultado encontrado para **"{query}"** em todas as categorias.</p>
                 )}

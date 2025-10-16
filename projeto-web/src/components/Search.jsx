@@ -94,7 +94,6 @@ function Search({ initialQuery = '' }) {
         <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}> 
             <SearchContainer> 
                 <SearchIconWrapper>
-                    {/* ✅ LUPA: Adiciona o onClick para disparar a busca */}
                     <IconButton onClick={handleSearchNavigation} size="small" sx={{ p:0 }}>
                         <SearchIcon sx={{ color: 'var(--input-text-color)' }} />
                     </IconButton>
@@ -106,7 +105,6 @@ function Search({ initialQuery = '' }) {
                     onChange={handleInputChange} 
                     onKeyDown={handleKeyDown} 
                 />
-                {/* BOTÃO DE LIMPAR: Chama handleClearSearch */}
                 {searchTerm && (
                     <IconButton 
                         onClick={handleClearSearch} 

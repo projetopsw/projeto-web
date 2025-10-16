@@ -14,7 +14,6 @@ font-family: 'Poppins', sans-serif;
     align-items: flex-start;
 }
 
-/* Layout para dispositivos móveis (coluna) */
 @media (max-width: 900px) {
     .tela-musica-container {
         flex-direction: column;
@@ -22,10 +21,6 @@ font-family: 'Poppins', sans-serif;
         gap: 3rem; 
     }
 }
-
-/* ------------------------------------------- */
-/* BLOCO DA MÚSICA (ESQUERDA)                  */
-/* ------------------------------------------- */
 
 .player-info-block {
     flex: 1 1 800px;
@@ -38,7 +33,6 @@ font-family: 'Poppins', sans-serif;
     font-weight: 700;
 }
 
-/* Alinhamento de Texto e Itens em Mobile */
 @media (max-width: 900px) {
     .player-info-block {
         align-items: center;
@@ -46,7 +40,6 @@ font-family: 'Poppins', sans-serif;
     }
 }
 
-/* Estilo da Capa do Álbum */
 .album-art {
     width: 800px; 
     height: 500px;
@@ -57,7 +50,6 @@ font-family: 'Poppins', sans-serif;
     object-fit: cover;
 }
 
-/* Responsividade da Capa em Mobile */
 @media (max-width: 900px) {
     .album-art {
         width: 80vw;
@@ -67,10 +59,6 @@ font-family: 'Poppins', sans-serif;
     }
 }
 
-/* ------------------------------------------- */
-/* BLOCO DE OPÇÕES (DIREITA)                   */
-/* ------------------------------------------- */
-
 .options-block {
     margin-left: 20px;
     flex: 1 1 auto;
@@ -79,19 +67,16 @@ font-family: 'Poppins', sans-serif;
     width: 100%;
 }
 
-/* Botões (Letra, Relacionados, Descrição) */
 .options-buttons {
     margin-bottom: 1rem;
 }
 
-/* Centraliza botões em Mobile */
 @media (max-width: 900px) {
     .options-buttons {
         justify-content: center;
     }
 }
 
-/* Área de Conteúdo da Aba */
 .aba-content {
     padding: 1rem;
     border: 1px solid var(--border-color, #333);
@@ -109,21 +94,18 @@ font-family: 'Poppins', sans-serif;
     background-color: transparent !important;
 }
 
-/* Estado Ativo (Contained) */
 .options-block .MuiButton-contained {
     background-color: #ff7533 !important;
     color: white !important;
     border: 2px solid #ff7533 !important;
 }
 
-/* Efeito de Hover */
 .options-block .MuiButton-root:hover {
     background-color: #ff7533 !important;
     color: white !important;
     box-shadow: 0 4px 10px rgba(255, 117, 51, 0.4); 
 }
 
-/* VARIÁVEIS */
 :root {
     --player-height: 80px;
     --player-bg: #1c1c1c; 
@@ -142,14 +124,12 @@ font-family: 'Poppins', sans-serif;
     width: 100%; 
 }
 
-/* Estilo para os botões de like/dislike */
 .like-dislike-buttons {
     margin-top: 1rem;
     padding-bottom: 1rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Centraliza os botões de like/dislike em Mobile */
 @media (max-width: 900px) {
     .like-dislike-buttons {
         justify-content: center;

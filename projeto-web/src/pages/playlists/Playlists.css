@@ -8,7 +8,6 @@
 
 main h1 {
     text-align: left;
-    /* margin-left: 5%; */
     color: var(--text-color);
     font-size: 2.5rem;
     margin-bottom: 40px;
@@ -54,71 +53,60 @@ main h1 {
     width: 100%;
 }
 
-/* Exemplo de CSS para o funcionamento do progresso */
 
 .barra-progresso {
     width: 100%;
-    height: 6px; /* Altura da barra */
-    background-color: var(--secondary-bg); /* Cor de fundo da barra vazia */
+    height: 6px; 
+    background-color: var(--secondary-bg); 
     border-radius: 3px;
     margin-bottom: 10px;
     cursor: pointer;
 }
 
 .progresso {
-    /* Largura é controlada pelo React (progress%) */
     height: 100%;
-    background-color: var(--orange); /* Cor do progresso preenchido */
-    border-radius: 3px;
-    transition: width 0.1s linear; /* Transição suave */
-}
-
-/* Para a barra de progresso aparecer */
-.barra-progresso {
-    /* Exemplo: Cor cinza claro/escuro para o fundo da barra (parte que não foi tocada) */
-    background-color: var(--border-color); /* Use uma variável de cor que contraste */
-    height: 4px; /* Altura da barra */
-    width: 100%; /* Ocupa todo o espaço horizontal */
-    border-radius: 2px;
-    cursor: pointer;
-    overflow: hidden; /* Garante que o progresso fique dentro */
-}
-
-.progresso {
-    /* Cor do progresso preenchido */
     background-color: var(--orange); 
-    height: 100%;
-    /* Largura é controlada pelo React */
+    border-radius: 3px;
+    transition: width 0.1s linear; 
 }
 
-/* --- ESTILOS DO PLAYER (BARRA DE PROGRESSO) --- */
-
-/* Remove a duplicação e garante que o fundo (trás) da barra seja visível */
 .barra-progresso {
-    /* Cor de fundo para a parte não preenchida. Use uma cor visível! */
     background-color: var(--border-color); 
-    height: 4px; /* Altura da barra */
-    width: 100%; /* Ocupa o espaço disponível no flexbox */
+    height: 4px; 
+    width: 100%; 
     border-radius: 2px;
     cursor: pointer;
     overflow: hidden; 
-    transition: background-color 0.2s; /* Adiciona um hover sutil */
 }
-/* Adicione um hover para feedback visual */
+
+.progresso {
+    background-color: var(--orange); 
+    height: 100%;
+}
+
+
+.barra-progresso {
+    background-color: var(--border-color); 
+    height: 4px; 
+    width: 100%; 
+    border-radius: 2px;
+    cursor: pointer;
+    overflow: hidden; 
+    transition: background-color 0.2s;
+}
+
 .barra-progresso:hover {
     background-color: var(--secondary-text-color); 
 }
 
 
 .progresso {
-    /* Cor do progresso preenchido (Controlada pelo 'width' do React) */
     background-color: var(--orange); 
     height: 100%;
     border-radius: 2px;
-    transition: width 0.1s linear; /* Transição suave */
+    transition: width 0.1s linear; 
 }
 
-/* Novo container para alinhamento da barra e dos tempos */
 .barra-progresso-container {
     display: flex;
     align-items: center;
@@ -126,21 +114,20 @@ main h1 {
     padding: 0 20px; 
     width: 90%; 
     margin: 0 auto;
-    margin-bottom: 5px; /* Adiciona espaço entre a barra e os controles */
+    margin-bottom: 5px; 
 }
 
 .current-time, .duration-time {
     color: var(--secondary-text-color);
     font-size: 0.8rem;
-    width: 40px; /* Largura fixa para manter o layout estável */
+    width: 40px; 
     text-align: center;
 }
 
 .barra-progresso {
-    flex-grow: 1; /* Permite que a barra ocupe o espaço restante */
+    flex-grow: 1; 
 }
 
-/* --- ESTILOS DO CONTROLE DE VOLUME --- */
 
 .player {
     display: flex;
@@ -149,63 +136,52 @@ main h1 {
     padding: 0 20px; 
 }
 
-/* --- ESTILOS DO CONTROLE DE VOLUME REVISADOS --- */
 
-/* 1. Container de Volume (Alinhamento e Espaçamento) */
 .volume-control {
     display: flex;
     align-items: center;
-    gap: 8px; /* Espaço entre o ícone e o slider */
+    gap: 8px; 
     width: 150px; 
-    /* Use um padding/margin se necessário para afastar das bordas do footer */
 }
 
-/* 2. Ícone de Volume (Mais destaque) */
 .volume-control i {
     color: var(--secondary-text-color);
-    font-size: 1.1rem; /* Levemente maior que o padrão */
+    font-size: 1.1rem; 
     transition: color 0.3s;
 }
-/* Feedback visual ao interagir com o slider */
 .volume-control:hover i {
     color: var(--orange); 
 }
 
 
-/* 3. Slider (Aparência do Trilho) */
 .volume-slider {
-    /* Remove a aparência padrão do navegador */
     -webkit-appearance: none;
     appearance: none;
     width: 100px; 
-    height: 4px; /* Altura do trilho */
-    background: var(--border-color); /* Trilha não preenchida (fundo) */
+    height: 4px; 
+    background: var(--border-color); 
     border-radius: 2px;
     cursor: pointer;
-    opacity: 0.8; /* Levemente transparente */
+    opacity: 0.8; 
     transition: opacity 0.2s ease;
 }
 
-/* Aumenta a opacidade no hover */
 .volume-slider:hover {
     opacity: 1;
 }
 
-/* 4. Polegar (Thumb) do Slider (Webkit - Chrome, Safari) */
 .volume-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 12px;
     height: 18px;
-    background: var(--orange); /* Usa a cor de destaque do Moosica */
+    background: var(--orange); 
     border-radius: 20%;
     cursor: pointer;
-    box-shadow: 0 1px 4px var(--shadow-color-dark); /* Adiciona uma sombra sutil */
-    /* Empurra o thumb um pouco para dentro para ficar alinhado com a altura do trilho */
+    box-shadow: 0 1px 4px var(--shadow-color-dark); 
     margin-top: -4px; 
 }
 
-/* 5. Polegar (Thumb) do Slider (Mozilla Firefox) */
 .volume-slider::-moz-range-thumb {
     width: 12px;
     height: 12px;
@@ -216,8 +192,6 @@ main h1 {
     box-shadow: 0 1px 4px var(--shadow-color-dark);
 }
 
-/* 6. Preenchimento do Slider (Para Firefox) */
-/* Isso é um extra que faz a barra se destacar no Firefox */
 .volume-slider::-moz-range-progress {
     background: var(--orange);
     border-radius: 2px;
