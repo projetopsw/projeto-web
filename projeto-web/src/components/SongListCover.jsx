@@ -1,8 +1,6 @@
 import React from 'react';
 
-// Item individual da lista de músicas
 const TrackItem = ({ track, index }) => {
-    // (Lógica para calcular duração e plays simulados)
     const duration = '3:45'; 
     const plays = '2.567.890.123';
     
@@ -24,7 +22,6 @@ const TrackItem = ({ track, index }) => {
     );
 }
 
-// Lista principal
 const ArtistMusicList = ({ tracks }) => {
   if (!tracks || tracks.length === 0) {
     return <p className="text-zinc-400">Nenhuma música popular para exibir.</p>;

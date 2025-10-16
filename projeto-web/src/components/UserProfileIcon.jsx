@@ -9,13 +9,10 @@ function UserProfileIcon() {
     const navigate = useNavigate()
     const dispatch = useDispatch()
 
-    // LÊ O ESTADO DE AUTENTICAÇÃO (para fallback se o userSlice estiver vazio)
     const { user: authUser } = useSelector(state => state.auth); 
     
-    // LÊ O OBJETO DE USUÁRIO COMPLETO E ATUALIZADO (com o novo nome)
     const updatedUser = useSelector(state => state.user.user); 
 
-    // PRIORIZA O NOME ATUALIZADO, depois o nome de autenticação, senão 'Visitante'
     const displayName = updatedUser?.name || authUser?.name || 'Visitante';
     
     const [anchorEl, setAnchorEl] = useState(null)

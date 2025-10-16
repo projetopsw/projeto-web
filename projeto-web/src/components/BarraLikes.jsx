@@ -16,14 +16,14 @@ function BarraLikes({ likePercentage }) {
                 backgroundColor: '#555',
                 borderRadius: 4,
                 overflow: 'hidden',
-                mt: 1, // Margem superior para separar dos ícones
+                mt: 1, 
             }}
         >
             <Box
                 sx={{
                     width: `${likePercentage}%`,
                     height: '100%',
-                    backgroundColor: '#ff7533', // Cor dos Likes (Laranja)
+                    backgroundColor: '#ff7533', 
                     transition: 'width 0.3s ease-in-out',
                 }}
             />

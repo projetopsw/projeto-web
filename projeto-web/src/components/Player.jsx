@@ -14,7 +14,6 @@ import {
 
 const MUSIC_DETAIL_PATH_BASE = '/musica/';
 
-// A função formatTime continua a mesma
 const formatTime = (time) => {
     if (isNaN(time) || time < 0) return "0:00";
     const minutes = Math.floor(time / 60);
@@ -33,21 +32,17 @@ function Player() {
     
     const dispatch = useDispatch();
     
-    // CORREÇÃO 1: O `useRef` foi movido para DENTRO do componente.
     const audioRef = useRef(new Audio());
     
     const [localVolume, setLocalVolume] = useState(volume);
 
     useEffect(() => {
-        // CORREÇÃO 2: Acessando o volume sempre com .current
         audioRef.current.volume = volume;
         setLocalVolume(volume);
     }, [volume]);
 
-    // Lógica dos `useEffect`s simplificada para maior clareza
     useEffect(() => {
         if (currentSong && currentSong.caminho) {
-            // Se a música for diferente, atualiza o src
             if (audioRef.current.src !== currentSong.caminho) {
                 audioRef.current.src = currentSong.caminho;
             }
@@ -63,7 +58,6 @@ function Player() {
     }, [isPlaying, currentSong]);
 
     useEffect(() => {
-        // CORREÇÃO 3: Corrigido o erro de digitação de `audioEl.current` para `audioRef.current`
         const audioEl = audioRef.current;
 
         const setAudioData = () => dispatch(setDuration(audioEl.duration));
@@ -91,7 +85,6 @@ function Player() {
         const newVolume = parseFloat(event.target.value);
         setLocalVolume(newVolume);
         
-        // CORREÇÃO 2: Usando .current
         audioRef.current.volume = newVolume;
     };
     
@@ -104,17 +97,14 @@ function Player() {
         const clickPercent = clickPosition / bar.offsetWidth;
         const newTime = clickPercent * duration;
         
-        // CORREÇÃO 2: Usando .current
         audioRef.current.currentTime = newTime;
         
         dispatch(updateCurrentTime(newTime));
     };
     
-    // As funções handleSkipNext e handleSkipPrevious continuam iguais...
     const handleSkipNext = (e) => { /* ... */ };
     const handleSkipPrevious = (e) => { /* ... */ };
 
-    // O JSX também continua o mesmo...
     const progress = (currentTime / duration) * 100 || 0;
     const songName = currentSong ? `${currentSong.title} - ${currentSong.artist}` : " ";
     const detailRoute = currentSong ? `${MUSIC_DETAIL_PATH_BASE}${currentSong.id}` : MUSIC_DETAIL_PATH_BASE;
@@ -122,7 +112,6 @@ function Player() {
     const VolumeIcon = localVolume === 0 ? "fas fa-volume-mute" : localVolume < 0.5 ? "fas fa-volume-down" : "fas fa-volume-up";
 
     return (
-        // Todo o seu JSX aqui... (não precisa mudar nada no return)
         <div style={{ position: 'relative', width: '100%', padding: '10px 0', backgroundColor: 'transparent' }}>
             
             <div className="barra-progresso-container">

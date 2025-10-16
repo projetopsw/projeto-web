@@ -78,7 +78,6 @@ export default function Conexoes() {
         }
         
         if (status === 'failed') {
-            // Exibe o erro retornado pelo slice
             return (
                 <Typography sx={{ mt: 3, color: 'red' }}>
                     ❌ Erro ao carregar as conexões: {error || 'Verifique o JSON-Server e a função fetchConnectionsData.'}
@@ -132,13 +131,11 @@ export default function Conexoes() {
                                                 minWidth: '100px',
                                                 ...(isSent 
                                                     ? { 
-                                                        // Estilo para CANCELAR SOLICITAÇÃO (melhor visibilidade)
                                                         bgcolor: 'var(--secondary-text-color)', 
                                                         color: 'var(--text-primary)', 
                                                         '&:hover': { bgcolor: '#444' } 
                                                       } 
                                                     : { 
-                                                        // Estilo para ADICIONAR
                                                         bgcolor: 'var(--orange)', 
                                                         '&:hover': { bgcolor: 'darkorange' } 
                                                       })
