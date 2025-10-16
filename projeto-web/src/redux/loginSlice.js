@@ -4,6 +4,7 @@ import axios from 'axios';
 
 const LIKED_SONGS_ID = "0";
 
+// --- Funções Auxiliares ---
 const loadUserFromLocalStorage = () => {
     try {
         const serializedUser = localStorage.getItem('user');
@@ -12,6 +13,7 @@ const loadUserFromLocalStorage = () => {
         }
         const user = JSON.parse(serializedUser);
         if (user) {
+            // Garante que os arrays existam no objeto de usuário (importante para o state)
             user.likedSongs = user.likedSongs || [];
             user.userPlaylists = user.userPlaylists || [];
         }
@@ -23,6 +25,8 @@ const loadUserFromLocalStorage = () => {
 
 const initialUser = loadUserFromLocalStorage();
 
+
+// --- Async Thunks Existentes ---
 
 export const toggleLikeSongAsync = createAsyncThunk(
     'auth/toggleLikeSong',
@@ -58,16 +62,16 @@ export const addSongToPlaylistAsync = createAsyncThunk(
         try {
             if (playlistId === LIKED_SONGS_ID) {
                 
+                // Reaproveita o thunk de curtir
                 const result = await dispatch(toggleLikeSongAsync({ userId, songId })).unwrap();
                 
                 const isNowInList = result.includes(songId);
                 
                 if (isNowInList) {
-                     return { songId, playlistId: LIKED_SONGS_ID, added: true, message: "Música curtida com sucesso!" };
+                    return { songId, playlistId: LIKED_SONGS_ID, added: true, message: "Música curtida com sucesso!" };
                 } else {
                     return { songId: null, playlistId: LIKED_SONGS_ID, added: false, message: "Música já curtida (ou removida inesperadamente)." };
                 }
-
 
             } else {
                 const playlistResponse = await api.get(`/userPlaylists/${playlistId}`);
@@ -141,8 +145,8 @@ export const fetchUsersByIds = createAsyncThunk(
 
         } catch (error) {
             return rejectWithValue('Falha ao buscar os detalhes dos amigos.');
+        }
     }
-  }
 );
 
 
@@ -180,6 +184,29 @@ const authSlice = createSlice({
             localStorage.removeItem('user');
             localStorage.removeItem('token');
         },
+        // NOVO REDUCER PARA SIMULAR A TROCA DE ID PARA TESTE
+        setTestUser: (state, action) => {
+            const { id, name } = action.payload;
+            
+            // Cria ou atualiza um objeto de usuário de teste
+            const newUser = state.user ? { ...state.user } : { 
+                id: id, 
+                username: name, 
+                likedSongs: [], 
+                following: [],
+                userPlaylists: [],
+                // ... adicione outros campos obrigatórios do seu objeto de usuário aqui
+            };
+            
+            newUser.id = id;
+            newUser.username = name;
+            
+            state.user = newUser;
+            state.isAuthenticated = true;
+
+            // Salva no localStorage para que a identidade persista entre recarregamentos
+            localStorage.setItem('user', JSON.stringify(newUser));
+        }
     },
     extraReducers: (builder) => {
         builder
@@ -190,7 +217,7 @@ const authSlice = createSlice({
                 }
                 const likedPlaylist = state.userPlaylistsDetail.find(p => p.id === LIKED_SONGS_ID);
                 if (likedPlaylist) {
-                     likedPlaylist.songs = action.payload;
+                    likedPlaylist.songs = action.payload;
                 }
             })
             .addCase(addSongToPlaylistAsync.fulfilled, (state, action) => {
@@ -234,5 +261,5 @@ const authSlice = createSlice({
             },
 });
 
-export const { loginSuccess, logout } = authSlice.actions;
+export const { loginSuccess, logout, setTestUser } = authSlice.actions; // Exporta setTestUser
 export default authSlice.reducer;
