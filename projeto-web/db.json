@@ -5,165 +5,105 @@
       "title": "Houdini",
       "artist": "Dua Lipa",
       "id": "song-01",
-      "artistId": "artist-01",
-      "duration": "3:05",
-      "releaseDate": "2023-11-09T00:00:00.000Z",
-      "recordLabel": "Warner Records",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
+      "artistId": "artist-01"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Espresso",
       "artist": "Sabrina Carpenter",
       "id": "song-02",
-      "artistId": "artist-11",
-      "duration": "2:55",
-      "releaseDate": "2024-04-11T00:00:00.000Z",
-      "recordLabel": "Island Records",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+      "artistId": "artist-11"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Cruel Summer",
       "artist": "Taylor Swift",
       "id": "song-03",
-      "artistId": "artist-02",
-      "duration": "2:58",
-      "releaseDate": "2019-08-23T00:00:00.000Z",
-      "recordLabel": "Republic Records",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
+      "artistId": "artist-02"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Flowers",
       "artist": "Miley Cyrus",
       "id": "song-04",
-      "artistId": "artist-12",
-      "duration": "3:20",
-      "releaseDate": "2023-01-12T00:00:00.000Z",
-      "recordLabel": "Columbia Records",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"
+      "artistId": "artist-12"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Blinding Lights",
       "artist": "The Weeknd",
       "id": "song-05",
-      "artistId": "artist-03",
-      "duration": "3:20",
-      "releaseDate": "2019-11-29T00:00:00.000Z",
-      "recordLabel": "XO / Republic Records",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"
+      "artistId": "artist-03"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Despacito",
       "artist": "Luis Fonsi, Daddy Yankee",
       "id": "song-06",
-      "artistId": "artist-13",
-      "duration": "3:48",
-      "releaseDate": "2017-01-12T00:00:00.000Z",
-      "recordLabel": "Universal Music Latino",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3"
+      "artistId": "artist-13"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Shivers",
       "artist": "Ed Sheeran",
       "id": "song-07",
-      "artistId": "artist-04",
-      "duration": "3:27",
-      "releaseDate": "2021-09-10T00:00:00.000Z",
-      "recordLabel": "Asylum Records UK",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"
+      "artistId": "artist-04"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Leão",
       "artist": "Marília Mendonça",
       "id": "song-08",
-      "artistId": "artist-05",
-      "duration": "2:57",
-      "releaseDate": "2022-12-09T00:00:00.000Z",
-      "recordLabel": "Som Livre",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3"
+      "artistId": "artist-05"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Nosso Quadro",
       "artist": "Ana Castela",
       "id": "song-09",
-      "artistId": "artist-14",
-      "duration": "2:52",
-      "releaseDate": "2023-02-02T00:00:00.000Z",
-      "recordLabel": "AgroPlay",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3"
+      "artistId": "artist-14"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "OLHO MARROM - Ao Vivo",
       "artist": "Luan Santana",
       "id": "song-10",
-      "artistId": "artist-15",
-      "duration": "2:45",
-      "releaseDate": "2022-06-16T00:00:00.000Z",
-      "recordLabel": "Sony Music Entertainment",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3"
+      "artistId": "artist-15"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Coração Cachorro",
       "artist": "Ávine Vinny, Matheus Fernandes",
       "id": "song-11",
-      "artistId": "artist-16",
-      "duration": "2:32",
-      "releaseDate": "2021-08-12T00:00:00.000Z",
-      "recordLabel": "Sony Music",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3"
+      "artistId": "artist-16"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Tá Ok",
       "artist": "Dennis, Kevin O Chris",
       "id": "song-12",
-      "artistId": "artist-17",
-      "duration": "2:15",
-      "releaseDate": "2023-06-29T00:00:00.000Z",
-      "recordLabel": "Sony Music Brasil",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3"
+      "artistId": "artist-17"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Lovezinho",
       "artist": "Trell, Anitta",
       "id": "song-13",
-      "artistId": "artist-08",
-      "duration": "2:25",
-      "releaseDate": "2023-01-26T00:00:00.000Z",
-      "recordLabel": "Warner Music Brasil",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3"
+      "artistId": "artist-08"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Calm Down",
       "artist": "Rema, Selena Gomez",
       "id": "song-14",
-      "artistId": "artist-18",
-      "duration": "3:59",
-      "releaseDate": "2022-08-25T00:00:00.000Z",
-      "recordLabel": "Mavin Records",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3"
+      "artistId": "artist-18"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Die For You",
       "artist": "The Weeknd, Ariana Grande",
       "id": "song-15",
-      "artistId": "artist-03",
-      "duration": "3:52",
-      "releaseDate": "2023-02-24T00:00:00.000Z",
-      "recordLabel": "XO / Republic Records",
-      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3"
+      "artistId": "artist-03"
     },
     {
       "id": "song-16",
@@ -177,7 +117,6 @@
       "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
     }
   ],
-
   "topAlbums": [
     {
       "cover": "https://placehold.co/600x600",
@@ -603,6 +542,9 @@
       ],
       "friends": [
         "1"
+      ],
+      "userPlaylists": [
+        "4e7e"
       ]
     },
     {
@@ -758,6 +700,20 @@
       "duration": "0 min",
       "songCount": 0,
       "isPublic": true
+    },
+    {
+      "id": "4e7e",
+      "name": "teste",
+      "creatorId": "2",
+      "img": "/assets/img/vacateste.jpg",
+      "type": "Playlist do Usuário",
+      "description": "Playlist criada por Luiza.",
+      "songs": [
+        "song-03",
+        "song-04"
+      ],
+      "duration": "0 min",
+      "songCount": 0
     }
   ],
   "allSongs": [
