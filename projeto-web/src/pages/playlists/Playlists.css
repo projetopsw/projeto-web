@@ -227,10 +227,6 @@ main h1 {
     background: linear-gradient(45deg, var(--darker-orange), var(--darker-orange));
 }
 
-main {
-    margin-left: 50px;
-}
-
 .playlists-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -361,6 +357,7 @@ main.playlist-page {
     display: flex;
     align-items: center;
     gap: 15px;
+    text-align: center;
 }
 
 .songs-list .song-info img {

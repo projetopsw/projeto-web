@@ -8,7 +8,7 @@ import SongList from '../../components/SongList.jsx';
 import Section from '../../components/Section.jsx';
 import AlbumCard from '../../components/AlbumCard.jsx';
 import ReleaseInfo from '../../components/ReleaseInfo.jsx';
-import './css/SongDetail.css';
+import './css/SongAlbumDetail.css';
 
 export default function SongDetail({ songID }) {
   const { id: routeId } = useParams();

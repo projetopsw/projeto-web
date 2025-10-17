@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import './Albuns.css'; 
 import { useParams } from 'react-router-dom';
 import AlbumHeader from '../../components/AlbumHeader.jsx';
 import SongList from "../../components/SongList.jsx";
-import '../musicas/css/SongDetail.css'
+import '../musicas/css/SongAlbumDetail.css'
 import api from "../../services/api";
 
+
 export default function AlbumDetail( {albumID} ) {
-    const { id: routeId } = useParams();
-
-    const effectiveId = albumID || routeId;
-
-    const [album, setAlbum] = useState(null);
+  const { id: routeId } = useParams();
+  
+  const effectiveId = albumID || routeId;
+  
+  const [album, setAlbum] = useState(null);
 
     useEffect(() => {
       api.get(`/topAlbums/${effectiveId}`)

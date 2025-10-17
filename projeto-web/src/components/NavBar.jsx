@@ -34,80 +34,75 @@ const ThemeSwitchContainer = styled(Box)(({ theme }) => ({
     '&.light-theme .theme-toggle-btn': { left: '36px' }
 }));
 
-
 function NavBar({ initialQuery = '' }) {
-    const [isLightTheme, setIsLightTheme] = useState(false);
+    const [isLightTheme, setIsLightTheme] = useState(false);
 
-    useEffect(() => {
-        const body = document.body;
-        if (isLightTheme) {
-            body.classList.add('light-theme');
-        } else {
-            body.classList.remove('light-theme');
-        }
-    }, [isLightTheme]);
+    useEffect(() => {
+        const body = document.body;
+        if (isLightTheme) {
+            body.classList.add('light-theme');
+        } else {
+            body.classList.remove('light-theme');
+        }
+    }, [isLightTheme]);
 
-    const handleThemeToggle = () => {
-        setIsLightTheme(prev => !prev);
-    };
+    const handleThemeToggle = () => setIsLightTheme(prev => !prev);
+    const themeClass = isLightTheme ? 'light-theme' : '';
 
-    const themeClass = isLightTheme ? 'light-theme' : '';
+    return (
+        <AppBar position="fixed" sx={{
+            backgroundColor: 'var(--header-bg)',
+            boxShadow: '0 2px 5px rgba(0, 0, 0, 0.2)',
+            height: '50px',
+            justifyContent: 'center',
+        }}>
+            {/* ✅ ALTERADO: Toolbar agora controla o layout com Flexbox */}
+            <Toolbar disableGutters sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                padding: '0 1rem', // Espaçamento nas laterais
+            }}>
+                {/* ✅ ALTERADO: Removido 'position: absolute' */}
+                <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                    <a href="/">
+                        <img
+                            src="/assets/img/vaca-logo.png"
+                            alt="Logo Moosica"
+                            style={{ width: '35px', display: 'block' }} // 'display: block' remove espaço extra
+                        />
+                    </a>
+                </Box>
 
+                {/* ✅ ADICIONADO: Wrapper para centralizar e dar flexibilidade à busca */}
+                <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', mx: 2 }}>
+                    <Search initialQuery={initialQuery} />
+                </Box>
 
-    return (
-        <AppBar position="fixed" sx={{ 
-            backgroundColor: 'var(--header-bg)', 
-            boxShadow: '0 2px 5px rgba(0, 0, 0, 0.2)',
-            height: '50px',
-            justifyContent: 'center',
-        }}>
-            <Toolbar disableGutters sx={{ 
-                minHeight: '40px', 
-                justifyContent: 'center', 
-                position: 'relative',
-                padding: '0 20px',
-            }}>
-                <Box sx={{ position: 'absolute', left: '2%', display: 'flex', alignItems: 'center' }}>
-                    <a href="/">
-                        <img 
-                            src="/assets/img/vaca-logo.png" 
-                            alt="Logo Moosica" 
-                            style={{ width: '40px', transition: 'transform 0.3s ease' }} 
-                            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
-                            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                        />
-                    </a>
-                </Box>
+                {/* ✅ ALTERADO: Removido 'position: absolute' */}
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    flexShrink: 0,
+                }}>
+                    <UserProfileIcon />
 
-                {/* ✅ Passa a prop initialQuery para o Search */}
-                <Search initialQuery={initialQuery} /> 
-
-                <Box sx={{ 
-                    position: 'absolute', 
-                    right: '2%', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '15px' 
-                }}>
-                    
-                    <UserProfileIcon />
-
-                    <ThemeSwitchContainer 
-                        className={themeClass} 
-                        id="theme-toggle" 
-                        onClick={handleThemeToggle}
-                        sx={{ position: 'relative', right: 'unset' }}
-                    >
-                        <i className="fas fa-sun" id="sun-icon" style={{ color: isLightTheme ? 'var(--secondary-text-color)' : 'var(--orange)' }}></i>
-                        <i className="fas fa-moon" id="moon-icon" style={{ color: isLightTheme ? 'var(--orange)' : 'var(--secondary-text-color)' }}></i>
-                        <span className="theme-toggle-btn"></span>
-                    </ThemeSwitchContainer>
-
-                </Box>
-
-            </Toolbar>
-        </AppBar>
-    );
+                    <ThemeSwitchContainer
+                        className={themeClass}
+                        id="theme-toggle"
+                        onClick={handleThemeToggle}
+                        sx={{ position: 'relative' }} // Posição relativa para o botão interno
+                    >
+                        <i className="fas fa-sun" style={{ color: isLightTheme ? 'var(--secondary-text-color)' : 'var(--orange)' }}></i>
+                        <i className="fas fa-moon" style={{ color: isLightTheme ? 'var(--orange)' : 'var(--secondary-text-color)' }}></i>
+                        <span className="theme-toggle-btn"></span>
+                    </ThemeSwitchContainer>
+                </Box>
+            </Toolbar>
+        </AppBar>
+    );
 }
 
 export default NavBar;

@@ -80,7 +80,7 @@ function Home() {
       />
 
       {filteredSections.map((section) => (
-        <Section key={section.title} title={section.title}>
+        <Section key={section.title} title={section.title} className="card-container">
           
           {section.type === 'song' && songs.map((song, index) => (
             <SongCard
