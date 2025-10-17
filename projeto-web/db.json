@@ -544,7 +544,8 @@
         "1"
       ],
       "userPlaylists": [
-        "4e7e"
+        "4e7e",
+        "83bb"
       ]
     },
     {
@@ -710,7 +711,30 @@
       "description": "Playlist criada por Luiza.",
       "songs": [
         "song-03",
-        "song-04"
+        "song-04",
+        "song-05",
+        "song-06",
+        "song-08",
+        "song-09"
+      ],
+      "duration": "0 min",
+      "songCount": 0,
+      "isPublic": false
+    },
+    {
+      "id": "83bb",
+      "name": "teste2",
+      "creatorId": "2",
+      "img": "/assets/img/vacateste.jpg",
+      "type": "Playlist do Usuário",
+      "description": "Playlist criada por Luiza.",
+      "songs": [
+        "song-03",
+        "song-04",
+        "song-05",
+        "song-06",
+        "song-08",
+        "song-09"
       ],
       "duration": "0 min",
       "songCount": 0
