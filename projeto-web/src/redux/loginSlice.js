@@ -4,7 +4,6 @@ import axios from 'axios';
 
 const LIKED_SONGS_ID = "0";
 
-// --- Funções Auxiliares ---
 const loadUserFromLocalStorage = () => {
     try {
         const serializedUser = localStorage.getItem('user');
@@ -13,7 +12,6 @@ const loadUserFromLocalStorage = () => {
         }
         const user = JSON.parse(serializedUser);
         if (user) {
-            // Garante que os arrays existam no objeto de usuário (importante para o state)
             user.likedSongs = user.likedSongs || [];
             user.userPlaylists = user.userPlaylists || [];
         }
@@ -26,7 +24,6 @@ const loadUserFromLocalStorage = () => {
 const initialUser = loadUserFromLocalStorage();
 
 
-// --- Async Thunks Existentes ---
 
 export const toggleLikeSongAsync = createAsyncThunk(
     'auth/toggleLikeSong',
@@ -62,7 +59,6 @@ export const addSongToPlaylistAsync = createAsyncThunk(
         try {
             if (playlistId === LIKED_SONGS_ID) {
                 
-                // Reaproveita o thunk de curtir
                 const result = await dispatch(toggleLikeSongAsync({ userId, songId })).unwrap();
                 
                 const isNowInList = result.includes(songId);
@@ -184,18 +180,15 @@ const authSlice = createSlice({
             localStorage.removeItem('user');
             localStorage.removeItem('token');
         },
-        // NOVO REDUCER PARA SIMULAR A TROCA DE ID PARA TESTE
         setTestUser: (state, action) => {
             const { id, name } = action.payload;
             
-            // Cria ou atualiza um objeto de usuário de teste
             const newUser = state.user ? { ...state.user } : { 
                 id: id, 
                 username: name, 
                 likedSongs: [], 
                 following: [],
                 userPlaylists: [],
-                // ... adicione outros campos obrigatórios do seu objeto de usuário aqui
             };
             
             newUser.id = id;
@@ -204,7 +197,6 @@ const authSlice = createSlice({
             state.user = newUser;
             state.isAuthenticated = true;
 
-            // Salva no localStorage para que a identidade persista entre recarregamentos
             localStorage.setItem('user', JSON.stringify(newUser));
         }
     },
@@ -261,5 +253,5 @@ const authSlice = createSlice({
             },
 });
 
-export const { loginSuccess, logout, setTestUser } = authSlice.actions; // Exporta setTestUser
+export const { loginSuccess, logout, setTestUser } = authSlice.actions; 
 export default authSlice.reducer;

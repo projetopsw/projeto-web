@@ -18,18 +18,15 @@ import {
  */
 function Comentarios({ musicaId }) {
     const dispatch = useDispatch();
-    
-    // Pega os comentários específicos para esta musicaId do estado global
+
     const comentarios = useSelector(state => state.comments[musicaId] || []);
 
-    // 2. State local
     const [novoComentario, setNovoComentario] = useState('');
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (novoComentario.trim() === '') return;
 
-        // Dispara a ação do Redux
         dispatch(addComment({ 
             musicaId: musicaId, 
             texto: novoComentario.trim() 

@@ -3,7 +3,6 @@ import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../redux/loginSlice'; 
 import { useNavigate, Link } from 'react-router-dom';
 import './login.css'
-// 1. IMPORT NECESSÁRIO
 import { setUserData } from '../../redux/userSlice'; 
 
 export default function Login() {
@@ -31,15 +30,12 @@ export default function Login() {
                   email: userFromDb.email,
                   likedSongs: userFromDb.likedSongs || [],
                   following: userFromDb.following || [],
-                  // Garante que o ID dos amigos seja tratado como string, se necessário
                   friends: (userFromDb.friends || []).map(String).filter(Boolean),
                 };
 
-                // 2. A CHAVE: Atualiza a fatia 'user' que o Perfil usa (state.user.user)
                 dispatch(setUserData(userDataForRedux));
 
 
-                // Mantém a atualização da fatia 'login'
                 dispatch(
                   loginSuccess({
                     user: userDataForRedux,

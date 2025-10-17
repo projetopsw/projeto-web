@@ -19,7 +19,6 @@ const USER_PROFILES = [
 
 function UserSelector() {
     const dispatch = useDispatch();
-    // Obtém o ID e o nome do estado de autenticação
     const currentUserId = useSelector(state => state.auth.user?.id || USER_PROFILES[0].id);
     const currentUserName = useSelector(state => state.auth.user?.username || USER_PROFILES[0].name);
 
@@ -28,7 +27,6 @@ function UserSelector() {
         const profile = USER_PROFILES.find(p => p.id === newId);
         
         if (profile) {
-            // Despacha a ação setTestUser para atualizar a identidade
             dispatch(setTestUser(profile));
         }
     };

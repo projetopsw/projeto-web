@@ -26,7 +26,7 @@
 }
 body.light-theme {
     --bg-color: #fdfaf5;
-    --main-bg: #f9f5ef; /* levemente mais escuro que branco */
+    --main-bg: #f9f5ef; 
     --header-bg: #e8e3d9;
     --sidebar-bg: #e8e3d9;
     --card-bg: #ffffff;
@@ -46,11 +46,8 @@ body.light-theme {
     --theme-icon: #2c2c2c;
     --button-hover-bg: #efeae1;
     --button-hover-color: #1a1a1a;
-    --cow-opacity: 0.05; /* menos visível */
+    --cow-opacity: 0.05; 
 }
-
-
-
 
 :root {
     --cow-opacity: 0.5; 
@@ -68,7 +65,6 @@ body.light-theme {
     overflow: hidden; 
 }
 
-/* 4. Overlay de Padrão de Vaca (Padrão/Escuro) */
 .main-content-area::before {
     content: "";
     position: absolute;
@@ -80,17 +76,13 @@ body.light-theme {
     background-image: url('/assets/img/cowpatterns.png');
     background-repeat: repeat;
     
-    /* A opacidade é dinâmica, lendo a variável */
     opacity: var(--cow-opacity); 
     
     z-index: -1; 
 }
 
-/* 5. NOVO: FORÇA A OPACIDADE BAIXA QUANDO O MAIN ESTIVER NO MODO CLARO */
-/* Se a classe .light-mode for aplicada ao elemento pai ou ao próprio main-content-area */
 .light-mode .main-content-area::before, 
 .main-content-area.light-mode::before {
-    /* Força a baixa opacidade */
     opacity: 0.05 !important; 
 }
 
@@ -100,7 +92,6 @@ body {
     font-family: 'Poppins', sans-serif;
     margin: 0;
     padding: 0;
-    /* min-height: 100vh; */
     overflow: hidden;
 }
 
@@ -109,19 +100,17 @@ main {
     margin-left: 60px;
 }
 
-/* FOOTER */
-/* FOOTER */
+
 footer {
-    grid-area: footer; /* Importante para o layout de Grid (se ainda usar) */
+    grid-area: footer; 
     background: var(--footer-bg);
     padding: 10px 20px;
     text-align: center;
-    /* REGRAS CRÍTICAS PARA FIXAR O FOOTER */
     position: fixed;
     bottom: 0;
     left: 0;
     width: 100%;
-    z-index: 1001; /* Garante que fique acima de outros conteúdos */
+    z-index: 1001; 
     box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
@@ -139,7 +128,6 @@ footer {
     background: var(--border-color);
 }
 
-/* MENU CIMA */
 .menu-cima {
     background-color: var(--header-bg);
     position: fixed;
@@ -210,7 +198,6 @@ input {
     padding: 10px 0;
 }
 
-/* CONTAINER DO SWITCH DE TEMA */
 .theme-switch-container {
     position: absolute;
     right: 4%;
@@ -271,7 +258,6 @@ body.light-theme {
     color: #1a1a1a;
 }
 
-/* MENU LATERAL - visível apenas para PC */
 .menu-lateral {
     grid-area: menu-lateral;
     background-color: var(--sidebar-bg);
@@ -400,7 +386,6 @@ body.light-theme {
     color: var(--secondary-text-color);
 }
 
-/* NOVO MENU DE RODAPÉ PARA MOBILE */
 .menu-rodape-mobile {
     display: none;
 }

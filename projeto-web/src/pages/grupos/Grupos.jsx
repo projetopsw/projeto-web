@@ -11,12 +11,12 @@ import {
     CircularProgress
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux'; // Necessário para ler o ID
+import { useSelector } from 'react-redux'; 
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import HeadphonesIcon from '@mui/icons-material/Headphones';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import api from '../../services/api'; 
-import UserSelector from '../../components/UserSelector'; // Novo import
+import UserSelector from '../../components/UserSelector'; 
 
 const DEFAULT_GROUP_COVER = 'https://placehold.co/600x600/607D8B/white?text=GRUPO';
 
@@ -27,7 +27,6 @@ const GruposContainer = styled(Box)(({ theme }) => ({
     marginBottom: '40px',
 }));
 
-// ... (Restante de GrupoCard, CustomTextField, fileToBase64) ...
 
 const GrupoCard = styled(Box)(({ theme, isNew = false }) => ({
     background: isNew ? 'var(--border-color)' : 'var(--header-bg)',
@@ -151,10 +150,8 @@ const GrupoItem = ({ grupo, onJoin, currentUserId }) => {
 
 
 function Grupos() {
-    // Lendo o ID do Redux Store
     const userId = useSelector(state => state.auth.user?.id); 
     
-    // Fallback caso o Redux ainda não tenha carregado o usuário (embora o ProtectedRoute deva garantir isso)
     const currentUserId = userId || "1";
 
     const [isFormVisible, setIsFormVisible] = useState(false);
@@ -192,7 +189,7 @@ function Grupos() {
     };
 
     const fetchGroups = async () => {
-        if (!currentUserId) return; // Não carrega se o ID não estiver disponível
+        if (!currentUserId) return; 
         
         setIsLoading(true);
         try {
@@ -217,7 +214,7 @@ function Grupos() {
 
     useEffect(() => {
         fetchGroups();
-    }, [currentUserId]); // Recarrega quando o ID do usuário muda
+    }, [currentUserId]);
 
     const resetForm = () => {
         setGroupName('');
@@ -255,7 +252,7 @@ function Grupos() {
             name: groupName.trim(),
             description: groupDescription,
             cover: coverData, 
-            creatorId: currentUserId, // Usando o ID atual (pode ser "3")
+            creatorId: currentUserId, 
             members: [currentUserId],
             listeners: [currentUserId], 
             currentSong: null,
@@ -264,7 +261,6 @@ function Grupos() {
 
         const response = await api.post('/groups', newGroupData);
         
-        // CORREÇÃO AQUI: Garante que o ID é extraído corretamente do objeto de resposta
         const newGroupObject = response.data;
         const newGroupId = newGroupObject.id; 
         
@@ -274,7 +270,6 @@ function Grupos() {
         resetForm();
         setIsFormVisible(false);
         
-        // Navega para a URL usando o ID recém-criado
         navigate(`/grupos/${newGroupId}`);
 
     } catch (error) {

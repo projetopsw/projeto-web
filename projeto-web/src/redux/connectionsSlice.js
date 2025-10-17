@@ -3,6 +3,7 @@ import { setUserData } from './userSlice';
 
 const API_URL = 'http://localhost:3001/users';
 
+
 const fetchConnectionsData = createAsyncThunk( 
     'connections/fetchData',
     async (currentUserId, { rejectWithValue }) => {
@@ -20,7 +21,8 @@ const fetchConnectionsData = createAsyncThunk(
 
             const friends = fetchDetails(currentUser.friends || []);
             const pendingRequests = fetchDetails(currentUser.friendshipRequests || []);
-   
+            
+            // Busca reversa dos pedidos enviados
             const sentRequestsUsers = allUsers.filter(user => 
                 (user.friendshipRequests || []).includes(currentUserIdStr)
             );
@@ -49,6 +51,7 @@ const fetchConnectionsData = createAsyncThunk(
 const toggleFriendRequest = createAsyncThunk(
     'connections/toggleRequest',
     async ({ currentUserId, targetUser }, { rejectWithValue }) => {
+        // ... Lógica de toggle Friend Request
         const currentUserIdStr = String(currentUserId);
         const targetUserIdStr = String(targetUser.id);
         const targetResponse = await fetch(`${API_URL}/${targetUserIdStr}`);
@@ -62,7 +65,7 @@ const toggleFriendRequest = createAsyncThunk(
             const response = await fetch(`${API_URL}/${targetUserIdStr}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ requestsSent: updatedSent }),
+                body: JSON.stringify({ friendshipRequests: updatedRequests }),
             });
             return { updatedTargetUser: await response.json(), wasSent: isAlreadySent };
         } catch (error) { return rejectWithValue(error.message); }
@@ -167,13 +170,15 @@ const removeFriend = createAsyncThunk(
     }
 );
 
+
+
 const connectionsSlice = createSlice({
     name: 'connections',
     initialState: {
-        friends: [], 
+        friends: [],
         pendingRequests: [], 
         sentRequests: [], 
-        suggestions: [],
+        suggestions: [], 
         status: 'idle',
         error: null,
     },

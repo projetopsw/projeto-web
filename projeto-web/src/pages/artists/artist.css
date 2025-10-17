@@ -1,13 +1,6 @@
 body {
     color: #FFFFFF; 
   }
-
-  /* main {
-    margin: 0;
-    padding-top: 20px;
-    padding-left: 30px;
-  } */
-
   .main-artist-page {
     margin: 0;
     width: 100%;
@@ -37,7 +30,7 @@ body {
   .follow-btn.following {
     border-color: white;     
 
-    color: white; /* Corrigido para manter o texto branco */
+    color: white; 
 }
 
 .follow-btn.following:hover {
@@ -214,10 +207,7 @@ body {
   }
 
   .mais-tocadas {
-    /* padding-left: 30px; */
     padding-bottom: 0;
-    /* border: 1px solid red; */
-
   }
 
   .mais-tocadas h3{
