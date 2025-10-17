@@ -24,6 +24,7 @@ const loadUserFromLocalStorage = () => {
 const initialUser = loadUserFromLocalStorage();
 
 
+
 export const toggleLikeSongAsync = createAsyncThunk(
     'auth/toggleLikeSong',
     async ({ userId, songId }, { rejectWithValue }) => {
@@ -63,11 +64,10 @@ export const addSongToPlaylistAsync = createAsyncThunk(
                 const isNowInList = result.includes(songId);
                 
                 if (isNowInList) {
-                     return { songId, playlistId: LIKED_SONGS_ID, added: true, message: "Música curtida com sucesso!" };
+                    return { songId, playlistId: LIKED_SONGS_ID, added: true, message: "Música curtida com sucesso!" };
                 } else {
                     return { songId: null, playlistId: LIKED_SONGS_ID, added: false, message: "Música já curtida (ou removida inesperadamente)." };
                 }
-
 
             } else {
                 const playlistResponse = await api.get(`/userPlaylists/${playlistId}`);
@@ -141,8 +141,8 @@ export const fetchUsersByIds = createAsyncThunk(
 
         } catch (error) {
             return rejectWithValue('Falha ao buscar os detalhes dos amigos.');
+        }
     }
-  }
 );
 
 
@@ -180,6 +180,25 @@ const authSlice = createSlice({
             localStorage.removeItem('user');
             localStorage.removeItem('token');
         },
+        setTestUser: (state, action) => {
+            const { id, name } = action.payload;
+            
+            const newUser = state.user ? { ...state.user } : { 
+                id: id, 
+                username: name, 
+                likedSongs: [], 
+                following: [],
+                userPlaylists: [],
+            };
+            
+            newUser.id = id;
+            newUser.username = name;
+            
+            state.user = newUser;
+            state.isAuthenticated = true;
+
+            localStorage.setItem('user', JSON.stringify(newUser));
+        }
     },
     extraReducers: (builder) => {
         builder
@@ -190,7 +209,7 @@ const authSlice = createSlice({
                 }
                 const likedPlaylist = state.userPlaylistsDetail.find(p => p.id === LIKED_SONGS_ID);
                 if (likedPlaylist) {
-                     likedPlaylist.songs = action.payload;
+                    likedPlaylist.songs = action.payload;
                 }
             })
             .addCase(addSongToPlaylistAsync.fulfilled, (state, action) => {
@@ -234,5 +253,5 @@ const authSlice = createSlice({
             },
 });
 
-export const { loginSuccess, logout } = authSlice.actions;
+export const { loginSuccess, logout, setTestUser } = authSlice.actions; 
 export default authSlice.reducer;

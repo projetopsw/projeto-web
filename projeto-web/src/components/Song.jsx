@@ -126,7 +126,6 @@ export default function Song({ song }) {
         navigate('/playlists?openCreateModal=true'); 
     };
 
-    // NOVA FUNÇÃO: Adiciona a música à fila de reprodução
     const handleAddToQueue = () => {
         if (!user) {
             navigate('/login');

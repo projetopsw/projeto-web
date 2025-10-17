@@ -3,6 +3,9 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { IconButton } from '@mui/material';
 import AlbumIcon from '@mui/icons-material/Album';
+import ShuffleIcon from '@mui/icons-material/Shuffle';
+import RepeatIcon from '@mui/icons-material/Repeat'; // NOVO ÍCONE DE REPETIÇÃO
+import RepeatOneIcon from '@mui/icons-material/RepeatOne'; // ÍCONE REPETIR UMA MÚSICA
 
 import {
     togglePlayPause,
@@ -10,9 +13,17 @@ import {
     setDuration,
     skipNext,
     skipPrevious,
+    toggleShuffle,
+    toggleRepeat, // IMPORTADO
 } from '../redux/playerSlice';
 
 const MUSIC_DETAIL_PATH_BASE = '/musica/';
+
+const REPEAT_MODES = {
+    OFF: 0,
+    QUEUE: 1,
+    SONG: 2,
+};
 
 const formatTime = (time) => {
     if (isNaN(time) || time < 0) return "0:00";
@@ -27,7 +38,10 @@ function Player() {
         isPlaying,
         currentTime,
         duration,
-        volume
+        volume,
+        isShuffling,
+        repeatMode, // NOVO ESTADO
+        queue, 
     } = useSelector((state) => state.player);
     
     const dispatch = useDispatch();
@@ -43,9 +57,7 @@ function Player() {
 
     useEffect(() => {
         if (currentSong && currentSong.caminho) {
-            if (audioRef.current.src !== currentSong.caminho) {
-                audioRef.current.src = currentSong.caminho;
-            }
+            audioRef.current.src = currentSong.caminho;
         }
     }, [currentSong]);
     
@@ -60,9 +72,18 @@ function Player() {
     useEffect(() => {
         const audioEl = audioRef.current;
 
+        // NOVO: Define loop=true quando o modo é Repeat Song.
+        audioEl.loop = repeatMode === REPEAT_MODES.SONG;
+
         const setAudioData = () => dispatch(setDuration(audioEl.duration));
         const updateTime = () => dispatch(updateCurrentTime(audioEl.currentTime));
-        const handleEnded = () => dispatch(skipNext());
+        
+        // A função handleEnded no Redux Slice agora trata a repetição, a menos que seja Repeat Song (onde o .loop do HTML5 toma conta)
+        const handleEnded = () => {
+             if (repeatMode !== REPEAT_MODES.SONG) {
+                 dispatch(skipNext());
+             }
+        };
 
         audioEl.addEventListener('loadedmetadata', setAudioData);
         audioEl.addEventListener('timeupdate', updateTime);
@@ -73,7 +94,7 @@ function Player() {
             audioEl.removeEventListener('timeupdate', updateTime);
             audioEl.removeEventListener('ended', handleEnded);
         };
-    }, [dispatch]);
+    }, [dispatch, repeatMode]); // Dependência adicionada
 
     const handlePlayPause = (e) => {
         e.stopPropagation();
@@ -102,8 +123,41 @@ function Player() {
         dispatch(updateCurrentTime(newTime));
     };
     
-    const handleSkipNext = (e) => { /* ... */ };
-    const handleSkipPrevious = (e) => { /* ... */ };
+    const handleSkipNext = (e) => { 
+        e.stopPropagation();
+        dispatch(skipNext());
+    };
+    
+    const handleSkipPrevious = (e) => { 
+        e.stopPropagation();
+        dispatch(skipPrevious());
+    };
+
+    const handleToggleShuffle = (e) => {
+        e.stopPropagation();
+        if (queue.length > 0) {
+            dispatch(toggleShuffle());
+        }
+    };
+    
+    // NOVO HANDLER DE REPETIÇÃO
+    const handleToggleRepeat = (e) => {
+        e.stopPropagation();
+        dispatch(toggleRepeat());
+    };
+
+    // Função auxiliar para renderizar o ícone de repetição correto
+    const getRepeatIcon = () => {
+        switch (repeatMode) {
+            case REPEAT_MODES.QUEUE:
+                return <RepeatIcon />;
+            case REPEAT_MODES.SONG:
+                return <RepeatOneIcon />;
+            case REPEAT_MODES.OFF:
+            default:
+                return <RepeatIcon />;
+        }
+    };
 
     const progress = (currentTime / duration) * 100 || 0;
     const songName = currentSong ? `${currentSong.title} - ${currentSong.artist}` : " ";
@@ -130,6 +184,19 @@ function Player() {
 
             <div className="player">
                 <div className="controle-musica">
+                    
+                    <IconButton
+                        className="controle-btn"
+                        onClick={handleToggleShuffle}
+                        disabled={queue.length <= 1}
+                        sx={{
+                            color: isShuffling ? 'var(--orange)' : 'var(--secondary-text-color)',
+                            '&:hover': { color: 'var(--text-color)' }
+                        }}
+                    >
+                        <ShuffleIcon />
+                    </IconButton>
+                    
                     <button className="controle-btn" onClick={handleSkipPrevious}>
                         <i className="fas fa-backward"></i>
                     </button>
@@ -144,6 +211,33 @@ function Player() {
                     <button className="controle-btn" onClick={handleSkipNext}>
                         <i className="fas fa-forward"></i>
                     </button>
+                    
+                    {/* BOTÃO DE REPETIÇÃO FUNCIONAL */}
+                    <IconButton 
+                        className="controle-btn" 
+                        onClick={handleToggleRepeat}
+                        sx={{ 
+                            color: repeatMode !== REPEAT_MODES.OFF ? 'var(--orange)' : 'var(--secondary-text-color)',
+                            '&:hover': { color: 'var(--text-color)' },
+                            // Adiciona um ponto se estiver no modo Repeat Song
+                            ...(repeatMode === REPEAT_MODES.SONG && { 
+                                '& .MuiSvgIcon-root': { position: 'relative' },
+                                '& .MuiSvgIcon-root:after': {
+                                    content: '""',
+                                    position: 'absolute',
+                                    bottom: '0px',
+                                    right: '0px',
+                                    width: '4px',
+                                    height: '4px',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'var(--orange)',
+                                }
+                            })
+                        }}
+                    >
+                        {getRepeatIcon()}
+                    </IconButton>
+
                 </div>
 
                 <p className="song-info">{songName}</p>

@@ -1,6 +1,6 @@
 import React from 'react';
-import { FaPlay } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { FaPlay } from 'react-icons/fa';
 
 const ArtistCircle = ({ id, image, name, onClick, isArtist = true, isUser = false }) => {
     const navigate = useNavigate();

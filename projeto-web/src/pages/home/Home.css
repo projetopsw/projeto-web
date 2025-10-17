@@ -1,4 +1,3 @@
-/* --- Estilos Gerais da Página Home --- */
 .pagina-inicial {
   font-size: 1.8rem;
   margin-bottom: 1.5rem; 
@@ -6,14 +5,12 @@
 }
 
 main {
-  /* Garante que o conteúdo não fique escondido atrás do player */
   padding-bottom: 125px; 
   color: var(--text-color);
 }
 
-/* --- Seção e Carrossel --- */
 .section-container {
-  position: relative; /* Essencial para posicionar os botões de scroll */
+  position: relative; 
   margin-bottom: 2.5rem;
 }
 
@@ -28,21 +25,18 @@ main {
   font-size: 1.5rem;
 }
 
-/* Container que permite o scroll horizontal */
 .section-scroll-container {
   display: flex;
   gap: 1.5rem;
   overflow-x: auto;
-  padding-bottom: 1rem; /* Espaço para a barra de scroll não cortar o conteúdo */
-  scrollbar-width: none; /* Firefox */
+  padding-bottom: 1rem;
+  scrollbar-width: none; 
 }
 
-/* Esconde a barra de scroll no Chrome/Safari */
 .section-scroll-container::-webkit-scrollbar {
   display: none;
 }
 
-/* --- Botões de Scroll do Carrossel --- */
 .scroll-button {
   position: absolute;
   top: 55%; 
@@ -59,19 +53,18 @@ main {
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  opacity: 0; /* Escondido por padrão */
+  opacity: 0;
   transition: opacity 0.3s ease;
 }
 
 .section-container:hover .scroll-button {
-  opacity: 1; /* Aparece no hover da seção */
+  opacity: 1; 
 }
 
 .scroll-button.left { left: -20px; }
 .scroll-button.right { right: -20px; }
 
 
-/* --- Cards de Conteúdo (Unificados) --- */
 .card {
   position: relative;
   background-color: var(--card-bg);
@@ -116,7 +109,6 @@ main {
   margin: 0;
 }
 
-/* Botão de Play que aparece no Hover do Card */
 .play-button {
   position: absolute;
   right: 0.7rem;
@@ -143,22 +135,19 @@ main {
   transform: translateY(0);
 }
 
-/* Botão de Play para Cards de Playlists */
 .playlist-card .play-button {
-  right: 0.8rem; /* Ajuste horizontal */
+  right: 0.8rem; 
   transform: translateY(10px);
   transition: all 0.3s ease;
-  bottom: 4.5rem; /* Ajuste vertical */
+  bottom: 4.5rem; 
 }
 
-/* Aparece no hover do PlaylistCard */
 .playlist-card:hover .play-button {
   opacity: 1;
-  transform: translateY(0); /* Remove o deslocamento inicial */
+  transform: translateY(0); 
 }
 
 
-/* Card de Artista (Circular) */
 .artist-circle {
   display: flex;
   flex-direction: column;
@@ -192,40 +181,34 @@ main {
   color: var(--text-color);
 }
 
-
-/* Estilos para o container da barra de navegação */
 .home-navigation {
   display: flex;
-  flex-wrap: wrap; /* Permite que os itens quebrem a linha em telas menores */
+  flex-wrap: wrap;
   gap: 0.8rem;
   margin-bottom: 2rem;
 }
 
-/* Estilos para cada item da navegação */
 .nav-item {
   padding: 0.6rem 1.2rem;
   border-radius: 50px;
-  background-color: var(--card-bg); /* Cinza um pouco mais claro */
+  background-color: var(--card-bg); 
   color: var(--text-color);
   font-weight: 600;
   font-size: 0.9rem;    
   cursor: pointer;
   transition: background-color 0.2s ease;
-  user-select: none; /* Impede a seleção de texto ao clicar */
+  user-select: none;
 }
 
-/* Efeito ao passar o mouse sobre um item */
 .nav-item:hover {
-  background-color: var(--shadow-color-dark); /* Cinza escuro para itens inativos */
+  background-color: var(--shadow-color-dark); 
 }
 
-/* Estilo específico para o item que está selecionado */
 .nav-item.selected {
   background-color: var(--orange);
   color: #fff;
 }
 
-/* Remover sublinhado/estilo azul dos links nos cards */
 .card,
 .artist-circle {
   text-decoration: none;

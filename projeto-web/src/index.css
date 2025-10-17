@@ -46,7 +46,7 @@ body.light-theme {
     --theme-icon: #2c2c2c;
     --button-hover-bg: #efeae1;
     --button-hover-color: #1a1a1a;
-    --cow-opacity: 0.05; /* menos visível */
+    --cow-opacity: 0.05; 
 }
 
 
@@ -120,6 +120,8 @@ main {
     margin-left: 60px;
 }
 
+/* FOOTER */
+/* FOOTER */
 footer {
     grid-area: footer; 
     background: var(--footer-bg);
@@ -277,7 +279,6 @@ body.light-theme {
     color: #1a1a1a;
 }
 
-/* MENU LATERAL - visível apenas para PC */
 .menu-lateral {
     grid-area: menu-lateral;
     background-color: var(--sidebar-bg);
@@ -405,7 +406,6 @@ body.light-theme {
     color: var(--secondary-text-color);
 }
 
-/* NOVO MENU DE RODAPÉ PARA MOBILE */
 .menu-rodape-mobile {
     display: none;
 }

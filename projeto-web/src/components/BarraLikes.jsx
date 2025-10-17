@@ -3,7 +3,7 @@ import { Box } from '@mui/material';
 
 /**
  * Componente de barra visual para mostrar a proporção de likes.
- * @param {number} likePercentage - A porcentagem de Likes (de 0 a 100).
+ * @param {number} likePercentage 
  */
 function BarraLikes({ likePercentage }) {
     const dislikePercentage = 100 - likePercentage;
