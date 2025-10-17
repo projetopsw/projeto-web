@@ -5,105 +5,165 @@
       "title": "Houdini",
       "artist": "Dua Lipa",
       "id": "song-01",
-      "artistId": "artist-01"
+      "artistId": "artist-01",
+      "duration": "3:05",
+      "releaseDate": "2023-11-09T00:00:00.000Z",
+      "recordLabel": "Warner Records",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Espresso",
       "artist": "Sabrina Carpenter",
       "id": "song-02",
-      "artistId": "artist-11"
+      "artistId": "artist-11",
+      "duration": "2:55",
+      "releaseDate": "2024-04-11T00:00:00.000Z",
+      "recordLabel": "Island Records",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Cruel Summer",
       "artist": "Taylor Swift",
       "id": "song-03",
-      "artistId": "artist-02"
+      "artistId": "artist-02",
+      "duration": "2:58",
+      "releaseDate": "2019-08-23T00:00:00.000Z",
+      "recordLabel": "Republic Records",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Flowers",
       "artist": "Miley Cyrus",
       "id": "song-04",
-      "artistId": "artist-12"
+      "artistId": "artist-12",
+      "duration": "3:20",
+      "releaseDate": "2023-01-12T00:00:00.000Z",
+      "recordLabel": "Columbia Records",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Blinding Lights",
       "artist": "The Weeknd",
       "id": "song-05",
-      "artistId": "artist-03"
+      "artistId": "artist-03",
+      "duration": "3:20",
+      "releaseDate": "2019-11-29T00:00:00.000Z",
+      "recordLabel": "XO / Republic Records",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Despacito",
       "artist": "Luis Fonsi, Daddy Yankee",
       "id": "song-06",
-      "artistId": "artist-13"
+      "artistId": "artist-13",
+      "duration": "3:48",
+      "releaseDate": "2017-01-12T00:00:00.000Z",
+      "recordLabel": "Universal Music Latino",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Shivers",
       "artist": "Ed Sheeran",
       "id": "song-07",
-      "artistId": "artist-04"
+      "artistId": "artist-04",
+      "duration": "3:27",
+      "releaseDate": "2021-09-10T00:00:00.000Z",
+      "recordLabel": "Asylum Records UK",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Leão",
       "artist": "Marília Mendonça",
       "id": "song-08",
-      "artistId": "artist-05"
+      "artistId": "artist-05",
+      "duration": "2:57",
+      "releaseDate": "2022-12-09T00:00:00.000Z",
+      "recordLabel": "Som Livre",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Nosso Quadro",
       "artist": "Ana Castela",
       "id": "song-09",
-      "artistId": "artist-14"
+      "artistId": "artist-14",
+      "duration": "2:52",
+      "releaseDate": "2023-02-02T00:00:00.000Z",
+      "recordLabel": "AgroPlay",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "OLHO MARROM - Ao Vivo",
       "artist": "Luan Santana",
       "id": "song-10",
-      "artistId": "artist-15"
+      "artistId": "artist-15",
+      "duration": "2:45",
+      "releaseDate": "2022-06-16T00:00:00.000Z",
+      "recordLabel": "Sony Music Entertainment",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Coração Cachorro",
       "artist": "Ávine Vinny, Matheus Fernandes",
       "id": "song-11",
-      "artistId": "artist-16"
+      "artistId": "artist-16",
+      "duration": "2:32",
+      "releaseDate": "2021-08-12T00:00:00.000Z",
+      "recordLabel": "Sony Music",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Tá Ok",
       "artist": "Dennis, Kevin O Chris",
       "id": "song-12",
-      "artistId": "artist-17"
+      "artistId": "artist-17",
+      "duration": "2:15",
+      "releaseDate": "2023-06-29T00:00:00.000Z",
+      "recordLabel": "Sony Music Brasil",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Lovezinho",
       "artist": "Trell, Anitta",
       "id": "song-13",
-      "artistId": "artist-08"
+      "artistId": "artist-08",
+      "duration": "2:25",
+      "releaseDate": "2023-01-26T00:00:00.000Z",
+      "recordLabel": "Warner Music Brasil",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Calm Down",
       "artist": "Rema, Selena Gomez",
       "id": "song-14",
-      "artistId": "artist-18"
+      "artistId": "artist-18",
+      "duration": "3:59",
+      "releaseDate": "2022-08-25T00:00:00.000Z",
+      "recordLabel": "Mavin Records",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3"
     },
     {
       "cover": "https://placehold.co/600x600",
       "title": "Die For You",
       "artist": "The Weeknd, Ariana Grande",
       "id": "song-15",
-      "artistId": "artist-03"
+      "artistId": "artist-03",
+      "duration": "3:52",
+      "releaseDate": "2023-02-24T00:00:00.000Z",
+      "recordLabel": "XO / Republic Records",
+      "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3"
     },
     {
       "id": "song-16",
@@ -518,8 +578,9 @@
         "song-02",
         "song-14",
         "song-04",
+        "song-06",
         "song-01",
-        "song-06"
+        1
       ],
       "following": [
         "artist-11",
@@ -529,7 +590,14 @@
         "artist-05"
       ],
       "friends": [
-        "4"
+        "2",
+        "4",
+        "3",
+        "71a1"
+      ],
+      "friendshipRequests": [],
+      "userPlaylists": [
+        "d02a"
       ]
     },
     {
@@ -541,7 +609,13 @@
         "artist-05"
       ],
       "friends": [
-        "1"
+        "1",
+        "1",
+        "4"
+      ],
+      "friendshipRequests": [
+        "3",
+        "71a1"
       ]
     },
     {
@@ -549,19 +623,16 @@
       "name": "IgorGodoy",
       "email": "igor@email.com",
       "likedSongs": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        "song-02",
-        "song-03"
+        "song-01"
       ],
       "following": [],
-      "friends": []
+      "friends": [
+        "4",
+        "1"
+      ],
+      "friendshipRequests": [
+        "71a1"
+      ]
     },
     {
       "id": "4",
@@ -574,8 +645,14 @@
         "artist-02"
       ],
       "friends": [
-        "1"
-      ]
+        "1",
+        "2",
+        "3"
+      ],
+      "userPlaylists": [
+        "187b"
+      ],
+      "friendshipRequests": []
     },
     {
       "id": "e297",
@@ -583,63 +660,71 @@
       "email": "Diogo@email.com",
       "likedSongs": [],
       "following": [],
-      "friends": []    
+      "friends": []
     },
     {
       "id": "101",
       "name": "Luiza",
+      "username": "Luiza",
       "email": "luiza@email.com",
-      "likedSongs": [],
-      "following": [],
+      "password": "luiza",
+      "image": "https://placehold.co/400x400?text=Luiza",
       "friends": [
-        "2",
-        "e297"
+        "2"
       ],
+      "following": [],
       "friendshipRequests": [],
-      "requestsReceived": []
+      "requestsReceived": [],
+      "userPlaylists": [
+        "f419"
+      ]
     },
     {
       "id": "102",
       "name": "André",
+      "username": "André",
       "email": "andre@email.com",
-      "likedSongs": [],
+      "password": "andre",
+      "image": "https://placehold.co/400x400?text=André",
+      "friends": [],
       "following": [],
-      "friends": [
-        "202",
-        "3"
-      ],
-      "img": "/assets/img/liked_cover_0.png",
-      "friendshipRequests": []
+      "friendshipRequests": [],
+      "requestsReceived": []
     },
     {
       "id": "201",
       "name": "Pedro",
+      "username": "Pedro",
       "email": "pedro@email.com",
-      "likedSongs": [],
-      "following": [],
+      "password": "pedro",
+      "image": "https://placehold.co/400x400?text=Pedro",
       "friends": [],
-      "img": "/assets/img/rock_cover_1.png"
+      "following": [],
+      "friendshipRequests": [
+        "4"
+      ]
     },
     {
       "id": "202",
       "name": "Carla",
+      "username": "Carla",
       "email": "carla@email.com",
+      "password": "carla",
+      "image": "https://placehold.co/400x400?text=Carla",
+      "friends": [],
+      "following": [],
+      "friendshipRequests": []
+    },
+    {
+      "id": "71a1",
+      "email": "anaisabel@email.com",
       "likedSongs": [],
       "following": [],
       "friends": [
-        "e297",
-        "102"
+        "1"
       ],
-      "img": "/assets/img/piano_cover_3.png",
-      "friendshipRequests": []
-    }, 
-    {
-      "id": "71a1",
-      "username": "ANA ISABEL",
-      "email": "anaisabel@email.com",
-      "password": "anaisabel",
-      "playlists": 0,
-      "friends": 0
+      "name": "Ana Isabel",
+      "img": "/assets/img/rock_cover_1.png"
     }
   ],
   "userPlaylists": [
@@ -651,16 +736,13 @@
       "description": "Todas as músicas que você curtiu. Clicando no coração.",
       "creator": "Você",
       "songs": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
+        "song-03",
         "song-02",
-        "song-03"
+        "song-14",
+        "song-04",
+        "song-06",
+        "song-01",
+        1
       ]
     },
     {

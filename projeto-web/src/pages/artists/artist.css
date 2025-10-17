@@ -1,9 +1,9 @@
-body {
-    color: #FFFFFF; 
-  }
   .main-artist-page {
     margin: 0;
     width: 100%;
+    padding-left: 0;
+    padding-top: 0;
+    padding-right: 0;
   }
   
   p, h1, h3 {
@@ -20,8 +20,7 @@ body {
   
   .artist-header {
     padding: 60px 40px 40px; 
-    border-bottom: 1px solid #ccc;
-    border: 1px solid #444; 
+    border: none; 
     background-color: #69645e;
     width: 100%;  
   }
@@ -39,6 +38,7 @@ body {
 }
   .artist-info {
     flex-direction: column;
+    text-align: start;
   }
 
   .artist-song{
@@ -55,7 +55,6 @@ body {
     margin-left: 40px;
     align-items: center;
     gap: 1em; 
-    padding-left: 30px;
   }
   
 
@@ -81,6 +80,7 @@ body {
     height: fit-content;
     padding: 15px 25px;
     border-radius: 50px;
+    text-align: start;
   }
 
   .follow-btn:hover {
@@ -213,3 +213,64 @@ body {
   .mais-tocadas h3{
     font-size: 1.5rem;
   }
+
+
+  @media (max-width: 768px) {
+  
+  /* Ajusta o padding do cabeçalho */
+  .artist-header {
+    padding: 30px 20px;
+    /* Faz o cabeçalho empilhar verticalmente (imagem, depois info) */
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* Remove margens laterais fixas */
+  .artist-song {
+    margin: 0 20px;
+  }
+
+  /* Reduz o tamanho da fonte do nome do artista */
+  .name-artist {
+    font-size: 2.5em; /* Menor que os 3.5em originais */
+  }
+
+  /* Centraliza as informações e ações do artista */
+  .user-info {
+    margin-left: 0;
+    align-items: center;
+    margin-top: 1em;
+  }
+
+  /* Centraliza os botões de ação */
+  .artist-actions {
+    margin-top: 20px;
+    margin-left: 0;
+    padding-left: 1em;
+    justify-content: start; /* Centraliza os botões */
+  }
+
+  /* Ajusta o padding dos botões para telas menores */
+  .follow-btn {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+
+  .play-btn {
+    padding: 12px;
+    font-size: 1rem;
+  }
+
+  /* Garante que as seções de "Discografia" e "Artistas"
+     não tenham margens laterais excessivas */
+  .mais-tocadas,
+  .seus-artistas,
+  .seus-amigos {
+    margin-top: 2.5em; /* Reduz a margem superior */
+  }
+
+  .mais-tocadas h3 {
+    font-size: 1.3rem;
+  }
+}

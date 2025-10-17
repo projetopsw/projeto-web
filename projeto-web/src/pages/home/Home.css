@@ -231,3 +231,150 @@ main {
   text-decoration: none;
   color: inherit;
 }
+
+@media (max-width: 1024px) {
+  
+  /* Esconde os botões de scroll, pois em tablets usamos o toque */
+  .scroll-button {
+    display: none;
+  }
+}
+
+/* 2. Para celulares (telas até 768px de largura) */
+@media (max-width: 768px) {
+
+  main {
+    /* Adiciona padding lateral para o conteúdo não colar nas bordas */
+    padding-left: 1rem;
+    padding-right: 1rem;
+    /* Reduz o padding inferior (se for para um player fixo, ajuste conforme necessário) */
+    padding-bottom: 80px; 
+  }
+
+  .pagina-inicial {
+    font-size: 1.5rem; /* Título principal menor */
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+  }
+
+  .section-header h2 {
+    font-size: 1.25rem; /* Títulos de seção menores */
+  }
+
+  .section-container {
+    margin-bottom: 1.5rem; /* Menos espaço entre seções */
+    margin-left: 2rem;
+  }
+  
+  .section-scroll-container {
+    gap: 1rem; /* Espaço menor entre os cards */
+    
+    /* Ajuste para o scroll começar/terminar colado nas bordas */
+    /* Isso funciona em conjunto com o padding que colocamos na tag 'main' */
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: 0.5rem; /* Reduz padding inferior */
+  }
+
+  /* --- Ajuste dos Cards --- */
+  .card {
+    width: 150px; /* Cards um pouco menores */
+  }
+
+  .card-title {
+    font-size: 0.9rem;
+  }
+
+  .card-artist {
+    font-size: 0.8rem;
+  }
+
+  /* --- Ajuste dos Artistas --- */
+  .artist-circle {
+    width: 150px; /* Círculos de artista menores */
+    padding: 0.5rem;
+  }
+
+  .artist-image {
+    width: 120px; /* Imagem de artista menor */
+    height: 120px;
+  }
+
+  /* --- Ajustes de :hover para Mobile --- */
+  /* Em telas de toque, :hover não existe ou se comporta mal. */
+  
+  /* Remove o efeito de mudança de cor de fundo no toque */
+  .card:hover {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+  }
+  
+  .artist-circle:hover {
+     background-color: transparent; /* Remove fundo do artista */
+  }
+
+  /* Força o botão de play a ficar SEMPRE visível em telas de toque */
+  .play-button {
+    opacity: 1;
+    transform: translateY(0); /* Remove animação de subida */
+    width: 40px; /* Botão um pouco menor */
+    height: 40px;
+    bottom: 5.5rem; /* Reajusta posição vertical */
+    right: 0.5rem;  /* Reajusta posição horizontal */
+  }
+
+  .playlist-card .play-button {
+    bottom: 4.5rem; /* Posição específica no card de playlist */
+  }
+  
+  /* Remove qualquer animação residual de hover no botão */
+  .card:hover .play-button,
+  .playlist-card:hover .play-button {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* --- Ajuste dos Botões de Navegação --- */
+  .home-navigation {
+    gap: 0.5rem; /* Espaço menor entre os botões "chip" */
+    margin-bottom: 1.5rem;
+    margin-left: 2rem;
+  }
+
+  .nav-item {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* 3. Ajuste fino para telas BEM pequenas (<= 480px) */
+@media (max-width: 480px) {
+   .card {
+    width: 130px; /* Cards ainda menores */
+  }
+
+  .card-info {
+    min-height: 40px; /* Altura mínima menor */
+  }
+
+  .artist-circle {
+    width: 130px;
+  }
+
+  .artist-image {
+    width: 100px;
+    height: 100px;
+  }
+
+  .play-button {
+    bottom: 5rem; /* Reajusta botão para o card de 130px */
+  }
+  
+  .playlist-card .play-button {
+    bottom: 4rem;
+  }
+}
+
+/* --- FIM DAS REGRAS RESPONSIVAS --- */

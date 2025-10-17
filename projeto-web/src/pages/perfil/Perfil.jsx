@@ -13,7 +13,7 @@ import {
     removeFriend
 } from '../../redux/connectionsSlice';
 
-import Section from '../../components/Section.jsx';
+import Section from '../../components/Section.jsx'; // <--- Seu componente de seção
 import PlaylistCard from '../../components/PlaylistCard.jsx';
 import ArtistCircle from '../../components/ArtistCircle.jsx';
 import ProfileHeader from '../../components/ProfileHeader'; 
@@ -242,7 +242,7 @@ export default function Perfil() {
                             />
                         ))
                     ) : (
-                        <Typography sx={{ color: 'var(--secondary-text-color)' }}>
+                        <Typography sx={{ color: 'var(--secondary-text-color)', pl: '1rem' }}>
                             {targetUser.name || targetUser.username} não criou nenhuma playlist.
                         </Typography>
                     )}
@@ -250,49 +250,32 @@ export default function Perfil() {
                 
                 <Divider sx={{ my: 4 }} />
                 
-                <Box sx={{ mb: 4 }}>
-                    <Box 
-                        sx={{ 
-                            display: 'flex', 
-                            justifyContent: 'flex-start',
-                            alignItems: 'center', 
-                            mb: 2 
-                        }}
-                    >
-                        <Box
-                            onClick={isOwner ? handleViewFriends : null} 
-                            sx={{ 
-                                cursor: isOwner ? 'pointer' : 'default',
-                                '&:hover': { opacity: isOwner ? 0.8 : 1 }
-                            }}
-                        >
-                            <Typography variant="h5" sx={{ color: 'var(--text-primary)' }}>
-                                Peões Amigos ({totalFriendCount})
-                            </Typography>
-                        </Box>
-                        
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', overflowX: 'auto', gap: 2 }}>
-                        {limitedDisplayedFriends.length > 0 ? (
-                            limitedDisplayedFriends.map((friend) => (
-                                <ArtistCircle
-                                    key={friend.id}
-                                    id={friend.id}
-                                    image={friend.img || friend.image || DEFAULT_USER_IMAGE} 
-                                    name={friend.name || friend.username || `Amigo ${friend.id}`} 
-                                    onClick={() => handleFriendClick(friend.id)}
-                                    sx={{ cursor: 'pointer' }}
-                                    isUser={true} 
-                                />
-                            ))
-                        ) : (
-                            <Typography sx={{ color: 'var(--secondary-text-color)' }}>
-                                Este usuário ainda não tem amigos exibíveis.
-                            </Typography>
-                        )}
-                    </Box>
-                </Box>
+                {/* --- SEÇÃO MODIFICADA ABAIXO --- */}
+                
+                <Section
+                    key={"Amigos"}
+                    title={`Peões Amigos (${totalFriendCount})`}
+                    onViewAllClick={isOwner ? handleViewFriends : null}
+                    viewAllText="Ver todos" 
+                >
+                    {limitedDisplayedFriends.length > 0 ? (
+                        limitedDisplayedFriends.map((friend) => (
+                            <ArtistCircle
+                                key={friend.id}
+                                id={friend.id}
+                                image={friend.img || friend.image || DEFAULT_USER_IMAGE} 
+                                name={friend.name || friend.username || `Amigo ${friend.id}`} 
+                                onClick={() => handleFriendClick(friend.id)}
+                                sx={{ cursor: 'pointer' }}
+                                isUser={true} 
+                            />
+                        ))
+                    ) : (
+                        <Typography sx={{ color: 'var(--secondary-text-color)', pl: '1rem' }}>
+                            Este usuário ainda não tem amigos exibíveis.
+                        </Typography>
+                    )}
+                </Section>
 
                 <Divider sx={{ my: 4 }} />
 
@@ -313,4 +296,4 @@ export default function Perfil() {
             </Box>
         </main>
     );
-}
+}   

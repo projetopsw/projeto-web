@@ -65,9 +65,6 @@ export default function ArtistHeader({ artist = {} }) {
             </div>
 
             <div className="artist-actions flex">
-                <button className="play-btn">
-                    <FaPlay />
-                </button>
                 <button 
                     className={`follow-btn ${classeCondicional}`} 
                     onClick={handleFollowClick}

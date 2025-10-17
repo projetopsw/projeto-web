@@ -75,7 +75,7 @@ img {
 }
 
 .song-title {
-    color: var(--text-color);
+    color: #393939;
 }
 
 .song-artist,
