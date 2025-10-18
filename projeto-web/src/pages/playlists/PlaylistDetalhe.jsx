@@ -155,6 +155,10 @@ function PlaylistDetalhe() {
     const [optionsAnchorEl, setOptionsAnchorEl] = useState(null);
     const optionsMenuOpen = Boolean(optionsAnchorEl);
 
+    const [songOptionsAnchorEl, setSongOptionsAnchorEl] = useState(null); // 👈 NOVO ESTADO
+    const [songOptionsSong, setSongOptionsSong] = useState(null); // 👈 NOVO ESTADO
+    const songOptionsMenuOpen = Boolean(songOptionsAnchorEl);
+
     const [isAddToPlaylistModalOpen, setIsAddToPlaylistModalOpen] = useState(false);
     
     const fetchPlaylistData = async () => {
@@ -199,6 +203,7 @@ function PlaylistDetalhe() {
         setLocalSongs(prevSongs => sortSongs(prevSongs, sortKey));
     }, [sortKey]); 
 
+    // --- Funções de Menu da Playlist (já existentes) ---
     const handleSortClick = (event) => {
         setSortAnchorEl(event.currentTarget);
     };
@@ -285,25 +290,93 @@ function PlaylistDetalhe() {
     const handleCloseAddToPlaylistModal = () => setIsAddToPlaylistModalOpen(false);
 
     const handleAddSongToPlaylist = async (targetPlaylistId) => {
-        const songIdsToAdd = localSongs.map(song => song.id);
+        // Se o modal foi aberto pelo menu da música, adiciona apenas essa música.
+        // Se o modal foi aberto pelo menu principal da playlist, adiciona todas.
+        const songIdsToAdd = songOptionsSong ? [songOptionsSong.id] : localSongs.map(song => song.id);
 
         try {
             const targetPlaylistResponse = await api.get(`/userPlaylists/${targetPlaylistId}`);
             const targetPlaylist = targetPlaylistResponse.data;
             
             const existingSongs = new Set(targetPlaylist.songs || []);
-            const newSongsList = [...targetPlaylist.songs, ...songIdsToAdd.filter(songId => !existingSongs.has(songId))];
+            const songsSuccessfullyAdded = songIdsToAdd.filter(songId => !existingSongs.has(songId));
             
-            await api.patch(`/userPlaylists/${targetPlaylistId}`, { songs: newSongsList });
-            alert(`As ${songIdsToAdd.length} músicas foram adicionadas à playlist com sucesso!`);
+            if (songsSuccessfullyAdded.length > 0) {
+                const newSongsList = [...targetPlaylist.songs, ...songsSuccessfullyAdded];
+                await api.patch(`/userPlaylists/${targetPlaylistId}`, { songs: newSongsList });
+                alert(`${songsSuccessfullyAdded.length} música(s) adicionada(s) à playlist "${targetPlaylist.name}" com sucesso!`);
+            } else {
+                alert("As músicas selecionadas já estão nesta playlist.");
+            }
+            
             handleCloseAddToPlaylistModal();
+            handleSongOptionsClose(); // Fecha o menu da música se estiver aberto
         } catch (error) {
-            console.error("Erro ao adicionar músicas a outra playlist:", error);
-            alert("Não foi possível adicionar as músicas. Tente novamente.");
+            console.error("Erro ao adicionar música(s) a outra playlist:", error);
+            alert("Não foi possível adicionar a(s) música(s). Tente novamente.");
         }
     };
     
     const availablePlaylists = userPlaylists.filter(p => p.id !== '0' && p.id !== id);
+    
+    // --- NOVAS FUNÇÕES: Menu da Música ---
+    const handleSongOptionsClick = (event, song) => {
+        event.stopPropagation(); // Evita que o evento de clique da linha da tabela seja disparado
+        setSongOptionsAnchorEl(event.currentTarget);
+        setSongOptionsSong(song);
+    };
+
+    const handleSongOptionsClose = () => {
+        setSongOptionsAnchorEl(null);
+        setSongOptionsSong(null);
+    };
+
+    const handleRemoveSong = async () => {
+        handleSongOptionsClose();
+        if (!songOptionsSong || id === "0") return;
+
+        if (window.confirm(`Tem certeza que deseja excluir "${songOptionsSong.title}" da playlist "${playlistDetails.name}"?`)) {
+            try {
+                // Remove a música localmente
+                const newLocalSongs = localSongs.filter(s => s.id !== songOptionsSong.id);
+                setLocalSongs(newLocalSongs);
+
+                // Atualiza a playlist no servidor
+                const newSongIds = newLocalSongs.map(song => song.id);
+                await api.patch(`/userPlaylists/${id}`, { songs: newSongIds });
+                
+                // Atualiza o estado da playlist para recontar músicas e duração
+                fetchPlaylistData();
+                
+                alert(`Música "${songOptionsSong.title}" removida com sucesso!`);
+            } catch (error) {
+                console.error("Erro ao remover música:", error);
+                alert("Não foi possível remover a música. Tente novamente.");
+            }
+        }
+    };
+    
+    const handleShareSong = () => {
+        handleSongOptionsClose();
+        if (!songOptionsSong) return;
+        
+        // Exemplo: Compartilhar um link genérico para a música
+        const songLink = `${window.location.origin}/song/${songOptionsSong.id}`;
+        
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(songLink);
+            alert(`Link da música "${songOptionsSong.title}" copiado para a área de transferência!`);
+        } else {
+            alert(`Link da música: ${songLink}`);
+        }
+    };
+    
+    const handleOpenAddSongToPlaylistModal = () => {
+        handleSongOptionsClose();
+        // A função handleAddSongToPlaylist usará songOptionsSong para saber qual música adicionar
+        setIsAddToPlaylistModalOpen(true);
+    };
+    // --- FIM NOVAS FUNÇÕES ---
 
     if (isLoading) {
         return (
@@ -449,7 +522,7 @@ function PlaylistDetalhe() {
                     {isCustomPlaylist && (
                         <>
                             <Divider sx={{ backgroundColor: 'var(--border-color)' }} />
-                            <MenuItem onClick={handleDeletePlaylist} sx={{ color: 'red !important' }}>
+                            <MenuItem onClick={handleDeletePlaylist}>
                                 <DeleteIcon sx={{ marginRight: 1, fontSize: '18px' }} />
                                 Excluir Playlist
                             </MenuItem>
@@ -555,6 +628,7 @@ function PlaylistDetalhe() {
                                         <TableCell>Álbum</TableCell>
                                         <TableCell>Adicionada em</TableCell>
                                         <TableCell sx={{ width: '50px', paddingRight: '0 !important' }} align="right"><AccessTimeIcon fontSize="small" /></TableCell>
+                                        <TableCell sx={{ width: '40px', paddingRight: '0 !important', paddingLeft: '0 !important' }}></TableCell> {/* Coluna de Ações */}
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -611,8 +685,24 @@ function PlaylistDetalhe() {
                                                         </TableCell>
                                                         <TableCell sx={{ color: 'var(--text-color)', borderBottom: 'none' }}>{song.album}</TableCell>
                                                         <TableCell sx={{ color: 'var(--text-color)', borderBottom: 'none' }}>{song.added}</TableCell>
-                                                        <TableCell sx={{ color: 'var(--text-color)', borderBottom: 'none', paddingRight: '0 !important' }} align="right">{song.duration}</TableCell>
+                                                        <TableCell sx={{ color: 'var(--secondary-text-color)', borderBottom: 'none', paddingRight: '0 !important' }} align="right">{song.duration}</TableCell>
 
+                                                        {/* NOVA CÉLULA: Menu de Ações da Música */}
+                                                        <TableCell sx={{ width: '40px', paddingRight: '0 !important', paddingLeft: '0 !important', borderBottom: 'none', textAlign: 'center' }}>
+                                                            <IconButton
+                                                                aria-label="Mais opções da música"
+                                                                size="small"
+                                                                onClick={(e) => handleSongOptionsClick(e, song)}
+                                                                sx={{
+                                                                    color: isRowHovered || songOptionsSong?.id === song.id ? 'var(--text-color)' : INACTIVE_ICON_COLOR,
+                                                                    visibility: isRowHovered || songOptionsSong?.id === song.id ? 'visible' : 'hidden',
+                                                                    '&:hover': { backgroundColor: 'transparent', color: 'var(--text-color)' }
+                                                                }}
+                                                            >
+                                                                <MoreVertIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </TableCell>
+                                                        
                                                     </TableRow>
                                                 )}
                                             </Draggable>
@@ -626,6 +716,47 @@ function PlaylistDetalhe() {
                 </Droppable>
             </DragDropContext>
             
+            {/* NOVO: Menu de Opções da Música */}
+            <Menu
+                anchorEl={songOptionsAnchorEl}
+                open={songOptionsMenuOpen}
+                onClose={handleSongOptionsClose}
+                PaperProps={{
+                    sx: {
+                        backgroundColor: 'var(--card-bg)',
+                        color: 'var(--text-color)',
+                        marginTop: '5px',
+                        '& .MuiMenuItem-root': {
+                            fontSize: '0.9rem',
+                            padding: '8px 16px',
+                            '&:hover': { backgroundColor: 'var(--input-bg)' }
+                        }
+                    }
+                }}
+            >
+                <MenuItem onClick={handleShareSong}>
+                    <ShareIcon sx={{ marginRight: 1, fontSize: '18px' }} />
+                    Compartilhar Música
+                </MenuItem>
+                
+                <MenuItem onClick={handleOpenAddSongToPlaylistModal} disabled={availablePlaylists.length === 0}>
+                    <PlaylistAddIcon sx={{ marginRight: 1, fontSize: '18px' }} />
+                    Adicionar a Outra Playlist
+                </MenuItem>
+                
+                {isCustomPlaylist && ( // Apenas playlists customizadas permitem remover
+                    <>
+                        <Divider sx={{ backgroundColor: 'var(--border-color)' }} />
+                        <MenuItem onClick={handleRemoveSong}>
+                            <DeleteIcon sx={{ marginRight: 1, fontSize: '18px' }} />
+                            Excluir da Playlist
+                        </MenuItem>
+                    </>
+                )}
+            </Menu>
+            {/* FIM NOVO: Menu de Opções da Música */}
+            
+            {/* Modal de Edição de Playlist (Já Existente) */}
             {isCustomPlaylist && (
                 <Modal
                     open={isEditModalOpen}
@@ -699,6 +830,7 @@ function PlaylistDetalhe() {
                 </Modal>
             )}
             
+            {/* Modal Adicionar a Outra Playlist (Atualizado para funcionar com seleção de música individual) */}
             <Modal
                 open={isAddToPlaylistModalOpen}
                 onClose={handleCloseAddToPlaylistModal}
@@ -706,7 +838,11 @@ function PlaylistDetalhe() {
             >
                 <Box sx={ModalStyle}>
                     <Typography id="modal-add-to-playlist-title" variant="h6" component="h2" sx={{ marginBottom: 2 }}>
-                        Adicionar {localSongs.length} músicas a:
+                        Adicionar 
+                        <Typography component="span" sx={{ fontWeight: 'bold', margin: '0 5px' }}>
+                            {songOptionsSong ? songOptionsSong.title : `${localSongs.length} músicas`}
+                        </Typography> 
+                        a:
                     </Typography>
 
                     <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>

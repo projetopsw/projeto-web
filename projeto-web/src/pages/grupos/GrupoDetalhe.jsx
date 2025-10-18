@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux'; 
-import { Box, Typography, Button, TextField, List, ListItem, ListItemText, ListItemAvatar, Avatar, InputBase, styled, Divider, IconButton, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, List, ListItem, ListItemText, ListItemAvatar, Avatar, InputBase, styled, Divider, IconButton, CircularProgress } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import PetsIcon from '@mui/icons-material/Pets'; 
 import PersonIcon from '@mui/icons-material/Person';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'; // Importar ícone de play
 import api from '../../services/api';
 
 const LeaveButton = styled(Button)(({ theme }) => ({
@@ -37,6 +38,27 @@ const QueueItemBox = styled(Box)(({ theme }) => ({
     '&:hover': { backgroundColor: 'var(--input-bg)' },
 }));
 
+// Estilo para o botão de Adicionar no resultado da busca
+const AddButton = styled(Button)(({ theme }) => ({
+    backgroundColor: 'var(--orange)',
+    color: 'white',
+    padding: '4px 10px',
+    minWidth: 'auto',
+    fontSize: '0.75rem',
+    borderRadius: '15px',
+    '&:hover': { backgroundColor: 'var(--darker-orange)' },
+}));
+
+// Estilo para a lista de resultados da busca
+const SearchResultsList = styled(List)(({ theme }) => ({
+    backgroundColor: 'var(--card-bg)',
+    borderRadius: '8px',
+    maxHeight: '300px',
+    overflowY: 'auto',
+    marginTop: '10px',
+    border: '1px solid var(--border-color)',
+}));
+
 
 function GrupoDetalhe() {
     const { id } = useParams();
@@ -44,11 +66,28 @@ function GrupoDetalhe() {
     const [grupo, setGrupo] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     
+    // NOVOS ESTADOS PARA PESQUISA E FILA
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+
     const userId = useSelector(state => state.auth.user?.id); 
     const userName = useSelector(state => state.auth.user?.username || 'Você');
     const MOCK_USER_NAME = userName;
 
+    // Função para buscar os detalhes do grupo e forçar a atualização do estado local
+    const fetchGroupDetails = useCallback(async () => {
+        try {
+            const response = await api.get(`/groups/${id}`);
+            setGrupo(response.data);
+        } catch (error) {
+            console.error("Erro ao carregar detalhes do grupo:", error);
+            // Se o grupo não existir mais (404), ele será tratado no useEffect principal
+        }
+    }, [id]);
+
     const removeListenerAndCheckDeletion = useCallback(async (groupId, currentUserId) => {
+        // ... (Lógica de remoção de listener e exclusão de grupo, inalterada) ...
         try {
             const response = await api.get(`/groups/${groupId}`);
             const group = response.data;
@@ -179,6 +218,103 @@ function GrupoDetalhe() {
             navigate('/grupos'); 
         }
     };
+    
+    // --- NOVAS FUNÇÕES PARA FILA DO GRUPO ---
+
+    const handleSearch = async (query) => {
+        if (query.length < 3) {
+            setSearchResults([]);
+            return;
+        }
+        setIsSearching(true);
+        try {
+            // Simulação de busca em todas as músicas
+            const response = await api.get(`/allSongs?q=${query}&_limit=5`);
+            setSearchResults(response.data);
+        } catch (error) {
+            console.error("Erro ao buscar músicas:", error);
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+    
+    const handleAddToGroupQueue = async (song) => {
+        if (!grupo) return;
+        
+        try {
+            const currentQueue = grupo.queue || [];
+            
+            // Verifica se a música já está na fila
+            if (currentQueue.some(s => s.id === song.id)) {
+                alert(`"${song.title}" já está na fila do grupo.`);
+                return;
+            }
+
+            const newQueue = [...currentQueue, {
+                id: song.id,
+                title: song.title,
+                artist: song.artist,
+                cover: song.cover,
+                duration: song.duration 
+            }];
+            
+            await api.patch(`/groups/${id}`, { queue: newQueue });
+            
+            // Atualiza o estado local do grupo
+            setGrupo(prev => ({ ...prev, queue: newQueue }));
+
+            // Se a fila estava vazia, inicia a reprodução (função simulada abaixo)
+            if (currentQueue.length === 0) {
+                handlePlayNextSong(newQueue);
+            }
+            
+        } catch (error) {
+            console.error("Erro ao adicionar música à fila do grupo:", error);
+            alert("Não foi possível adicionar a música.");
+        }
+    };
+    
+    const handlePlayNextSong = async (currentQueue = grupo.queue) => {
+        if (!currentQueue || currentQueue.length === 0) {
+            await api.patch(`/groups/${id}`, { currentSong: null, isPlaying: false, queue: [] });
+            setGrupo(prev => ({ ...prev, currentSong: null, isPlaying: false, queue: [] }));
+            return;
+        }
+
+        const nextSong = currentQueue[0];
+        const updatedQueue = currentQueue.slice(1);
+        
+        // Simula o início da reprodução e avança a fila
+        await api.patch(`/groups/${id}`, {
+            currentSong: nextSong,
+            isPlaying: true,
+            queue: updatedQueue
+        });
+
+        setGrupo(prev => ({ 
+            ...prev, 
+            currentSong: nextSong, 
+            isPlaying: true, 
+            queue: updatedQueue 
+        }));
+    };
+    
+    const handleRemoveFromQueue = async (songId) => {
+        if (!grupo) return;
+
+        try {
+            const updatedQueue = (grupo.queue || []).filter(song => song.id !== songId);
+            
+            await api.patch(`/groups/${id}`, { queue: updatedQueue });
+            setGrupo(prev => ({ ...prev, queue: updatedQueue }));
+        } catch (error) {
+            console.error("Erro ao remover música da fila do grupo:", error);
+            alert("Não foi possível remover a música.");
+        }
+    };
+    
+    // --- FIM NOVAS FUNÇÕES ---
 
 
     if (isLoading || !grupo || !userId) {
@@ -192,11 +328,8 @@ function GrupoDetalhe() {
     
     const isOwner = grupo.creatorId === userId; 
     const currentListenersCount = grupo.listeners?.length || 0;
-    
-    const mockQueue = [
-        { id: 1, title: 'Música 1 (Mock)', cover: 'https://placehold.co/40x40/000/fff' },
-        { id: 2, title: 'Música 2 (Mock)', cover: 'https://placehold.co/40x40/000/fff' },
-    ];
+    const groupQueue = grupo.queue || [];
+    const groupCurrentSong = grupo.currentSong;
 
 
     return (
@@ -214,6 +347,7 @@ function GrupoDetalhe() {
                 
                 <Box className="left-panel" sx={{ background: 'var(--card-bg)', padding: '20px', borderRadius: '8px', flex: 2, display: 'flex', flexDirection: 'column' }}>
                     
+                    {/* SEÇÃO DE PESQUISA */}
                     <Box className="search-bar" sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -226,7 +360,6 @@ function GrupoDetalhe() {
                         flexDirection: { xs: 'column', sm: 'row' },
                         alignItems: { xs: 'flex-start', sm: 'center' },
                         borderBottom: { xs: '1px solid var(--border-color)', sm: 'none' },
-                        
                     }}>
                         
                         <Typography className="search-add" sx={{ 
@@ -246,35 +379,130 @@ function GrupoDetalhe() {
                             padding: { xs: '0', sm: '0 10px' },
                             width: '100%',
                         }}>
-                            <SearchIcon sx={{ color: 'var(--secondary-text-color)', fontSize: '24px', cursor: 'pointer', mr: 1 }} />
-                            <StyledInput placeholder="Pesquisar" fullWidth disableUnderline />
+                            <SearchIcon 
+                                sx={{ color: 'var(--secondary-text-color)', fontSize: '24px', mr: 1 }} 
+                            />
+                            <StyledInput 
+                                placeholder="Pesquisar músicas..." 
+                                fullWidth 
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    handleSearch(e.target.value); // Dispara a busca ao digitar
+                                }}
+                                disableUnderline 
+                            />
                         </Box>
                     </Box>
 
-                    <Typography variant="h6" className="section-title" sx={{ marginBottom: '15px', color: 'var(--text-color)' }}>Fila</Typography>
+                    {/* RESULTADOS DA PESQUISA */}
+                    {(searchTerm.length >= 3 || isSearching) && (
+                        <Box sx={{ mb: 3 }}>
+                            <Typography variant="subtitle2" sx={{ color: 'var(--secondary-text-color)', mb: 1 }}>
+                                {isSearching ? 'Buscando...' : `${searchResults.length} resultados encontrados:`}
+                            </Typography>
+                            {searchResults.length > 0 && (
+                                <SearchResultsList sx={{ p: 0 }}>
+                                    {searchResults.map(song => (
+                                        <ListItem 
+                                            key={song.id} 
+                                            sx={{ 
+                                                p: 1.5, 
+                                                borderBottom: '1px solid var(--border-color)',
+                                                '&:last-child': { borderBottom: 'none' }
+                                            }}
+                                        >
+                                            <ListItemAvatar sx={{ minWidth: '40px' }}>
+                                                <Avatar src={song.cover} alt="Capa" variant="square" sx={{ width: 40, height: 40, borderRadius: '4px' }} />
+                                            </ListItemAvatar>
+                                            <ListItemText 
+                                                primary={song.title} 
+                                                secondary={song.artist}
+                                                primaryTypographyProps={{ color: 'var(--text-color)', fontWeight: 'bold' }}
+                                                secondaryTypographyProps={{ color: 'var(--secondary-text-color)' }}
+                                            />
+                                            <AddButton onClick={() => handleAddToGroupQueue(song)}>
+                                                Adicionar
+                                            </AddButton>
+                                        </ListItem>
+                                    ))}
+                                </SearchResultsList>
+                            )}
+                            {(searchTerm.length >= 3 && !isSearching && searchResults.length === 0) && (
+                                <Typography sx={{ color: 'var(--secondary-text-color)', p: 2 }}>Nenhuma música encontrada.</Typography>
+                            )}
+                        </Box>
+                    )}
+
+
+                    {/* MÚSICA ATUAL DO GRUPO */}
+                    <Typography variant="h6" className="section-title" sx={{ marginBottom: '15px', color: 'var(--text-color)' }}>
+                        Tocando Agora
+                    </Typography>
+                    <QueueItemBox sx={{ mb: 3, cursor: 'default', background: 'var(--orange-bg)', border: '2px solid var(--orange)' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+                            <MusicNoteIcon sx={{ color: 'var(--orange)', mr: 1.5 }} />
+                            {groupCurrentSong ? (
+                                <>
+                                    <ListItemAvatar>
+                                        <Avatar className="music-thumbnail" src={groupCurrentSong.cover} alt="Capa" sx={{ width: 40, height: 40, borderRadius: '4px' }} />
+                                    </ListItemAvatar>
+                                    <ListItemText primary={groupCurrentSong.title} secondary={groupCurrentSong.artist} primaryTypographyProps={{ sx: { color: 'var(--text-color)', fontWeight: 'bold', marginLeft: '10px' } }} secondaryTypographyProps={{ sx: { color: 'var(--secondary-text-color)', marginLeft: '10px' } }} />
+                                </>
+                            ) : (
+                                <Typography sx={{ color: 'var(--secondary-text-color)', ml: 1 }}>Nenhuma música tocando.</Typography>
+                            )}
+                        </Box>
+                        {/* Botão para avançar a fila (disponível apenas para o criador) */}
+                        {isOwner && groupCurrentSong && (
+                            <IconButton onClick={() => handlePlayNextSong()} aria-label="Próxima Música">
+                                <PlayArrowIcon sx={{ color: 'var(--orange)' }} />
+                            </IconButton>
+                        )}
+                    </QueueItemBox>
+                    
+
+                    {/* FILA DE MÚSICAS DO GRUPO */}
+                    <Typography variant="h6" className="section-title" sx={{ marginBottom: '15px', color: 'var(--text-color)' }}>Fila ({groupQueue.length})</Typography>
                     
                     <List className="queue-list" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '10px', p: 0 }}>
-                        {mockQueue.map((item, index) => (
-                            <QueueItemBox key={item.id}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-                                    <ListItemAvatar>
-                                        <Avatar className="music-thumbnail" sx={{ width: 40, height: 40, borderRadius: '4px' }}>
-                                            <img src={item.cover} alt="Capa" style={{ width: '100%', objectFit: 'cover' }} />
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText primary={item.title} primaryTypographyProps={{ className: 'music-title', sx: { color: 'var(--text-color)', marginLeft: '10px', flexGrow: 1 } }} />
-                                </Box>
+                        {groupQueue.length === 0 ? (
+                            <Typography sx={{ color: 'var(--secondary-text-color)', p: 2 }}>A fila está vazia.</Typography>
+                        ) : (
+                            groupQueue.map((item, index) => (
+                                <QueueItemBox key={item.id + '-' + index}> {/* Adicionado index na chave para garantir exclusividade */}
+                                    <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+                                        <Typography sx={{ color: 'var(--secondary-text-color)', mr: 1 }}>{index + 1}.</Typography>
+                                        <ListItemAvatar>
+                                            <Avatar className="music-thumbnail" src={item.cover} alt="Capa" sx={{ width: 40, height: 40, borderRadius: '4px' }} />
+                                        </ListItemAvatar>
+                                        <ListItemText 
+                                            primary={item.title} 
+                                            secondary={item.artist}
+                                            primaryTypographyProps={{ className: 'music-title', sx: { color: 'var(--text-color)', marginLeft: '10px', flexGrow: 1 } }}
+                                            secondaryTypographyProps={{ sx: { color: 'var(--secondary-text-color)', marginLeft: '10px' } }}
+                                        />
+                                    </Box>
 
-                                <IconButton aria-label="Remover" sx={{ p: 0 }}>
-                                    <CloseIcon sx={{ color: 'var(--secondary-text-color)' }} />
-                                </IconButton>
-                            </QueueItemBox>
-                        ))}
+                                    {/* Botão de Remover (Disponível apenas para o Dono) */}
+                                    {isOwner && (
+                                        <IconButton 
+                                            aria-label="Remover" 
+                                            sx={{ p: 0 }}
+                                            onClick={() => handleRemoveFromQueue(item.id)}
+                                        >
+                                            <CloseIcon sx={{ color: 'var(--secondary-text-color)', '&:hover': { color: 'var(--text-color)' } }} />
+                                        </IconButton>
+                                    )}
+                                </QueueItemBox>
+                            ))
+                        )}
                     </List>
                 </Box>
 
                 <Box className="right-panel" sx={{ background: 'var(--card-bg)', padding: '20px', borderRadius: '8px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     
+                    {/* SEÇÃO DONO */}
                     <Box className="panel-section owner" sx={{ width: '100%', marginBottom: '20px' }}>
                         <Typography variant="subtitle1" className="section-subtitle" sx={{ marginBottom: '10px', borderBottom: '1px solid var(--border-color)', paddingBottom: '5px' }}>Dono(a)</Typography>
                         <Box className="owner-info" sx={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text-color)' }}>
@@ -290,6 +518,7 @@ function GrupoDetalhe() {
                         </Box>
                     </Box>
 
+                    {/* SEÇÃO OUVINDO AGORA */}
                     <Box className="panel-section participants" sx={{ width: '100%', marginBottom: '20px' }}>
                         <Typography variant="subtitle1" className="section-subtitle" sx={{ marginBottom: '10px', borderBottom: '1px solid var(--border-color)', paddingBottom: '5px' }}>
                             Ouvindo Agora ({currentListenersCount})

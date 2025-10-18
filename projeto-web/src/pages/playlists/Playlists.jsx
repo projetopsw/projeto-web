@@ -49,7 +49,7 @@ const PlaylistBox = styled('div')({
     transition: 'transform 0.2s ease',
     '&:hover': {
         cursor: 'pointer',
-        transform: 'scale(1.03)',
+        transform: 'scale(1.08)',
     },
     
     '& .box-content': {
@@ -200,8 +200,6 @@ function Playlists() {
                         justifyContent: 'center', 
                         alignItems: 'center', 
                         height: '100%', 
-                        backgroundColor: 'var(--card-bg)', 
-                        border: '2px dashed var(--border-color)' 
                     }}>
                         <button className="btn-add-playlist" style={{ 
                             fontSize: '40px', 

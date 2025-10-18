@@ -1,79 +1,113 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IconButton, Menu, MenuItem } from '@mui/material';
+import { IconButton, Menu, MenuItem, Avatar } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import { logout } from '../redux/loginSlice';
 import { useSelector, useDispatch } from 'react-redux';
 
 function UserProfileIcon() {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
 
-  const { user: authUser } = useSelector((state) => state.auth);
-  const updatedUser = useSelector((state) => state.user.user);
+    const { user: authUser } = useSelector((state) => state.auth);
+    const updatedUser = useSelector((state) => state.user.user);
 
-  const displayName = updatedUser?.name || authUser?.name || 'Visitante';
+    const user = updatedUser || authUser;
+    
+    // Verifica as chaves 'image' e 'img' para máxima compatibilidade.
+    const profileImageUrl = user?.image || user?.img || '/assets/img/default_profile.png';
+    
+    const displayName = user?.name || 'Visitante';
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
+    const [anchorEl, setAnchorEl] = useState(null);
+    const open = Boolean(anchorEl);
 
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+    const handleClick = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
 
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+    const handleClose = () => {
+        setAnchorEl(null);
+    };
 
-  const handleProfileClick = () => {
-    navigate('/perfil');
-    handleClose();
-  };
+    const handleProfileClick = () => {
+        navigate('/perfil');
+        handleClose();
+    };
 
-  const handleLogout = () => {
-    dispatch(logout());
-    console.log('Usuário deslogado!');
-    navigate('/login');
-    handleClose();
-  };
+    const handleLogout = () => {
+        dispatch(logout());
+        navigate('/login');
+        handleClose();
+    };
 
-  return (
-    <div>
-      <IconButton
-        id="profile-button"
-        aria-controls={open ? 'profile-menu' : undefined}
-        aria-haspopup="true"
-        aria-expanded={open ? 'true' : undefined}
-        aria-label="Perfil do Usuário"
-        onClick={handleClick}
-        sx={{
-          backgroundColor: 'var(--darker-orange)',
-          color: 'var(--text-color)',
-          padding: '4px',
-          borderRadius: '50%',
-          '&:hover': {
-            backgroundColor: 'var(--orange)',
-          },
-        }}
-      >
-        <PersonIcon sx={{ fontSize: '28px' }} />
-      </IconButton>
+    return (
+        <div>
+            <IconButton
+                id="profile-button"
+                aria-controls={open ? 'profile-menu' : undefined}
+                aria-haspopup="true"
+                aria-expanded={open ? 'true' : undefined}
+                aria-label="Perfil do Usuário"
+                onClick={handleClick}
+                sx={{
+                    padding: 0,
+                    borderRadius: '50%',
+                    '&:hover': {
+                        backgroundColor: 'transparent',
+                    },
+                }}
+            >
+                <Avatar 
+                    alt={displayName} 
+                    src={profileImageUrl} 
+                    sx={{ 
+                        width: 35, 
+                        height: 35, 
+                        backgroundColor: 'var(--darker-orange)', 
+                        color: 'white',
+                        transition: 'opacity 0.2s',
+                        '&:hover': { opacity: 0.9 }
+                    }} 
+                >
+                    {displayName.charAt(0)}
+                </Avatar>
+            </IconButton>
 
-      <Menu
-        id="profile-menu"
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        MenuListProps={{
-          'aria-labelledby': 'profile-button',
-        }}
-      >
-        <MenuItem>Olá, {displayName}!</MenuItem>
-        <MenuItem onClick={handleProfileClick}>Ver Perfil</MenuItem>
-        <MenuItem onClick={handleLogout}>Sair</MenuItem>
-      </Menu>
-    </div>
-  );
+            <Menu
+                id="profile-menu"
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleClose}
+                MenuListProps={{
+                    'aria-labelledby': 'profile-button',
+                }}
+                // 🎯 ATUALIZAÇÃO: Alinha o menu para a esquerda do botão (right-aligned to anchor)
+                anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'right', // Ancoragem pelo lado direito do botão
+                }}
+                // 🎯 ATUALIZAÇÃO: Alinha o menu para a direita (o menu se expande para a esquerda)
+                transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right', // O menu se inicia na borda direita
+                }}
+                PaperProps={{
+                    sx: {
+                        backgroundColor: 'var(--sidebar-bg)',
+                        color: 'var(--text-color)',
+                        '& .MuiMenuItem-root': {
+                            '&:hover': { backgroundColor: 'var(--input-bg)' }
+                        }
+                    }
+                }}
+            >
+                <MenuItem sx={{ fontWeight: 'bold' }}>Olá, {displayName}!</MenuItem>
+                <MenuItem onClick={handleProfileClick}>Ver Perfil</MenuItem>
+                <MenuItem onClick={handleLogout}>Sair</MenuItem>
+            </Menu>
+        </div>
+    );
 }
 
 export default UserProfileIcon;

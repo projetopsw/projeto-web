@@ -1,6 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// Função auxiliar para embaralhar um array (Algoritmo Fisher-Yates)
 const shuffleArray = (array) => {
     let newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
@@ -10,7 +9,6 @@ const shuffleArray = (array) => {
     return newArray;
 };
 
-// 0: Off, 1: Repeat Queue/Playlist, 2: Repeat Song
 const REPEAT_MODES = {
     OFF: 0,
     QUEUE: 1,
@@ -27,7 +25,7 @@ const initialState = {
     duration: 0, 
     currentTime: 0, 
     isShuffling: false,
-    repeatMode: REPEAT_MODES.OFF, // NOVO ESTADO
+    repeatMode: REPEAT_MODES.OFF,
 };
 
 export const playerSlice = createSlice({
@@ -79,7 +77,6 @@ export const playerSlice = createSlice({
             }
         },
         
-        // NOVO REDUCER
         toggleRepeat: (state) => {
             state.repeatMode = (state.repeatMode + 1) % 3; 
         },
@@ -102,6 +99,31 @@ export const playerSlice = createSlice({
             }
         },
 
+        // NOVO REDUCER PARA REMOVER MÚSICA DA FILA
+        removeSongFromQueue: (state, action) => {
+            const songIdToRemove = action.payload;
+
+            if (!state.currentSong || state.queue.length === 0) return;
+
+            const currentSongIndex = state.queue.findIndex(s => s.id === state.currentSong.id);
+            const indexToRemove = state.queue.findIndex(s => s.id === songIdToRemove);
+
+            // Não remove a música atual
+            if (indexToRemove === -1 || songIdToRemove === state.currentSong.id) return;
+
+            // 1. Remove da fila atual
+            state.queue.splice(indexToRemove, 1);
+            // 2. Remove da fila original (para manter o reordenamento correto)
+            state.originalQueue = state.originalQueue.filter(s => s.id !== songIdToRemove);
+
+            // 3. Ajusta o índice de reprodução se a música removida estava antes
+            if (indexToRemove < currentSongIndex) {
+                state.queueIndex -= 1;
+            } else if (indexToRemove === currentSongIndex) {
+                // Caso extremo, onde a música atual é removida (já bloqueado acima)
+            }
+        },
+
         togglePlayPause: (state) => {
             if (state.currentSong) {
                 state.isPlaying = !state.isPlaying;
@@ -109,29 +131,25 @@ export const playerSlice = createSlice({
         },
         
         skipNext: (state) => {
-            // Lógica de Repetição (Chamada quando a música termina ou pelo botão)
             if (state.repeatMode === REPEAT_MODES.SONG) {
-                state.isPlaying = true; // Reinicia a reprodução
+                state.isPlaying = true;
                 state.currentTime = 0; 
-                return; // Não muda o índice
+                return;
             }
 
             let nextIndex = state.queueIndex + 1;
             
             if (nextIndex < state.queue.length) {
-                // A música seguinte existe na fila
                 state.queueIndex = nextIndex;
                 state.currentSong = state.queue[nextIndex];
                 state.isPlaying = true;
                 state.currentTime = 0;
             } else if (state.repeatMode === REPEAT_MODES.QUEUE && state.queue.length > 0) {
-                // Fim da fila, mas Repetir Playlist/Fila está ativo
-                state.queueIndex = 0; // Volta para o início da fila
+                state.queueIndex = 0;
                 state.currentSong = state.queue[0];
                 state.isPlaying = true;
                 state.currentTime = 0;
             } else {
-                // Fim da fila e Repetição Desligada (OFF)
                 state.isPlaying = false; 
             }
         },
@@ -176,11 +194,12 @@ export const {
     playSong,
     setQueue, 
     addSingleSongToQueue,
+    removeSongFromQueue, // 👈 EXPORTADO
     togglePlayPause,
     skipNext,
     skipPrevious,
     toggleShuffle,
-    toggleRepeat, // EXPORTADO
+    toggleRepeat,
     reorderQueue,
     setDuration,
     updateCurrentTime,

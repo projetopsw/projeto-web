@@ -12,7 +12,7 @@
       "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
       "lyrics": "Okay, huh\nMm, ah\nI come and I go\nTell me all the ways you need me\nI'm not here for long\nCatch me or I go Houdini\nI come and I go\nProve you got the right to please me\nEverybody knows\nCatch me or I go Houdini\nTime is passin' like a solar eclipse\nSee you watchin' and you blow me a kiss\nIt's your moment, baby, don't let it slip\nCome in closer, are you readin' my lips?\nThey say I come and I go\nTell me all the ways you need me\nI'm not here for long\nCatch me or I go Houdini\nI come and I go\nProve you got the right to please me\nEverybody knows\nCatch me or I go Houdini\nIf you're good enough, you'll find a way\nMaybe you could cause a girl to change (her ways)\nDo you think about it night and day?\nMaybe you could be the one to make me stay\nEverything you say is soundin' so sweet (ah-ah)\nBut do you practise everything that you preach? (Ah-ah)\nI need something that'll make me believe (ah-ah)\nIf you got it, baby, give it to me\nThey say I come and I go\nTell me all the ways you need me\nI'm not here for long\nCatch me or I go Houdini\nI come and I go (I come and I go)\nProve you got the right to please me\nEverybody knows (I'm not here for long)\nCatch me or I go Houdini\nIf you're good enough, you'll find a way\nMaybe you could cause a girl to change (her ways)\nDo you think about it night and day?\nMaybe you could be the one to make me stay\nOh\nOoh\nI come and I go\nTell me all the ways you need me (ooh)\nI'm not here for long\nCatch me or I go Houdini\nI come and I go (I come and I go)\nProve you got the right to please me\nEverybody knows (I'm not here for long)\nCatch me or I go Houdini\nHoudini (ah)\nCatch me or I go Houdini"
     },
-    { 
+    {
       "cover": "https://upload.wikimedia.org/wikipedia/pt/a/aa/Sabrina_Carpenter_-_Espresso.png",
       "title": "Espresso",
       "artist": "Sabrina Carpenter",
@@ -636,6 +636,9 @@
       "friendshipRequests": [
         "3",
         "71a1"
+      ],
+      "userPlaylists": [
+        "cd16"
       ]
     },
     {
@@ -672,7 +675,9 @@
       "userPlaylists": [
         "187b"
       ],
-      "friendshipRequests": []
+      "friendshipRequests": [
+        "101"
+      ]
     },
     {
       "id": "e297",
@@ -684,20 +689,14 @@
     },
     {
       "id": "101",
-      "name": "Luiza",
-      "username": "Luiza",
+      "name": "Luisa",
       "email": "luiza@email.com",
-      "password": "luiza",
-      "image": "https://placehold.co/400x400?text=Luiza",
+      "likedSongs": [],
+      "following": [],
       "friends": [
         "2"
       ],
-      "following": [],
-      "friendshipRequests": [],
-      "requestsReceived": [],
-      "userPlaylists": [
-        "f419"
-      ]
+      "img": "https://portalpopline.com.br/wp-content/uploads/2022/01/duende-verde-fortnite-thumb.png"
     },
     {
       "id": "102",
@@ -830,6 +829,23 @@
       ],
       "duration": "0 min",
       "songCount": 0
+    },
+    {
+      "id": "cd16",
+      "name": "Academia",
+      "creatorId": "2",
+      "img": "https://s.zst.com.br/cms-assets/2021/01/peso-de-academia-4-.png",
+      "type": "Playlist do Usuário",
+      "description": "Playlist criada por Luiza.",
+      "songs": [
+        "song-03",
+        "song-09",
+        "song-08",
+        "song-06"
+      ],
+      "duration": "0 min",
+      "songCount": 0,
+      "isPublic": false
     }
   ],
   "allSongs": [
@@ -1012,22 +1028,5 @@
       "caminho": "/assets/audio/rockthunder.mp3"
     }
   ],
-  "groups": [
-    {
-      "id": "0a50",
-      "name": "Grupo Teste",
-      "description": "teste",
-      "cover": "https://placehold.co/600x600/607D8B/white?text=GRUPO",
-      "creatorId": "1",
-      "members": [
-        "1",
-        "2"
-      ],
-      "listeners": [
-        "1"
-      ],
-      "currentSong": null,
-      "status": "Ao vivo"
-    }
-  ]
+  "groups": []
 }

@@ -5,7 +5,8 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useSelector, useDispatch } from 'react-redux';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
-import { reorderQueue, togglePlayPause, setQueue } from '../redux/playerSlice';
+// Importa a nova action 'removeSongFromQueue'
+import { reorderQueue, togglePlayPause, setQueue, removeSongFromQueue } from '../redux/playerSlice';
 
 const VolumeIcon = () => (<i className="fas fa-volume-up" style={{ color: 'var(--orange)', fontSize: '12px' }} />);
 const INACTIVE_COLOR = 'var(--secondary-text-color)';
@@ -46,6 +47,18 @@ function QueueOverlay() {
                 dispatch(setQueue({ songs: queue, startIndex: startIndex }));
             }
         }
+    };
+    
+    // FUNÇÃO PARA REMOVER MÚSICA DA FILA
+    const handleRemoveSong = (e, songId) => {
+        e.stopPropagation(); 
+        
+        if (currentSong?.id === songId) {
+             alert("Não é possível remover a música que está tocando no momento.");
+             return;
+        }
+
+        dispatch(removeSongFromQueue(songId));
     };
 
     const renderQueueItem = (song, index) => {
@@ -98,7 +111,12 @@ function QueueOverlay() {
                             <Typography sx={{ color: INACTIVE_COLOR, fontSize: '0.8rem' }}>
                                 {song.duration}
                             </Typography>
-                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); console.log('Remover'); }} sx={{ color: INACTIVE_COLOR, '&:hover': { color: 'red' } }}>
+                            {/* CHAMADA CORRIGIDA PARA REMOVER MÚSICA DA FILA */}
+                            <IconButton 
+                                size="small" 
+                                onClick={(e) => handleRemoveSong(e, song.id)} 
+                                sx={{ color: INACTIVE_COLOR, '&:hover': { color: 'var(--text-color)' } }}
+                            >
                                 <CloseIcon fontSize="small" />
                             </IconButton>
                         </Box>
