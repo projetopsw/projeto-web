@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { FaPlay } from 'react-icons/fa';
 
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';

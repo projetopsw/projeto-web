@@ -364,9 +364,9 @@ export default function ProfileEdition() {
                             return (
                                 <Grid 
                                     item 
-                                    xs={12} // 1 image per row on extra-small screens
-                                    sm={6} // 2 images per row on small screens
-                                    md={4} // 3 images per row on medium screens and up (original had 4 per row on md, changed to 3 for more space)
+                                    xs={12} 
+                                    sm={6} 
+                                    md={4}  
                                     key={index}
                                     sx={{ display: 'flex', justifyContent: 'center' }}
                                 >
@@ -382,7 +382,6 @@ export default function ProfileEdition() {
                                             transition: 'border 0.2s',
                                             '&:hover': { opacity: 0.8 },
                                             
-                                            // Tamanho menor para melhor responsividade
                                             width: 120, 
                                             height: 120, 
                                             position: 'relative', 

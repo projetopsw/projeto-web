@@ -101,7 +101,7 @@ export default function ProfileHeader({
             </Box>
 
             <Box>
-                <Typography variant="h2" component="h1" fontWeight={700} sx={{ mb: 1 }}>
+                <Typography variant="h2" component="h1" fontWeight={700} sx={{ mb: 1 }} className='usernameProfile'>
                     {safeUser.username}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: { xs: 'center', sm: 'flex-start' }, flexWrap: 'wrap' }}>

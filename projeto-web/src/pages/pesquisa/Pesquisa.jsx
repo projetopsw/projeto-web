@@ -15,12 +15,12 @@ import api from '../../services/api.js';
 const navItemsData = ["Tudo", "Playlists", "Músicas", "Álbuns", "Artistas"];
 
 /**
- * 💡 FUNÇÃO AUXILIAR DE FILTRAGEM (AGORA COM SELETOR DE MODO)
- * @param {Array} data - Array de dados brutos (e.g., topArtists.data)
- * @param {string} query - O termo de busca
- * @param {string} field - O campo a ser buscado ('name' ou 'title')
- * @param {string} mode - 'starts_with' ou 'includes'
- * @returns {Array} - Array de resultados filtrados
+ * 💡 
+ * @param {Array} data 
+ * @param {string} query
+ * @param {string} field 
+ * @param {string} mode
+ * @returns {Array} 
  */
 
 const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
@@ -42,8 +42,7 @@ const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
             return lowerFieldValue.startsWith(lowerQuery);
         }
     });
-    
-    // Log para debug
+
     console.log(`Filtro [${field} - ${mode.toUpperCase()}] para "${query}": Encontrados ${filtered.length} resultados.`);
 
     return filtered;
@@ -170,7 +169,7 @@ function Pesquisa() {
 
 
     return (
-        <>
+        <div className='pesquisa-container'>
             <Header />
             <main className="content-area">
                 
@@ -231,7 +230,7 @@ function Pesquisa() {
                 )}
             </main>
             <Footer />
-        </>
+        </div  >
     );
 }
 

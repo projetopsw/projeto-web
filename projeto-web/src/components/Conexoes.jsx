@@ -29,7 +29,6 @@ export default function Conexoes() {
 
     const [selectedFilter, setSelectedFilter] = useState('Amigos');
     
-    // Desestruturação dos dados e do erro
     const { friends, pendingRequests, sentRequests, suggestions, status, error } = useSelector((state) => state.connections);
 
     const handleUserClick = (id) => navigate(`/perfil/${id}`);

@@ -498,4 +498,14 @@ footer {
     .main-content-area {
         left: 1.25rem;
     }
+    .usernameProfile {
+        text-align: start;
+    }
+}
+
+@media (max-width: 600px) {
+    .usernameProfile {
+        text-align: center;
+
+    }
 }
