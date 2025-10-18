@@ -16,11 +16,12 @@ import {
     CircularProgress 
 } from '@mui/material';
 import Header from '../../components/Header';
-import SearchMusicLocal from '../../components/SearchMusic';
-// Importado, mas não usado diretamente para a lista simples de nomes
+// 💡 IMPORTANTE: Certifique-se de que este caminho está correto (SearchMusicLocal vs SearchMusic)
+import SearchMusicLocal from '../../components/SearchMusic'; 
 import UserCard from '../../components/UserCard'; 
 import api from '../../services/api.js'; 
-import './Grupo.css';
+// 💡 IMPORTADO O ARQUIVO DE ESTILOS CSS
+import './Grupo.css'; // O nome do arquivo CSS deve ser consistente (usei GrupoDetalhe.css da sua base)
 
 
 // ----------------------------------------------------
@@ -33,22 +34,25 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
     borderRadius: '12px',
     boxShadow: '0 4px 12px var(--shadow-color-dark)',
     
-    // Altura autoajustável para o topo
     '&.header-box': {
         height: 'auto', 
     },
-    // Ocupa o restante do espaço vertical
     '&.queue-box': {
         flexGrow: 1, 
         overflowY: 'auto', 
-        minHeight: 'calc(100vh - 280px)', // Mantido para referência de altura mínima
+        minHeight: 'calc(100vh - 280px)', 
     }
 }));
+
+// Estilos AddButton e SearchResultsList não são mais necessários aqui,
+// pois geralmente são definidos dentro do componente SearchMusicLocal,
+// mas foram removidos para limpar o código e focar no GrupoDetalhe.
 
 
 function GrupoDetalhe() {
     const { id } = useParams(); 
     
+    // Variáveis de estado principais
     const [group, setGroup] = useState(null);
     const [groupMembers, setGroupMembers] = useState([]); 
     const [queue, setQueue] = useState([]); 
@@ -56,23 +60,21 @@ function GrupoDetalhe() {
     const [error, setError] = useState(null);
 
     // ----------------------------------------------------
-    // FUNÇÕES DE BUSCA DE DADOS (Mantidas)
+    // FUNÇÕES DE BUSCA DE DADOS
     // ----------------------------------------------------
 
     const fetchGroupDetails = async () => {
         setIsLoading(true);
         try {
-            // 1. Buscar detalhes do Grupo
             const groupResponse = await api.get(`/groups/${id}`); 
             const groupData = groupResponse.data;
             setGroup(groupData);
-            setQueue(groupData.currentQueue || []); 
+            // Assume que o backend retorna a fila como 'currentQueue' ou 'queue'
+            setQueue(groupData.queue || groupData.currentQueue || []); 
 
-            // 2. Buscar TODOS os usuários (para mapear IDs para nomes)
             const usersResponse = await api.get('/users');
             const allUsers = usersResponse.data;
 
-            // 3. Filtrar e mapear os membros do grupo
             const memberIds = groupData.members || []; 
             const membersData = memberIds
                 .map(memberId => allUsers.find(user => user.id === memberId))
@@ -84,27 +86,21 @@ function GrupoDetalhe() {
         } catch (err) {
             console.error("Erro ao carregar dados:", err);
             // Fallback (dados de mock)
-            setGroup({ id, name: `Grupo ${id} (Mock)`, members: ['1', '2', '3'] });
+            setGroup({ id, name: `Grupo ${id} (Mock)` });
             setQueue([]); 
             setGroupMembers([
-                { id: '1', name: 'Bebel' }, 
-                { id: '2', name: 'Bia' },
-                { id: '3', name: 'IgorGodoy' }
+                { id: '1', name: 'Bebel (Mock)' }, 
+                { id: '2', name: 'Bia (Mock)' },
+                { id: '3', name: 'IgorGodoy (Mock)' }
             ]);
             setError("Não foi possível carregar os dados completos. Usando dados padrão.");
         } finally {
             setIsLoading(false);
         }
     };
-
-    useEffect(() => {
-        if (id) {
-            fetchGroupDetails();
-        }
-    }, [id]);
     
     // ----------------------------------------------------
-    // FUNÇÕES DE GESTÃO DA FILA (Mantidas)
+    // FUNÇÕES DE GESTÃO DA FILA (UNIFICADAS)
     // ----------------------------------------------------
 
     const handleAddToQueue = (song) => {
@@ -114,14 +110,31 @@ function GrupoDetalhe() {
                 return prevQueue; 
             }
             const newQueue = [...prevQueue, song];
+            
+            // Opcional: Aqui você pode adicionar a chamada PATCH para o backend
+            // api.patch(`/groups/${id}`, { queue: newQueue }).catch(e => console.error("Falha ao salvar fila:", e));
+
             return newQueue;
         });
     };
     
     const handleRemoveFromQueue = (songId) => {
-        setQueue(prevQueue => prevQueue.filter(song => song.id !== songId));
+        setQueue(prevQueue => {
+            const newQueue = prevQueue.filter(song => song.id !== songId);
+            
+            // Opcional: Aqui você pode adicionar a chamada PATCH para o backend
+            // api.patch(`/groups/${id}`, { queue: newQueue }).catch(e => console.error("Falha ao salvar fila:", e));
+            
+            return newQueue;
+        });
     };
 
+
+    useEffect(() => {
+        if (id) {
+            fetchGroupDetails();
+        }
+    }, [id]);
 
     if (isLoading) {
         return (
@@ -172,16 +185,16 @@ function GrupoDetalhe() {
                                 Membros:
                             </Typography>
                             
-                            {/* 💡 LISTA SIMPLES DE NOMES DOS MEMBROS */}
+                            {/* LISTA SIMPLES DE NOMES DOS MEMBROS */}
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                                 {groupMembers.length > 0 ? (
-                                    groupMembers.map((member, index) => (
+                                    groupMembers.map((member) => (
                                         <Typography 
                                             key={member.id}
                                             variant="body2" 
                                             sx={{ 
                                                 color: 'var(--secondary-text-color)', 
-                                                backgroundColor: 'var(--bg-light)', // Fundo para destacar o nome
+                                                backgroundColor: 'var(--bg-light)', 
                                                 padding: '2px 8px',
                                                 borderRadius: '4px'
                                             }}
@@ -208,6 +221,7 @@ function GrupoDetalhe() {
                             {/* Barra de Pesquisa */}
                             <Box sx={{ mb: 4, position: 'relative' }}>
                                 <SearchMusicLocal 
+                                    // 💡 Passa a função de adicionar à fila local
                                     onSongSelect={handleAddToQueue} 
                                 />
                             </Box>

@@ -4,39 +4,42 @@ import Search from './Search';
 import UserProfileIcon from './UserProfileIcon';
 
 const ThemeSwitchContainer = styled(Box)(({ theme }) => ({
-    width: '60px',
-    height: '30px',
-    backgroundColor: 'var(--card-bg)',
-    borderRadius: '20px',
-    border: '2px solid var(--border-color)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    zIndex: 10,
-    
-    '& i': { fontSize: '16px', transition: 'all 0.3s ease', zIndex: 0 },
-    
-    '& .theme-toggle-btn': {
-        position: 'absolute',
-        top: '50%',
-        left: '4px',
-        transform: 'translateY(-50%)',
-        width: '20px',
-        height: '20px',
-        backgroundColor: 'var(--orange)',
-        borderRadius: '50%',
-        transition: 'all 0.3s ease',
-        zIndex: 1,
-    },
+    width: '60px',
+    height: '30px',
+    backgroundColor: 'var(--card-bg)',
+    borderRadius: '20px',
+    border: '2px solid var(--border-color)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    zIndex: 10,
+    
+    '& i': { fontSize: '16px', transition: 'all 0.3s ease', zIndex: 0 },
+    
+    '& .theme-toggle-btn': {
+        position: 'absolute',
+        top: '50%',
+        left: '4px',
+        transform: 'translateY(-50%)',
+        width: '20px',
+        height: '20px',
+        backgroundColor: 'var(--orange)',
+        borderRadius: '50%',
+        transition: 'all 0.3s ease',
+        zIndex: 1,
+    },
 
-    '&.light-theme .theme-toggle-btn': { left: '36px' }
+    '&.light-theme .theme-toggle-btn': { left: '36px' }
 }));
 
 function NavBar({ initialQuery = '' }) {
     const [isLightTheme, setIsLightTheme] = useState(false);
 
+    // Lógica do Redux e cálculo da imagem removidos, pois UserProfileIcon faz isso agora.
+    // const userImage = useSelector(state => state.auth.user?.image); // Removido
+    
     useEffect(() => {
         const body = document.body;
         if (isLightTheme) {

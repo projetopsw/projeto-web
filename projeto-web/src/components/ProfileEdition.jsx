@@ -40,6 +40,7 @@ export default function ProfileEdition() {
     });
     
     const [newProfileImage, setNewProfileImage] = useState(null);
+    const [linkImage, setLinkImage] = useState(''); // 👈 NOVO ESTADO: Link de imagem
     
     useEffect(() => {
         if (user && userId) {
@@ -66,12 +67,22 @@ export default function ProfileEdition() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleImageUploadClick = () => setIsImageModalOpen(true);
+    const handleImageUploadClick = () => {
+        setLinkImage(''); // Limpa o link ao abrir o modal
+        setIsImageModalOpen(true);
+    };
 
     const handleImageSelect = (imageUrl) => {
         setNewProfileImage(imageUrl);
         sessionStorage.setItem(SESSION_STORAGE_KEY(userId), imageUrl);
         setIsImageModalOpen(false); 
+    };
+    
+    const handleLinkImageSelect = () => { // 👈 NOVA FUNÇÃO: Aplicar link
+        const trimmedLink = linkImage.trim();
+        if (trimmedLink) {
+            handleImageSelect(trimmedLink);
+        }
     };
     
     const handleRemoveSelectedImage = () => {
@@ -112,6 +123,7 @@ export default function ProfileEdition() {
             ...currentUserData, 
             name: name,
             email: email,
+            // Prioriza newProfileImage, depois a imagem existente, depois a padrão.
             img: newProfileImage || currentUserData.img || DEFAULT_USER_IMAGE, 
         };
         
@@ -201,7 +213,7 @@ export default function ProfileEdition() {
     const profileHeaderProps = {
         username: userDataToDisplay.name || userDataToDisplay.username, 
         playlists: userDataToDisplay.playlists ? userDataToDisplay.playlists.length : 0, 
-        friends: userDataToDisplay.friends ? userDataToDisplay.friends.length : 0,      
+        friends: userDataToDisplay.friends ? userDataToDisplay.friends.length : 0,     
         following: userDataToDisplay.following || [],          
         img: finalImage,
         image: finalImage
@@ -309,7 +321,7 @@ export default function ProfileEdition() {
                             sx={saveButtonStyle}
                             disabled={isSaving}
                         >
-                            {isSaving ? 'Salvando...' : 'Salvar'}
+                            {isSaving ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Salvar'}
                         </Button>
                     </Box>
                 </Box>
@@ -322,7 +334,7 @@ export default function ProfileEdition() {
                 fullWidth
                 PaperProps={{ sx: { bgcolor: 'var(--header-bg)', color: 'var(--text-color)' } }}
             >
-                <DialogTitle sx={{ m: 0, p: 2 }}>
+                <DialogTitle sx={{ m: 0, p: 2, color: 'var(--text-color)' }}>
                     Selecione sua Imagem de Perfil
                     <IconButton
                         aria-label="close"
@@ -337,11 +349,44 @@ export default function ProfileEdition() {
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
-                <DialogContent dividers>
+                <DialogContent dividers sx={{ borderBottom: '1px solid var(--border-color)' }}>
                     
+                    {/* CAMPO PARA LINK DE IMAGEM */}
+                    <Typography variant="subtitle1" sx={{ color: 'var(--text-color)', mb: 1, mt: 1, fontWeight: 'bold' }}>
+                        Adicionar por URL:
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 2, mb: 4, alignItems: 'center' }}>
+                        <TextField
+                            fullWidth
+                            label="URL da Imagem (Ex: https://image.com/minhafoto.jpg)"
+                            value={linkImage}
+                            onChange={(e) => setLinkImage(e.target.value)}
+                            variant="filled"
+                            size="small"
+                            sx={{
+                                ...inputFieldStyle,
+                                '& .MuiInputLabel-filled': { color: 'var(--secondary-text-color)' },
+                                '& .MuiFilledInput-input': { color: 'var(--text-color)' }
+                            }}
+                        />
+                        <Button
+                            variant="contained"
+                            onClick={handleLinkImageSelect}
+                            disabled={!linkImage.trim()}
+                            sx={saveButtonStyle}
+                        >
+                            Aplicar
+                        </Button>
+                    </Box>
+                    <Divider sx={{ my: 3, bgcolor: 'var(--border-color)' }} />
+                    
+                    <Typography variant="subtitle1" sx={{ color: 'var(--text-color)', mb: 3, fontWeight: 'bold' }}>
+                        Ou selecione uma imagem padrão:
+                    </Typography>
+
                     <Grid 
                         container 
-                        spacing={6} // Aumentado o espaçamento
+                        spacing={6} 
                         justifyContent="center"
                     > 
                         {AVAILABLE_PROFILE_IMAGES.map((url, index) => {
@@ -350,23 +395,23 @@ export default function ProfileEdition() {
                             
                             const imageStyles = isPngIcon
                                 ? { 
-                                      objectFit: 'contain', 
-                                      transform: 'scale(1.2)', 
-                                      transition: 'transform 0.2s, border 0.2s',
-                                      backgroundColor: 'transparent' 
-                                  } 
+                                        objectFit: 'contain', 
+                                        transform: 'scale(1.2)', 
+                                        transition: 'transform 0.2s, border 0.2s',
+                                        backgroundColor: 'transparent' 
+                                    } 
                                 : { 
-                                      objectFit: 'cover', 
-                                      transform: 'scale(1)', 
-                                      transition: 'transform 0.2s, border 0.2s'
-                                  }; 
+                                        objectFit: 'cover', 
+                                        transform: 'scale(1)', 
+                                        transition: 'transform 0.2s, border 0.2s'
+                                    }; 
                             
                             return (
                                 <Grid 
                                     item 
-                                    xs={12} 
-                                    sm={6} 
-                                    md={4}  
+                                    xs={6} 
+                                    sm={4} 
+                                    md={3} // Alterado para 3 para um melhor grid
                                     key={index}
                                     sx={{ display: 'flex', justifyContent: 'center' }}
                                 >
