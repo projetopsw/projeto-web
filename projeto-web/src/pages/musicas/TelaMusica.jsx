@@ -17,11 +17,14 @@ import { useSelector, useDispatch } from 'react-redux';
 import { fetchTopArtists } from '../../redux/artistaInfoSlice';
 import './css/TelaMusica.css';
 import Comentarios from '../../components/Comentarios'; 
+// 💡 IMPORTAÇÃO NECESSÁRIA PARA NAVEGAÇÃO
+import { useNavigate } from 'react-router-dom'; 
 
 const EMPTY_ARTIST_MAP = {};
 
 function TelaMusica() {
     const dispatch = useDispatch();
+    const navigate = useNavigate(); // 💡 INICIALIZAÇÃO DO HOOK DE NAVEGAÇÃO
     const scrollRef = useRef(null); 
     const [scrollPosition, setScrollPosition] = useState(0); 
 
@@ -38,8 +41,6 @@ function TelaMusica() {
         }
     }, [artistStatus, dispatch]); 
 
-    // 💡 CORREÇÃO CRÍTICA AQUI: Seleciona DIRETAMENTE currentSong
-    // Isso impede re-renderizações causadas por updates de currentTime/volume no player slice.
     const currentSong = useSelector(state => state.player.currentSong); 
 
     const musicaAtual = currentSong || {
@@ -57,18 +58,26 @@ function TelaMusica() {
     const musicaTitulo = musicaAtual.title || musicaAtual.titulo; 
     const musicaArtista = musicaAtual.artist || musicaAtual.artista; 
     const musicaId = musicaAtual.id;
-    const artistaId = musicaAtual.artistId;
+    const artistaId = musicaAtual.artistId; // ID que usaremos para navegar
 
     const artistaInfo = artistMap[artistaId];
 
     const [abaAtiva, setAbaAtiva] = useState('letra');
 
-    // Estado para like/dislike (mantido localmente)
+    // Estado para like/dislike 
     const [likes, setLikes] = useState(15);
     const [dislikes, setDislikes] = useState(3);
     const [userRating, setUserRating] = useState(0); 
 
-    // Lógica para Like/Dislike (Mantida inalterada)
+    // 💡 FUNÇÃO DE NAVEGAÇÃO PARA O ARTISTA
+    const handleArtistClick = () => {
+        if (artistaId) {
+            // Assumindo que sua rota para a página do artista é '/artista/:id'
+            navigate(`/artista/${artistaId}`); 
+        }
+    };
+
+    // Lógica para Like/Dislike 
     const handleLike = () => {
         if (userRating === 1) { 
             setLikes(likes - 1);
@@ -100,18 +109,11 @@ function TelaMusica() {
     // Cálculo para a barra de progresso
     const totalVotes = likes + dislikes;
     const likePercentage = totalVotes > 0 ? (likes / totalVotes) * 100 : 50;
-
-
-    // ----------------------------------------------------
-    // LÓGICA DE PRESERVAÇÃO DE SCROLL (Ajustada)
-    // ----------------------------------------------------
     
-    // Efeito para adicionar o listener de scroll ao container
     useEffect(() => {
         const currentRef = scrollRef.current;
 
         const handleScroll = () => {
-            // Salva a posição de rolagem no estado local a cada scroll
             if (currentRef) {
                 setScrollPosition(currentRef.scrollTop);
             }
@@ -121,27 +123,22 @@ function TelaMusica() {
             currentRef.addEventListener('scroll', handleScroll);
         }
         
-        // Cleanup: Remove o listener quando o componente é desmontado ou a ref muda
         return () => {
             if (currentRef) {
                 currentRef.removeEventListener('scroll', handleScroll);
             }
         };
-    }, [abaAtiva]); // Re-executa se a aba mudar
+    }, [abaAtiva]); 
 
     // Efeito para restaurar a posição de rolagem
-    // Agora só será acionado se a 'currentSong' realmente mudar (música trocou),
-    // ou se o scrollPosition for atualizado.
     useEffect(() => {
-        // Restauramos o scrollPosition apenas se o Box existe e o scrollPosition foi salvo (> 0)
-        // A chave 'key={abaAtiva}' no Box garante que o scrollPosition seja 0 quando a aba troca.
         if (scrollRef.current && scrollPosition > 0) {
             scrollRef.current.scrollTop = scrollPosition;
         }
     }, [currentSong, scrollPosition, abaAtiva]); 
 
 
-    // --- Componente da Aba DESCRIÇÃO (MANTIDO INALTERADO) ---
+    // --- Componente da Aba DESCRIÇÃO ---
     const DescriptionTabContent = () => (
         <Box>
             {/* Bloco de Rating com a barra de progresso */}
@@ -196,7 +193,7 @@ function TelaMusica() {
     );
 
 
-    // --- Componente da Aba ARTISTA (MANTIDO INALTERADO) ---
+    // --- Componente da Aba ARTISTA (ALTERADO) ---
     const ArtistTabContent = () => {
         if (artistStatus === 'loading') {
             return <Typography variant="body1">Carregando informações do artista...</Typography>;
@@ -210,7 +207,15 @@ function TelaMusica() {
             <Box>
                 {artistaInfo ? (
                     <>
-                        <Typography variant="h5" component="h2" gutterBottom className="musica-artista" sx={{ mt: 1, mb: 2 }}>
+                        <Typography 
+                            variant="h5" 
+                            component="h2" 
+                            gutterBottom 
+                            className="musica-artista" 
+                            // 💡 ADIÇÃO DE ESTILO E CLIQUE NO TÍTULO
+                            sx={{ mt: 1, mb: 2, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                            onClick={handleArtistClick}
+                        >
                             Sobre {artistaInfo.name}
                         </Typography>
                         
@@ -219,7 +224,18 @@ function TelaMusica() {
                                 component="img"
                                 image={artistaInfo.image}
                                 alt={`Imagem de ${artistaInfo.name}`}
-                                sx={{ width: 150, height: 150, borderRadius: '50%', mb: 2, objectFit: 'cover' }}
+                                // 💡 ADIÇÃO DE ESTILO E CLIQUE NA IMAGEM
+                                sx={{ 
+                                    width: 150, 
+                                    height: 150, 
+                                    borderRadius: '50%', 
+                                    mb: 2, 
+                                    objectFit: 'cover',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.2s',
+                                    '&:hover': { transform: 'scale(1.02)' }
+                                }}
+                                onClick={handleArtistClick}
                             />
                         )}
                         
@@ -236,7 +252,6 @@ function TelaMusica() {
         );
     };
 
-    // Container para o conteúdo das abas que pode rolar 
     const ScrollableContent = () => {
         let content;
 
@@ -297,7 +312,7 @@ function TelaMusica() {
                 />
             </Box>
 
-            {/* Bloco de Opções e Conteúdo (Agora com rolagem controlada) */}
+            {/* Bloco de Opções e Conteúdo*/}
             <Box className="options-block">
                 {/* Botões das Abas (Fixo) */}
                 <Stack direction="row" spacing={1} className="options-buttons">
@@ -305,7 +320,7 @@ function TelaMusica() {
                         variant={abaAtiva === 'artista' ? 'contained' : 'outlined'} 
                         onClick={() => {
                             setAbaAtiva('artista');
-                            setScrollPosition(0); // Reseta a posição salva ao mudar de aba
+                            setScrollPosition(0); 
                         }}
                     >
                         Artista
@@ -314,7 +329,7 @@ function TelaMusica() {
                         variant={abaAtiva === 'descricao' ? 'contained' : 'outlined'} 
                         onClick={() => {
                             setAbaAtiva('descricao');
-                            setScrollPosition(0); // Reseta a posição salva ao mudar de aba
+                            setScrollPosition(0);
                         }}
                     >
                         Descrição
@@ -323,7 +338,7 @@ function TelaMusica() {
                         variant={abaAtiva === 'letra' ? 'contained' : 'outlined'} 
                         onClick={() => {
                             setAbaAtiva('letra');
-                            setScrollPosition(0); // Reseta a posição salva ao mudar de aba
+                            setScrollPosition(0); 
                         }}
                     >
                         Letra
@@ -332,14 +347,13 @@ function TelaMusica() {
                         variant={abaAtiva === 'comentarios' ? 'contained' : 'outlined'} 
                         onClick={() => {
                             setAbaAtiva('comentarios');
-                            setScrollPosition(0); // Reseta a posição salva ao mudar de aba
+                            setScrollPosition(0); 
                         }}
                     >
                         Comentários
                     </Button>
                 </Stack>
 
-                {/* Usando o componente de rolagem */}
                 <ScrollableContent />
 
             </Box>
