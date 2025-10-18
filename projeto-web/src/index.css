@@ -74,12 +74,20 @@ body.light-theme a.artist-link:hover {
 }
 
 body.light-theme .lighter-text{
-    color: var(--cow-opacity); 
+    color: #807f7f; 
+}
+
+body.light-theme span.song-title{
+    color: #393939; 
 }
 
 body.light-theme .artist-header{
     background-color: var(--border-color);
     border: none; 
+}
+
+body.light-theme .song-artist{
+    color: #aeaeae;
 }
 
 
@@ -307,7 +315,7 @@ body:not(.light-theme) #moon-icon {
 }
 
 main {
-    padding: 3.75rem 0.7rem 7.5rem 0.8rem;
+    padding: 3rem 0.5rem 7.5rem 0;
     overflow-y: auto;
     overflow-x: hidden;
     height: 100vh;
@@ -482,7 +490,7 @@ footer {
     }
 
     main {
-        padding-left: 3rem; 
+        padding-left: 3.75rem; 
     }
 }
 

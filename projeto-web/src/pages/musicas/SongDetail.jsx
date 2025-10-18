@@ -69,7 +69,7 @@ export default function SongDetail({ songID }) {
       recordLabel={song.recordLabel} 
       />
 
-      <Section title={`Mais de ${song.artist}`}>
+      <Section title={`Mais de ${song.artist}`} className="section-mais-do-artista">
         {artistAlbumsStatus === 'loading' && <p>Carregando álbuns...</p>}
         {artistAlbums.map((album) => (
           <AlbumCard
