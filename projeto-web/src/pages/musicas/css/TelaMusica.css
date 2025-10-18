@@ -83,9 +83,27 @@ font-family: 'Poppins', sans-serif;
     min-height: 100px;
     background-color: rgba(0, 0, 0, 0.2);
     color: var(--text-color, #e0e0e0);
-    /* overflow-y: auto; <-- REMOVIDO */
 }
-/* A rolagem agora será controlada pelo componente 'ScrollableContent' no React */
+
+.aba-content-scroll::-webkit-scrollbar {
+    width: 8px; 
+}
+
+/* 2. Trilha/Fundo do Scrollbar (SEM FUNDO) */
+.aba-content-scroll::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 10px 0;
+}
+
+.aba-content-scroll::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color, #ff7533);
+    border-radius: 10px; 
+    border: 2px solid transparent;
+}
+
+.aba-content-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: #ff914d; 
+}
 
 .options-block .MuiButton-root {
 

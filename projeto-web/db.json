@@ -636,26 +636,19 @@
       "friendshipRequests": [
         "3",
         "71a1"
-      ],
-      "userPlaylists": [
-        "cd16"
       ]
     },
     {
       "id": "3",
       "name": "IgorGodoy",
       "email": "igor@email.com",
-      "likedSongs": [
-        "song-01"
-      ],
+      "likedSongs": [],
       "following": [],
       "friends": [
-        "4",
-        "1"
+        "1",
+        "4"
       ],
-      "friendshipRequests": [
-        "71a1"
-      ]
+      "img": "/assets/img/piano_cover_3.png"
     },
     {
       "id": "4",
@@ -675,9 +668,7 @@
       "userPlaylists": [
         "187b"
       ],
-      "friendshipRequests": [
-        "101"
-      ]
+      "friendshipRequests": []
     },
     {
       "id": "e297",
@@ -689,14 +680,20 @@
     },
     {
       "id": "101",
-      "name": "Luisa",
+      "name": "Luiza",
+      "username": "Luiza",
       "email": "luiza@email.com",
-      "likedSongs": [],
-      "following": [],
+      "password": "luiza",
+      "image": "https://placehold.co/400x400?text=Luiza",
       "friends": [
         "2"
       ],
-      "img": "https://portalpopline.com.br/wp-content/uploads/2022/01/duende-verde-fortnite-thumb.png"
+      "following": [],
+      "friendshipRequests": [],
+      "requestsReceived": [],
+      "userPlaylists": [
+        "f419"
+      ]
     },
     {
       "id": "102",
@@ -758,7 +755,9 @@
       "description": "Todas as músicas que você curtiu. Clicando no coração.",
       "creator": "Você",
       "songs": [
-        "song-02"
+        "song-01",
+        "song-05",
+        "song-06"
       ]
     },
     {
@@ -829,23 +828,6 @@
       ],
       "duration": "0 min",
       "songCount": 0
-    },
-    {
-      "id": "cd16",
-      "name": "Academia",
-      "creatorId": "2",
-      "img": "https://s.zst.com.br/cms-assets/2021/01/peso-de-academia-4-.png",
-      "type": "Playlist do Usuário",
-      "description": "Playlist criada por Luiza.",
-      "songs": [
-        "song-03",
-        "song-09",
-        "song-08",
-        "song-06"
-      ],
-      "duration": "0 min",
-      "songCount": 0,
-      "isPublic": false
     }
   ],
   "allSongs": [
@@ -1028,5 +1010,23 @@
       "caminho": "/assets/audio/rockthunder.mp3"
     }
   ],
-  "groups": []
+  "groups": [
+    {
+      "id": "0a50",
+      "name": "Grupo Teste",
+      "description": "teste",
+      "cover": "https://placehold.co/600x600/607D8B/white?text=GRUPO",
+      "creatorId": "1",
+      "members": [
+        "1",
+        "2",
+        "3"
+      ],
+      "listeners": [
+        "1"
+      ],
+      "currentSong": null,
+      "status": "Ao vivo"
+    }
+  ]
 }
