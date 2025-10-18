@@ -56,31 +56,27 @@ function NavBar({ initialQuery = '' }) {
             height: '50px',
             justifyContent: 'center',
         }}>
-            {/* ✅ ALTERADO: Toolbar agora controla o layout com Flexbox */}
             <Toolbar disableGutters sx={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 width: '100%',
-                padding: '0 1rem', // Espaçamento nas laterais
+                padding: '0 1rem', 
             }}>
-                {/* ✅ ALTERADO: Removido 'position: absolute' */}
                 <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                     <a href="/">
                         <img
                             src="/assets/img/vaca-logo.png"
                             alt="Logo Moosica"
-                            style={{ width: '35px', display: 'block' }} // 'display: block' remove espaço extra
+                            style={{ width: '35px', display: 'block' }} 
                         />
                     </a>
                 </Box>
 
-                {/* ✅ ADICIONADO: Wrapper para centralizar e dar flexibilidade à busca */}
                 <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', mx: 2 }}>
                     <Search initialQuery={initialQuery} />
                 </Box>
 
-                {/* ✅ ALTERADO: Removido 'position: absolute' */}
                 <Box sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -93,7 +89,7 @@ function NavBar({ initialQuery = '' }) {
                         className={themeClass}
                         id="theme-toggle"
                         onClick={handleThemeToggle}
-                        sx={{ position: 'relative' }} // Posição relativa para o botão interno
+                        sx={{ position: 'relative' }}
                     >
                         <i className="fas fa-sun" style={{ color: isLightTheme ? 'var(--secondary-text-color)' : 'var(--orange)' }}></i>
                         <i className="fas fa-moon" style={{ color: isLightTheme ? 'var(--orange)' : 'var(--secondary-text-color)' }}></i>

@@ -104,3 +104,9 @@ a:hover, a:focus {
 .footer span, .footer a {
     margin: 0;  
 }
+
+.error-text {
+    color: red;
+    margin-top: 8px;
+    font-size: 14px;
+}

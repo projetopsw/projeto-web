@@ -125,8 +125,7 @@ const QueueButton = ({ isVisible, setIsVisible }) => {
             >
                 <QueueMusicIcon sx={{ fontSize: '28px' }} />
             </SideButton>
-            
-            {/* O Overlay da Fila */}
+    
             <Box
                 sx={{
                     position: 'fixed', 

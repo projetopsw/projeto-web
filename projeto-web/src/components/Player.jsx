@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom';
 import { IconButton } from '@mui/material';
 import AlbumIcon from '@mui/icons-material/Album';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
-import RepeatIcon from '@mui/icons-material/Repeat'; // NOVO ÍCONE DE REPETIÇÃO
-import RepeatOneIcon from '@mui/icons-material/RepeatOne'; // ÍCONE REPETIR UMA MÚSICA
+import RepeatIcon from '@mui/icons-material/Repeat'; 
+import RepeatOneIcon from '@mui/icons-material/RepeatOne'; 
 
 import {
     togglePlayPause,
@@ -14,7 +14,7 @@ import {
     skipNext,
     skipPrevious,
     toggleShuffle,
-    toggleRepeat, // IMPORTADO
+    toggleRepeat, 
 } from '../redux/playerSlice';
 
 const MUSIC_DETAIL_PATH_BASE = '/musica/';
@@ -40,7 +40,7 @@ function Player() {
         duration,
         volume,
         isShuffling,
-        repeatMode, // NOVO ESTADO
+        repeatMode, 
         queue, 
     } = useSelector((state) => state.player);
     
@@ -72,13 +72,11 @@ function Player() {
     useEffect(() => {
         const audioEl = audioRef.current;
 
-        // NOVO: Define loop=true quando o modo é Repeat Song.
         audioEl.loop = repeatMode === REPEAT_MODES.SONG;
 
         const setAudioData = () => dispatch(setDuration(audioEl.duration));
         const updateTime = () => dispatch(updateCurrentTime(audioEl.currentTime));
         
-        // A função handleEnded no Redux Slice agora trata a repetição, a menos que seja Repeat Song (onde o .loop do HTML5 toma conta)
         const handleEnded = () => {
              if (repeatMode !== REPEAT_MODES.SONG) {
                  dispatch(skipNext());
@@ -94,7 +92,7 @@ function Player() {
             audioEl.removeEventListener('timeupdate', updateTime);
             audioEl.removeEventListener('ended', handleEnded);
         };
-    }, [dispatch, repeatMode]); // Dependência adicionada
+    }, [dispatch, repeatMode]);
 
     const handlePlayPause = (e) => {
         e.stopPropagation();
@@ -139,14 +137,12 @@ function Player() {
             dispatch(toggleShuffle());
         }
     };
-    
-    // NOVO HANDLER DE REPETIÇÃO
+
     const handleToggleRepeat = (e) => {
         e.stopPropagation();
         dispatch(toggleRepeat());
     };
 
-    // Função auxiliar para renderizar o ícone de repetição correto
     const getRepeatIcon = () => {
         switch (repeatMode) {
             case REPEAT_MODES.QUEUE:
@@ -212,14 +208,12 @@ function Player() {
                         <i className="fas fa-forward"></i>
                     </button>
                     
-                    {/* BOTÃO DE REPETIÇÃO FUNCIONAL */}
                     <IconButton 
                         className="controle-btn" 
                         onClick={handleToggleRepeat}
                         sx={{ 
                             color: repeatMode !== REPEAT_MODES.OFF ? 'var(--orange)' : 'var(--secondary-text-color)',
                             '&:hover': { color: 'var(--text-color)' },
-                            // Adiciona um ponto se estiver no modo Repeat Song
                             ...(repeatMode === REPEAT_MODES.SONG && { 
                                 '& .MuiSvgIcon-root': { position: 'relative' },
                                 '& .MuiSvgIcon-root:after': {

@@ -30,7 +30,6 @@ const ArtistCircle = ({ id, image, name, onClick, isArtist = true, isUser = fals
                 {name || 'Nome Desconhecido'}
             </h3>
             
-            {/* {isArtist && !isUser && <FaPlay className="play-icon" />} */}
             <button className="play-button">
                     <FaPlay />
             </button>

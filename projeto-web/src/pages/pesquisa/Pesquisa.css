@@ -9,6 +9,10 @@ main {
   color: var(--text-color);
 }
 
+.pesquisa-container {
+  padding-left: 2rem;
+}
+
 .section-container {
   position: relative; 
   margin-bottom: 2.5rem;
@@ -23,6 +27,10 @@ main {
 
 .section-header h2 {
   font-size: 1.5rem;
+}
+
+.search-subtitle {
+  font-size: 2rem;
 }
 
 .section-scroll-container {

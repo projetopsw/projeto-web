@@ -250,8 +250,6 @@ export default function Perfil() {
                 
                 <Divider sx={{ my: 4 }} />
                 
-                {/* --- SEÇÃO MODIFICADA ABAIXO --- */}
-                
                 <Section
                     key={"Amigos"}
                     title={`Peões Amigos (${totalFriendCount})`}
