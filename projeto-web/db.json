@@ -693,7 +693,9 @@
         "2"
       ],
       "following": [],
-      "friendshipRequests": [],
+      "friendshipRequests": [
+        "1"
+      ],
       "requestsReceived": [],
       "userPlaylists": [
         "f419"

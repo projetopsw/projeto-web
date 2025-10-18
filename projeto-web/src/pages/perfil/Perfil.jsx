@@ -3,21 +3,21 @@ import { Box, Divider, Typography, CircularProgress, Button } from '@mui/materia
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { setUserData } from '../../redux/userSlice';
-import { fetchPlaylistsByUserId } from '../../redux/playlistsSlice';
-import { fetchArtistsByIds, fetchSongsByIds } from '../../redux/catalogoSlice';
+import { fetchPlaylistsByUserId } from '../../redux/playlistsSlice.js';
+import { fetchArtistsByIds, fetchSongsByIds } from '../../redux/catalogoSlice.js';
 
 import { 
     toggleFriendRequest, 
     acceptFriendRequest,
-    removeFriend
-} from '../../redux/connectionsSlice';
+    removeFriend,
+    fetchConnectionsData
+} from '../../redux/connectionsSlice.js';
 
-import Section from '../../components/Section.jsx'; // <--- Seu componente de seção
+import Section from '../../components/Section.jsx'; 
 import PlaylistCard from '../../components/PlaylistCard.jsx';
 import ArtistCircle from '../../components/ArtistCircle.jsx';
-import ProfileHeader from '../../components/ProfileHeader'; 
-import SongList from '../../components/SongList';
+import ProfileHeader from '../../components/ProfileHeader.jsx'; 
+import SongList from '../../components/SongList.jsx';
 
 const API_URL = 'http://localhost:3001';
 const DEFAULT_USER_IMAGE = 'https://placehold.co/400x400?text=User'; 
@@ -89,6 +89,7 @@ export default function Perfil() {
                     dispatch(fetchPlaylistsByUserId(userToDisplay.id));
                     dispatch(fetchArtistsByIds(userToDisplay.following || []));
                     dispatch(fetchSongsByIds(userToDisplay.likedSongs || []));
+                    dispatch(fetchConnectionsData(userToDisplay.id));
                 } else {
                     const fetchDetailsForFriend = async (user) => {
                         const [playlists, friendsDetails, songsDetails, artistsDetails] = await Promise.all([
@@ -253,7 +254,7 @@ export default function Perfil() {
                 <Section
                     key={"Amigos"}
                     title={`Peões Amigos (${totalFriendCount})`}
-                    onViewAllClick={isOwner ? handleViewFriends : null}
+                    onClick={isOwner ? handleViewFriends : null}
                     viewAllText="Ver todos" 
                 >
                     {limitedDisplayedFriends.length > 0 ? (
