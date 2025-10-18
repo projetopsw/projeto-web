@@ -78,17 +78,20 @@ body.light-theme .lighter-text{
 }
 
 body.light-theme span.song-title{
-    color: #393939; 
+    color:var(--cow-opacity) !important;
+
 }
+
+body.light-theme span.song-artist{
+    color: var(--darker-orange) !important; 
+}
+
 
 body.light-theme .artist-header{
     background-color: var(--border-color);
     border: none; 
 }
 
-body.light-theme .song-artist{
-    color: #aeaeae;
-}
 
 
 
@@ -509,3 +512,4 @@ footer {
 
     }
 }
+

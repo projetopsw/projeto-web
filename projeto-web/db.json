@@ -465,70 +465,70 @@
   ],
   "topPlaylists": [
     {
-      "cover": "https://placehold.co/600x600",
+      "cover": "https://placehold.co/600?text=Playlist+Teste&font=Poppins",
       "title": "Today’s Top Hits",
       "artist": "Spotify",
       "id": "playlist-01",
       "userId": "1"
     },
     {
-      "cover": "https://placehold.co/600x600",
+      "cover": "https://placehold.co/600?text=Playlist+Teste&font=Poppins",
       "title": "Viral Hits",
       "artist": "Spotify",
       "id": "playlist-02",
       "userId": "2"
     },
     {
-      "cover": "https://placehold.co/600x600",
+      "cover": "https://placehold.co/600?text=Playlist+Teste&font=Poppins",
       "title": "Pop Up",
       "artist": "Spotify",
       "id": "playlist-03",
       "userId": "3"
     },
     {
-      "cover": "https://placehold.co/600x600",
+      "cover": "https://placehold.co/600?text=Playlist+Teste&font=Poppins",
       "title": "Esquenta Sertanejo",
       "artist": "Spotify",
       "id": "playlist-04",
       "userId": "4"
     },
     {
-      "cover": "https://placehold.co/600x600",
+      "cover": "https://placehold.co/600?text=Playlist+Teste&font=Poppins",
       "title": "Pagodeira",
       "artist": "Spotify",
       "id": "playlist-05",
       "userId": "1"
     },
     {
-      "cover": "https://placehold.co/600x600",
+      "cover": "https://placehold.co/600?text=Playlist+Teste&font=Poppins",
       "title": "Funk Hits",
       "artist": "Spotify",
       "id": "playlist-06",
       "userId": "2"
     },
     {
-      "cover": "https://placehold.co/600x600",
+      "cover": "https://placehold.co/600?text=Playlist+Teste&font=Poppins",
       "title": "Rock Classics",
       "artist": "Spotify",
       "id": "playlist-07",
       "userId": "3"
     },
     {
-      "cover": "https://placehold.co/600x600",
+      "cover": "https://placehold.co/600?text=Playlist+Teste&font=Poppins",
       "title": "Peaceful Piano",
       "artist": "Spotify",
       "id": "playlist-08",
       "userId": "4"
     },
     {
-      "cover": "https://placehold.co/600x600",
+      "cover": "https://placehold.co/600?text=Playlist+Teste&font=Poppins",
       "title": "R&B Vibes",
       "artist": "Spotify",
       "id": "playlist-09",
       "userId": "1"
     },
     {
-      "cover": "https://placehold.co/600x600",
+      "cover": "https://placehold.co/600?text=Playlist+Teste&font=Poppins",
       "title": "Latin Party",
       "artist": "Spotify",
       "id": "playlist-10",
@@ -693,9 +693,7 @@
         "2"
       ],
       "following": [],
-      "friendshipRequests": [
-        "1"
-      ],
+      "friendshipRequests": [],
       "requestsReceived": [],
       "userPlaylists": [
         "f419"
@@ -711,7 +709,10 @@
       "friends": [],
       "following": [],
       "friendshipRequests": [],
-      "requestsReceived": []
+      "requestsReceived": [],
+      "likedSongs": [
+        "song-02"
+      ]
     },
     {
       "id": "201",
@@ -758,17 +759,7 @@
       "description": "Todas as músicas que você curtiu. Clicando no coração.",
       "creator": "Você",
       "songs": [
-        "song-03",
-        "song-02",
-        "song-14",
-        "song-04",
-        "song-06",
-        "song-01",
-        1,
-        3,
-        "song-05",
-        "song-16",
-        "song-08"
+        "song-02"
       ]
     },
     {
