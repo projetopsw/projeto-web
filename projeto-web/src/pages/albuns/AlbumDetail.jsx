@@ -29,7 +29,7 @@ export default function AlbumDetail( {albumID} ) {
     
     return (
         <main>
-            <AlbumHeader cover={album.cover} type={'Album'} title={album.title} artist={album.artist}  year={"2025"}  duration={"12 músicas, 53min 30s"} /> 
+            <AlbumHeader cover={album.cover} type={'Album'} title={album.title} artist={album.artist}  year={"2025"}  duration={"12 músicas, 53min 30s"} artistId={album.artistId} /> 
             <SongList />
         </main>
     )

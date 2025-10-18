@@ -9,7 +9,7 @@ font-family: 'Poppins', sans-serif;
     margin-top: 50px;
     gap: 2rem;
     padding-top: 2rem;
-    padding-bottom: 5rem;
+    padding-bottom: 12rem;
     align-items: flex-start;
 }
 
@@ -76,7 +76,6 @@ font-family: 'Poppins', sans-serif;
     }
 }
 
-/* 🚨 ALTERAÇÃO CHAVE AQUI: Removendo o overflow-y fixo */
 .aba-content {
     padding: 1rem;
     border: 1px solid var(--border-color, #333);

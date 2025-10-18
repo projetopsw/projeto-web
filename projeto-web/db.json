@@ -11,7 +11,6 @@
       "recordLabel": "Warner Records",
       "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
       "lyrics": "Okay, huh\nMm, ah\nI come and I go\nTell me all the ways you need me\nI'm not here for long\nCatch me or I go Houdini\nI come and I go\nProve you got the right to please me\nEverybody knows\nCatch me or I go Houdini\nTime is passin' like a solar eclipse\nSee you watchin' and you blow me a kiss\nIt's your moment, baby, don't let it slip\nCome in closer, are you readin' my lips?\nThey say I come and I go\nTell me all the ways you need me\nI'm not here for long\nCatch me or I go Houdini\nI come and I go\nProve you got the right to please me\nEverybody knows\nCatch me or I go Houdini\nIf you're good enough, you'll find a way\nMaybe you could cause a girl to change (her ways)\nDo you think about it night and day?\nMaybe you could be the one to make me stay\nEverything you say is soundin' so sweet (ah-ah)\nBut do you practise everything that you preach? (Ah-ah)\nI need something that'll make me believe (ah-ah)\nIf you got it, baby, give it to me\nThey say I come and I go\nTell me all the ways you need me\nI'm not here for long\nCatch me or I go Houdini\nI come and I go (I come and I go)\nProve you got the right to please me\nEverybody knows (I'm not here for long)\nCatch me or I go Houdini\nIf you're good enough, you'll find a way\nMaybe you could cause a girl to change (her ways)\nDo you think about it night and day?\nMaybe you could be the one to make me stay\nOh\nOoh\nI come and I go\nTell me all the ways you need me (ooh)\nI'm not here for long\nCatch me or I go Houdini\nI come and I go (I come and I go)\nProve you got the right to please me\nEverybody knows (I'm not here for long)\nCatch me or I go Houdini\nHoudini (ah)\nCatch me or I go Houdini"
-
     },
     {
       "cover": "https://placehold.co/600x600",
@@ -36,7 +35,6 @@
       "recordLabel": "Republic Records",
       "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
       "lyrics": "Fever dream high in the quiet of the night\nYou know that I caught it (oh yeah, you're right, I want it)\nBad, bad boy, shiny toy with a price\nYou know that I bought it (oh yeah, you're right, I want it)\nKilling me slow, out the window\nI'm always waiting for you to be waiting below\nDevils roll the dice, angels roll their eyes\nWhat doesn't kill me makes me want you more\nAnd it's new, the shape of your body\nIt's blue, the feeling I've got\nAnd it's ooh, whoa-oh\nIt's a cruel summer\n'It's cool, ' that's what I tell 'em\nNo rules in breakable heaven\nBut ooh, whoa-oh\nIt's a cruel summer with you (yeah, yeah)\nHang your head low in the glow of the vending machine\nI'm not dying (oh yeah, you're right, I want it)\nYou say that we'll just screw it up in these trying times\nWe're not trying (oh yeah, you're right, I want it)\nSo cut the headlights, summer's a knife\nI'm always waiting for you just to cut to the bone\nDevils roll the dice, angels roll their eyes\nAnd if I bleed, you'll be the last to know, oh\nIt's new, the shape of your body\nIt's blue, the feeling I've got\nAnd it's ooh, whoa-oh\nIt's a cruel summer\n'It's cool, ' that's what I tell 'em\nNo rules in breakable heaven\nBut ooh, whoa-oh\nIt's a cruel summer with you\nI'm drunk in the back of the car\nAnd I cried like a baby coming home from the bar (oh)\nSaid, 'I'm fine, ' but it wasn't true\nI don't wanna keep secrets just to keep you\nAnd I snuck in through the garden gate\nEvery night that summer, just to seal my fate (oh)\nAnd I screamed, 'For whatever it's worth\nI love you, ain't that the worst thing you ever heard?'\nHe looks up, grinnin' like a devil\nIt's new, the shape of your body\nIt's blue, the feeling I've got\nAnd it's ooh, whoa-oh\nIt's a cruel summer\n'It's cool, ' that's what I tell 'em\nNo rules in breakable heaven\nBut ooh, whoa-oh\nIt's a cruel summer with you\nI'm drunk in the back of the car\nAnd I cried like a baby coming home from the bar (oh)\nSaid, 'I'm fine, ' but it wasn't true\nI don't wanna keep secrets just to keep you\nAnd I snuck in through the garden gate\nEvery night that summer, just to seal my fate (oh)\nAnd I screamed, 'For whatever it's worth\nI love you, ain't that the worst thing you ever heard?'\n(Yeah, yeah, yeah, yeah)"
-
     },
     {
       "cover": "https://placehold.co/600x600",
@@ -598,7 +596,8 @@
         "song-04",
         "song-06",
         "song-01",
-        1
+        1,
+        3
       ],
       "following": [
         "artist-11",
@@ -760,7 +759,8 @@
         "song-04",
         "song-06",
         "song-01",
-        1
+        1,
+        3
       ]
     },
     {

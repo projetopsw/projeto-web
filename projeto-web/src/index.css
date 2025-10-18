@@ -298,7 +298,7 @@ body:not(.light-theme) #moon-icon {
 }
 
 .menu-lateral a button i {
-    color: var(--icon-color);
+    color: red;
 }
 
 .menu-lateral .btn-profile {
