@@ -232,7 +232,7 @@ export default function ProfileEdition() {
                 <Divider sx={{ my: 4 }} />
                 <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 600 }}> 
                     
-                    <Typography variant="h6" component="p" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
+                    <Typography variant="h6" component="p" sx={{ color: 'var(--texto-color)', mb: 2, fontWeight: 'bold' }}>
                         Dados do Perfil
                     </Typography>
                     <TextField
@@ -263,7 +263,7 @@ export default function ProfileEdition() {
                     
                     <Divider sx={{ my: 4 }} />
                     
-                    <Typography variant="h6" component="p" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
+                    <Typography variant="h6" component="p" sx={{ color: 'var(--text-color)', mb: 2, fontWeight: 'bold' }}>
                         Alterar Senha
                     </Typography>
                     
