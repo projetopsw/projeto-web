@@ -17,22 +17,19 @@ import { useSelector, useDispatch } from 'react-redux';
 import { fetchTopArtists } from '../../redux/artistaInfoSlice';
 import './css/TelaMusica.css';
 import Comentarios from '../../components/Comentarios'; 
-// 💡 IMPORTAÇÃO NECESSÁRIA PARA NAVEGAÇÃO
 import { useNavigate } from 'react-router-dom'; 
 
 const EMPTY_ARTIST_MAP = {};
 
 function TelaMusica() {
     const dispatch = useDispatch();
-    const navigate = useNavigate(); // 💡 INICIALIZAÇÃO DO HOOK DE NAVEGAÇÃO
+    const navigate = useNavigate(); 
     const scrollRef = useRef(null); 
     const [scrollPosition, setScrollPosition] = useState(0); 
 
-    // Busca o estado do slice do artista para verificar o status e erro
     const artistStatus = useSelector(state => state.artistInfo?.isLoading);
     const artistError = useSelector(state => state.artistInfo?.error);
     
-    // Busca o mapa de artistas do state
     const artistMap = useSelector(state => state.artistInfo?.artistMap || EMPTY_ARTIST_MAP);
 
     useEffect(() => {
@@ -47,7 +44,7 @@ function TelaMusica() {
         id: "default-song-placeholder", 
         title: "Nenhuma Música Tocando", 
         artist: "Artista Desconhecido",
-        artistId: null, // Default
+        artistId: null, 
         cover: "/assets/img/vacamario.jpg", 
         descricao: "Sem descrição.",
         letra: "Sem letra.", 
@@ -58,26 +55,22 @@ function TelaMusica() {
     const musicaTitulo = musicaAtual.title || musicaAtual.titulo; 
     const musicaArtista = musicaAtual.artist || musicaAtual.artista; 
     const musicaId = musicaAtual.id;
-    const artistaId = musicaAtual.artistId; // ID que usaremos para navegar
+    const artistaId = musicaAtual.artistId; 
 
     const artistaInfo = artistMap[artistaId];
 
     const [abaAtiva, setAbaAtiva] = useState('letra');
 
-    // Estado para like/dislike 
     const [likes, setLikes] = useState(15);
     const [dislikes, setDislikes] = useState(3);
     const [userRating, setUserRating] = useState(0); 
 
-    // 💡 FUNÇÃO DE NAVEGAÇÃO PARA O ARTISTA
     const handleArtistClick = () => {
         if (artistaId) {
-            // Assumindo que sua rota para a página do artista é '/artista/:id'
             navigate(`/artista/${artistaId}`); 
         }
     };
 
-    // Lógica para Like/Dislike 
     const handleLike = () => {
         if (userRating === 1) { 
             setLikes(likes - 1);
@@ -106,7 +99,6 @@ function TelaMusica() {
         }
     };
     
-    // Cálculo para a barra de progresso
     const totalVotes = likes + dislikes;
     const likePercentage = totalVotes > 0 ? (likes / totalVotes) * 100 : 50;
     
@@ -130,7 +122,6 @@ function TelaMusica() {
         };
     }, [abaAtiva]); 
 
-    // Efeito para restaurar a posição de rolagem
     useEffect(() => {
         if (scrollRef.current && scrollPosition > 0) {
             scrollRef.current.scrollTop = scrollPosition;
@@ -138,7 +129,7 @@ function TelaMusica() {
     }, [currentSong, scrollPosition, abaAtiva]); 
 
 
-    // --- Componente da Aba DESCRIÇÃO ---
+    // --- Componente da Aba DESCRIÇÃO (ADAPTADO) ---
     const DescriptionTabContent = () => (
         <Box>
             {/* Bloco de Rating com a barra de progresso */}
@@ -147,11 +138,17 @@ function TelaMusica() {
                     <IconButton 
                         onClick={handleLike} 
                         aria-label="like"
-                        sx={{ color: userRating === 1 ? '#ff7533' : 'white', '&:hover': { color: '#ff7533' } }}
+                        // 💡 Cores adaptadas: Ícone ativo (laranja), Ícone inativo (cor do texto), Hover (laranja)
+                        sx={{ color: userRating === 1 ? 'var(--orange, #ff7533)' : 'var(--text-color, white)', 
+                              '&:hover': { color: 'var(--orange, #ff7533)' } }}
                     >
                         <ThumbUpIcon />
                     </IconButton>
-                    <Typography variant="body1" sx={{ color: 'white', minWidth: '20px' }}>
+                    <Typography 
+                        variant="body1" 
+                        // 💡 Cor do Texto adaptada
+                        sx={{ color: 'var(--text-color, white)', minWidth: '20px' }}
+                    >
                         {likes}
                     </Typography>
                 </Box>
@@ -163,22 +160,30 @@ function TelaMusica() {
                         sx={{ 
                             height: 8, 
                             borderRadius: 5, 
-                            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                            // 💡 Fundo da barra inativa (input-bg para ser neutro no tema claro)
+                            backgroundColor: 'var(--input-bg, rgba(255, 255, 255, 0.3))',
                             '& .MuiLinearProgress-bar': {
-                                backgroundColor: '#ff7533',
+                                // 💡 Cor da barra de progresso (Laranja)
+                                backgroundColor: 'var(--orange, #ff7533)',
                             }
                         }}
                     />
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="body1" sx={{ color: 'white', minWidth: '20px', textAlign: 'right' }}>
+                    <Typography 
+                        variant="body1" 
+                        // 💡 Cor do Texto adaptada
+                        sx={{ color: 'var(--text-color, white)', minWidth: '20px', textAlign: 'right' }}
+                    >
                         {dislikes}
                     </Typography>
                     <IconButton 
                         onClick={handleDislike} 
                         aria-label="dislike"
-                        sx={{ color: userRating === -1 ? '#ff7533' : 'white', '&:hover': { color: '#ff7533' } }}
+                        // 💡 Cores adaptadas: Ícone ativo (laranja), Ícone inativo (cor do texto), Hover (laranja)
+                        sx={{ color: userRating === -1 ? 'var(--orange, #ff7533)' : 'var(--text-color, white)', 
+                              '&:hover': { color: 'var(--orange, #ff7533)' } }}
                     >
                         <ThumbDownIcon />
                     </IconButton>
@@ -186,21 +191,23 @@ function TelaMusica() {
             </Stack>
 
             {/* Descrição da Música */}
-            <Typography variant="body1" className="content-text">
+            <Typography variant="body1" className="content-text" sx={{ color: 'var(--text-color, white)' }}>
                 {musicaAtual.descricao || 'Descrição indisponível.'}
             </Typography>
         </Box>
     );
 
 
-    // --- Componente da Aba ARTISTA (ALTERADO) ---
+    // --- Componente da Aba ARTISTA (ADAPTADO) ---
     const ArtistTabContent = () => {
         if (artistStatus === 'loading') {
-            return <Typography variant="body1">Carregando informações do artista...</Typography>;
+            // 💡 Cores de texto adaptadas
+            return <Typography variant="body1" sx={{ color: 'var(--text-color, white)' }}>Carregando informações do artista...</Typography>;
         }
         
         if (artistStatus === 'failed') {
-            return <Typography variant="body1" color="error">Erro ao carregar dados dos artistas: {artistError}</Typography>;
+            // 💡 Cores de texto adaptadas
+            return <Typography variant="body1" color="error" sx={{ color: 'var(--darker-orange, #ff7533)' }}>Erro ao carregar dados dos artistas: {artistError}</Typography>;
         }
         
         return (
@@ -212,8 +219,17 @@ function TelaMusica() {
                             component="h2" 
                             gutterBottom 
                             className="musica-artista" 
-                            // 💡 ADIÇÃO DE ESTILO E CLIQUE NO TÍTULO
-                            sx={{ mt: 1, mb: 2, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                            // 💡 Cores de título adaptadas
+                            sx={{ 
+                                mt: 1, 
+                                mb: 2, 
+                                cursor: 'pointer', 
+                                color: 'var(--title-color, white)',
+                                '&:hover': { 
+                                    textDecoration: 'underline', 
+                                    color: 'var(--orange, #ff7533)' // Laranja no hover
+                                } 
+                            }}
                             onClick={handleArtistClick}
                         >
                             Sobre {artistaInfo.name}
@@ -224,7 +240,6 @@ function TelaMusica() {
                                 component="img"
                                 image={artistaInfo.image}
                                 alt={`Imagem de ${artistaInfo.name}`}
-                                // 💡 ADIÇÃO DE ESTILO E CLIQUE NA IMAGEM
                                 sx={{ 
                                     width: 150, 
                                     height: 150, 
@@ -239,12 +254,18 @@ function TelaMusica() {
                             />
                         )}
                         
-                        <Typography variant="body1" className="content-text">
+                        <Typography 
+                            variant="body1" 
+                            className="content-text"
+                            // 💡 Cores de texto adaptadas
+                            sx={{ color: 'var(--text-color, white)' }}
+                        >
                             {artistaInfo.about || 'Informação sobre o artista não disponível.'}
                         </Typography>
                     </>
                 ) : (
-                    <Typography variant="body1">
+                    // 💡 Cores de texto adaptadas
+                    <Typography variant="body1" sx={{ color: 'var(--text-color, white)' }}>
                         Informações detalhadas sobre o artista "{musicaArtista}" indisponíveis. (Certifique-se de que o `artistId` da música está correto).
                     </Typography>
                 )}
@@ -264,12 +285,17 @@ function TelaMusica() {
                 <Typography 
                     variant="body1" 
                     className="content-text" 
-                    sx={{ whiteSpace: 'pre-wrap' }} 
+                    sx={{ 
+                        whiteSpace: 'pre-wrap',
+                        // 💡 Cores de texto adaptadas
+                        color: 'var(--text-color, white)' 
+                    }} 
                 >
                     {musicaAtual.lyrics || musicaAtual.letra || 'Letra indisponível.'}
                 </Typography>
             );
         } else if (abaAtiva === 'comentarios') {
+            // Presumimos que o componente Comentarios lida com suas próprias cores
             content = <Comentarios musicaId={musicaId} />;
         }
 
@@ -283,8 +309,11 @@ function TelaMusica() {
                     overflowY: 'auto', 
                     p: 2, 
                     mt: 1,
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)', 
-                    borderRadius: 1
+                    // 💡 Cor de Fundo da aba (card-bg ou um fundo sutil)
+                    backgroundColor: 'var(--card-bg, rgba(255, 255, 255, 0.05))', 
+                    borderRadius: 1,
+                    // 💡 Cor da barra de rolagem (se necessário, pode ser estilizada via CSS ou Webkit)
+                    // Para o conteúdo interno, o texto já foi adaptado em cada subcomponente.
                 }}
             >
                 {content}
@@ -294,13 +323,31 @@ function TelaMusica() {
 
 
     return (
-        <Container maxWidth="lg" className="tela-musica-container">
+        <Container 
+            maxWidth="lg" 
+            className="tela-musica-container"
+            // 💡 Cor do Texto do Container (fallback para todos os filhos)
+            sx={{ color: 'var(--text-color, white)' }} 
+        >
             {/* Bloco de Informações da Música (Fixo) */}
             <Box className="player-info-block">
-                <Typography variant="h4" component="h1" gutterBottom className="musica-titulo">
+                <Typography 
+                    variant="h4" 
+                    component="h1" 
+                    gutterBottom 
+                    className="musica-titulo"
+                    // 💡 Cor do Título
+                    sx={{ color: 'var(--title-color, white)' }}
+                >
                     {musicaTitulo}
                 </Typography>
-                <Typography variant="h6" gutterBottom className="musica-artista">
+                <Typography 
+                    variant="h6" 
+                    gutterBottom 
+                    className="musica-artista"
+                    // 💡 Cor do Artista
+                    sx={{ color: 'var(--artist-color, rgba(255, 255, 255, 0.8))' }}
+                >
                     {musicaArtista}
                 </Typography>
 
@@ -316,42 +363,30 @@ function TelaMusica() {
             <Box className="options-block">
                 {/* Botões das Abas (Fixo) */}
                 <Stack direction="row" spacing={1} className="options-buttons">
-                    <Button 
-                        variant={abaAtiva === 'artista' ? 'contained' : 'outlined'} 
-                        onClick={() => {
-                            setAbaAtiva('artista');
-                            setScrollPosition(0); 
-                        }}
-                    >
-                        Artista
-                    </Button>
-                    <Button 
-                        variant={abaAtiva === 'descricao' ? 'contained' : 'outlined'} 
-                        onClick={() => {
-                            setAbaAtiva('descricao');
-                            setScrollPosition(0);
-                        }}
-                    >
-                        Descrição
-                    </Button>
-                    <Button 
-                        variant={abaAtiva === 'letra' ? 'contained' : 'outlined'} 
-                        onClick={() => {
-                            setAbaAtiva('letra');
-                            setScrollPosition(0); 
-                        }}
-                    >
-                        Letra
-                    </Button>
-                    <Button 
-                        variant={abaAtiva === 'comentarios' ? 'contained' : 'outlined'} 
-                        onClick={() => {
-                            setAbaAtiva('comentarios');
-                            setScrollPosition(0); 
-                        }}
-                    >
-                        Comentários
-                    </Button>
+                    {['artista', 'descricao', 'letra', 'comentarios'].map(aba => (
+                        <Button 
+                            key={aba}
+                            variant={abaAtiva === aba ? 'contained' : 'outlined'} 
+                            onClick={() => {
+                                setAbaAtiva(aba);
+                                setScrollPosition(0); 
+                            }}
+                            // 💡 Estilos do Botão adaptados
+                            sx={{
+                                // Contained: Fundo laranja, Texto branco/padrão
+                                backgroundColor: abaAtiva === aba ? 'var(--orange, #ff7533)' : 'transparent',
+                                color: abaAtiva === aba ? 'white' : 'var(--text-color, white)',
+                                border: `1px solid ${abaAtiva === aba ? 'var(--orange, #ff7533)' : 'var(--border-color, rgba(255, 255, 255, 0.5))'}`,
+                                '&:hover': {
+                                    backgroundColor: abaAtiva === aba ? 'var(--darker-orange, #a64c1e)' : 'var(--button-hover-bg, rgba(255, 255, 255, 0.1))',
+                                    color: 'var(--button-hover-color, white)',
+                                    border: `1px solid ${abaAtiva === aba ? 'var(--darker-orange, #a64c1e)' : 'var(--button-hover-bg, rgba(255, 255, 255, 0.7))'}`,
+                                }
+                            }}
+                        >
+                            {aba.charAt(0).toUpperCase() + aba.slice(1)}
+                        </Button>
+                    ))}
                 </Stack>
 
                 <ScrollableContent />

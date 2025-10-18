@@ -17,6 +17,7 @@ import HeadphonesIcon from '@mui/icons-material/Headphones';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import api from '../../services/api';
 import UserSelector from '../../components/UserSelector';
+import './Grupo.css';
 
 const DEFAULT_GROUP_COVER = 'https://placehold.co/600x600/607D8B/white?text=GRUPO';
 

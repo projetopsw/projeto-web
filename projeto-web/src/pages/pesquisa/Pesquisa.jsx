@@ -8,26 +8,17 @@ import SongCard from '../../components/SongCard';
 import AlbumCard from '../../components/AlbumCard';
 import PlaylistCard from '../../components/PlaylistCard';
 import ArtistCircle from '../../components/ArtistCircle';
-// 💡 Importar o novo componente UserCard
 import UserCard from '../../components/UserCard'; 
 import './Pesquisa.css'; 
 import api from '../../services/api.js'; 
 
-
-// 💡 ADICIONADO "USUÁRIOS"
 const navItemsData = ["Tudo", "Usuários", "Playlists", "Músicas", "Álbuns", "Artistas"];
 
-/**
- * 💡 FUNÇÃO AUXILIAR: Normaliza texto removendo acentos, espaços extras e convertendo para minúsculas.
- */
 const normalizeName = (str) => {
     if (!str) return '';
     return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 };
 
-/**
- * 💡 FUNÇÃO AUXILIAR DE FILTRAGEM
- */
 const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
     if (!query || !data || data.length === 0) return [];
     
@@ -50,15 +41,14 @@ const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
         }
     });
     
-    // console.log(`Filtro [${field} - ${mode.toUpperCase()}] para "${query}": Encontrados ${filtered.length} resultados.`);
 
     return filtered;
 };
 
 /**
- * 💡 FUNÇÃO AUXILIAR PARA PEGAR ITENS ALEATÓRIOS
+ * FUNÇÃO AUXILIAR PARA PEGAR ITENS ALEATÓRIOS
  * @param {Array} data - Array de dados brutos
- * @param {number} count - Quantidade de itens a retornar (AGORA PADRÃO É 5)
+ * @param {number} count - Quantidade de itens a retornar
  * @returns {Array} - Array de itens aleatórios
  */
 const getRandomItems = (data, count = 5) => {
