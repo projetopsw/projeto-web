@@ -12,7 +12,7 @@
       "caminho": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
       "lyrics": "Okay, huh\nMm, ah\nI come and I go\nTell me all the ways you need me\nI'm not here for long\nCatch me or I go Houdini\nI come and I go\nProve you got the right to please me\nEverybody knows\nCatch me or I go Houdini\nTime is passin' like a solar eclipse\nSee you watchin' and you blow me a kiss\nIt's your moment, baby, don't let it slip\nCome in closer, are you readin' my lips?\nThey say I come and I go\nTell me all the ways you need me\nI'm not here for long\nCatch me or I go Houdini\nI come and I go\nProve you got the right to please me\nEverybody knows\nCatch me or I go Houdini\nIf you're good enough, you'll find a way\nMaybe you could cause a girl to change (her ways)\nDo you think about it night and day?\nMaybe you could be the one to make me stay\nEverything you say is soundin' so sweet (ah-ah)\nBut do you practise everything that you preach? (Ah-ah)\nI need something that'll make me believe (ah-ah)\nIf you got it, baby, give it to me\nThey say I come and I go\nTell me all the ways you need me\nI'm not here for long\nCatch me or I go Houdini\nI come and I go (I come and I go)\nProve you got the right to please me\nEverybody knows (I'm not here for long)\nCatch me or I go Houdini\nIf you're good enough, you'll find a way\nMaybe you could cause a girl to change (her ways)\nDo you think about it night and day?\nMaybe you could be the one to make me stay\nOh\nOoh\nI come and I go\nTell me all the ways you need me (ooh)\nI'm not here for long\nCatch me or I go Houdini\nI come and I go (I come and I go)\nProve you got the right to please me\nEverybody knows (I'm not here for long)\nCatch me or I go Houdini\nHoudini (ah)\nCatch me or I go Houdini"
     },
-    { 
+    {
       "cover": "https://upload.wikimedia.org/wikipedia/pt/a/aa/Sabrina_Carpenter_-_Espresso.png",
       "title": "Espresso",
       "artist": "Sabrina Carpenter",
@@ -643,7 +643,9 @@
       "name": "IgorGodoy",
       "email": "igor@email.com",
       "likedSongs": [
-        "song-01"
+        "song-01",
+        "song-05",
+        "song-06"
       ],
       "following": [],
       "friends": [
@@ -759,7 +761,9 @@
       "description": "Todas as músicas que você curtiu. Clicando no coração.",
       "creator": "Você",
       "songs": [
-        "song-02"
+        "song-01",
+        "song-05",
+        "song-06"
       ]
     },
     {

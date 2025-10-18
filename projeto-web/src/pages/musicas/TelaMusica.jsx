@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     Box, 
     Typography, 
@@ -22,6 +22,8 @@ const EMPTY_ARTIST_MAP = {};
 
 function TelaMusica() {
     const dispatch = useDispatch();
+    const scrollRef = useRef(null); 
+    const [scrollPosition, setScrollPosition] = useState(0); 
 
     // Busca o estado do slice do artista para verificar o status e erro
     const artistStatus = useSelector(state => state.artistInfo?.isLoading);
@@ -36,7 +38,9 @@ function TelaMusica() {
         }
     }, [artistStatus, dispatch]); 
 
-    const { currentSong } = useSelector(state => state.player); 
+    // 💡 CORREÇÃO CRÍTICA AQUI: Seleciona DIRETAMENTE currentSong
+    // Isso impede re-renderizações causadas por updates de currentTime/volume no player slice.
+    const currentSong = useSelector(state => state.player.currentSong); 
 
     const musicaAtual = currentSong || {
         id: "default-song-placeholder", 
@@ -97,12 +101,51 @@ function TelaMusica() {
     const totalVotes = likes + dislikes;
     const likePercentage = totalVotes > 0 ? (likes / totalVotes) * 100 : 50;
 
+
+    // ----------------------------------------------------
+    // LÓGICA DE PRESERVAÇÃO DE SCROLL (Ajustada)
+    // ----------------------------------------------------
+    
+    // Efeito para adicionar o listener de scroll ao container
+    useEffect(() => {
+        const currentRef = scrollRef.current;
+
+        const handleScroll = () => {
+            // Salva a posição de rolagem no estado local a cada scroll
+            if (currentRef) {
+                setScrollPosition(currentRef.scrollTop);
+            }
+        };
+
+        if (currentRef) {
+            currentRef.addEventListener('scroll', handleScroll);
+        }
+        
+        // Cleanup: Remove o listener quando o componente é desmontado ou a ref muda
+        return () => {
+            if (currentRef) {
+                currentRef.removeEventListener('scroll', handleScroll);
+            }
+        };
+    }, [abaAtiva]); // Re-executa se a aba mudar
+
+    // Efeito para restaurar a posição de rolagem
+    // Agora só será acionado se a 'currentSong' realmente mudar (música trocou),
+    // ou se o scrollPosition for atualizado.
+    useEffect(() => {
+        // Restauramos o scrollPosition apenas se o Box existe e o scrollPosition foi salvo (> 0)
+        // A chave 'key={abaAtiva}' no Box garante que o scrollPosition seja 0 quando a aba troca.
+        if (scrollRef.current && scrollPosition > 0) {
+            scrollRef.current.scrollTop = scrollPosition;
+        }
+    }, [currentSong, scrollPosition, abaAtiva]); 
+
+
     // --- Componente da Aba DESCRIÇÃO (MANTIDO INALTERADO) ---
     const DescriptionTabContent = () => (
         <Box>
             {/* Bloco de Rating com a barra de progresso */}
             <Stack direction="row" spacing={2} alignItems="center" className="like-dislike-buttons" sx={{ mb: 2 }}>
-                {/* ... (Botões de Like/Dislike) ... */}
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <IconButton 
                         onClick={handleLike} 
@@ -155,7 +198,6 @@ function TelaMusica() {
 
     // --- Componente da Aba ARTISTA (MANTIDO INALTERADO) ---
     const ArtistTabContent = () => {
-        // ... (Lógica de Carregamento/Erro e Conteúdo do Artista) ...
         if (artistStatus === 'loading') {
             return <Typography variant="body1">Carregando informações do artista...</Typography>;
         }
@@ -194,7 +236,7 @@ function TelaMusica() {
         );
     };
 
-    // 🚨 NOVO: Container para o conteúdo das abas que pode rolar 
+    // Container para o conteúdo das abas que pode rolar 
     const ScrollableContent = () => {
         let content;
 
@@ -207,7 +249,6 @@ function TelaMusica() {
                 <Typography 
                     variant="body1" 
                     className="content-text" 
-                    // Removemos maxHeight e overflowY do Typography para o Box fazer a rolagem
                     sx={{ whiteSpace: 'pre-wrap' }} 
                 >
                     {musicaAtual.lyrics || musicaAtual.letra || 'Letra indisponível.'}
@@ -217,18 +258,17 @@ function TelaMusica() {
             content = <Comentarios musicaId={musicaId} />;
         }
 
-        // 🚨 NOVO BOX COM ROLAGEM: Este Box agora lida com o overflow e a altura máxima
         return (
             <Box 
+                key={abaAtiva} 
+                ref={scrollRef} 
                 className="aba-content-scroll"
                 sx={{
-                    // Altura máxima baseada na tela - ajustada por estimativa para caber o player info + botões
-                    // Você pode precisar ajustar esse valor (ex: '60vh') dependendo do seu layout
                     maxHeight: '65vh', 
-                    overflowY: 'auto', // Habilita a rolagem vertical
-                    p: 2, // Adiciona padding para o scroll não ficar colado na borda
+                    overflowY: 'auto', 
+                    p: 2, 
                     mt: 1,
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Fundo para destacar
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)', 
                     borderRadius: 1
                 }}
             >
@@ -263,31 +303,43 @@ function TelaMusica() {
                 <Stack direction="row" spacing={1} className="options-buttons">
                     <Button 
                         variant={abaAtiva === 'artista' ? 'contained' : 'outlined'} 
-                        onClick={() => setAbaAtiva('artista')}
+                        onClick={() => {
+                            setAbaAtiva('artista');
+                            setScrollPosition(0); // Reseta a posição salva ao mudar de aba
+                        }}
                     >
                         Artista
                     </Button>
                     <Button 
                         variant={abaAtiva === 'descricao' ? 'contained' : 'outlined'} 
-                        onClick={() => setAbaAtiva('descricao')}
+                        onClick={() => {
+                            setAbaAtiva('descricao');
+                            setScrollPosition(0); // Reseta a posição salva ao mudar de aba
+                        }}
                     >
                         Descrição
                     </Button>
                     <Button 
                         variant={abaAtiva === 'letra' ? 'contained' : 'outlined'} 
-                        onClick={() => setAbaAtiva('letra')}
+                        onClick={() => {
+                            setAbaAtiva('letra');
+                            setScrollPosition(0); // Reseta a posição salva ao mudar de aba
+                        }}
                     >
                         Letra
                     </Button>
                     <Button 
                         variant={abaAtiva === 'comentarios' ? 'contained' : 'outlined'} 
-                        onClick={() => setAbaAtiva('comentarios')}
+                        onClick={() => {
+                            setAbaAtiva('comentarios');
+                            setScrollPosition(0); // Reseta a posição salva ao mudar de aba
+                        }}
                     >
                         Comentários
                     </Button>
                 </Stack>
 
-                {/* 🚨 Usando o NOVO componente de rolagem aqui */}
+                {/* Usando o componente de rolagem */}
                 <ScrollableContent />
 
             </Box>
