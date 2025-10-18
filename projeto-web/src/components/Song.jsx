@@ -168,7 +168,7 @@ export default function Song({ song }) {
     const menuOptions = [
         { icon: <AddIcon fontSize="small" />, label: 'Adicionar à playlist', action: handleAddPlaylistClick, requiresEvent: true }, 
         { icon: <PersonIcon fontSize="small" />, label: 'Ir para o artista', action: () => navigate(`/artista/${artistId}`) },
-        { icon: <AlbumIcon fontSize="small" />, label: 'Ir para o álbum', action: () => navigate(`/album/${albumId}`) }, 
+        { icon: <AlbumIcon fontSize="small" />, label: 'Ir para o álbum', action: () => {albumId ? navigate(`/album/${albumId}`) : navigate(`/song/${songId}`) } }, 
         { icon: <QueueIcon fontSize="small" />, label: 'Adicionar à fila', action: handleAddToQueue }, 
         { icon: <ShareIcon fontSize="small" />, label: 'Compartilhar', action: handleOpenShareModal },    
     ];
