@@ -642,19 +642,13 @@
       "id": "3",
       "name": "IgorGodoy",
       "email": "igor@email.com",
-      "likedSongs": [
-        "song-01",
-        "song-05",
-        "song-06"
-      ],
+      "likedSongs": [],
       "following": [],
       "friends": [
-        "4",
-        "1"
+        "1",
+        "4"
       ],
-      "friendshipRequests": [
-        "71a1"
-      ]
+      "img": "/assets/img/piano_cover_3.png"
     },
     {
       "id": "4",
@@ -1025,7 +1019,8 @@
       "creatorId": "1",
       "members": [
         "1",
-        "2"
+        "2",
+        "3"
       ],
       "listeners": [
         "1"
