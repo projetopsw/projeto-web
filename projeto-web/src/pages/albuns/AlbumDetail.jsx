@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import AlbumHeader from '../../components/AlbumHeader.jsx';
 import SongList from "../../components/SongList.jsx";
 import '../musicas/css/SongAlbumDetail.css'
-import api from "../../services/api";
+import api from "../../services/api.js";
 
 
 export default function AlbumDetail( {albumID} ) {
