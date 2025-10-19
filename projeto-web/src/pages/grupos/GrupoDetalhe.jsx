@@ -1,5 +1,3 @@
-// src/pages/GrupoDetalhe.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
@@ -16,17 +14,12 @@ import {
     CircularProgress 
 } from '@mui/material';
 import Header from '../../components/Header';
-// 💡 IMPORTANTE: Certifique-se de que este caminho está correto (SearchMusicLocal vs SearchMusic)
 import SearchMusicLocal from '../../components/SearchMusic'; 
 import UserCard from '../../components/UserCard'; 
 import api from '../../services/api.js'; 
-// 💡 IMPORTADO O ARQUIVO DE ESTILOS CSS
-import './Grupo.css'; // O nome do arquivo CSS deve ser consistente (usei GrupoDetalhe.css da sua base)
+import './Grupo.css'; 
 
 
-// ----------------------------------------------------
-// ESTILO para os Quadrados (Paper)
-// ----------------------------------------------------
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(3),
@@ -44,24 +37,18 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
     }
 }));
 
-// Estilos AddButton e SearchResultsList não são mais necessários aqui,
-// pois geralmente são definidos dentro do componente SearchMusicLocal,
-// mas foram removidos para limpar o código e focar no GrupoDetalhe.
 
 
 function GrupoDetalhe() {
     const { id } = useParams(); 
     
-    // Variáveis de estado principais
     const [group, setGroup] = useState(null);
     const [groupMembers, setGroupMembers] = useState([]); 
     const [queue, setQueue] = useState([]); 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // ----------------------------------------------------
-    // FUNÇÕES DE BUSCA DE DADOS
-    // ----------------------------------------------------
+  
 
     const fetchGroupDetails = async () => {
         setIsLoading(true);
@@ -69,7 +56,6 @@ function GrupoDetalhe() {
             const groupResponse = await api.get(`/groups/${id}`); 
             const groupData = groupResponse.data;
             setGroup(groupData);
-            // Assume que o backend retorna a fila como 'currentQueue' ou 'queue'
             setQueue(groupData.queue || groupData.currentQueue || []); 
 
             const usersResponse = await api.get('/users');
@@ -85,7 +71,6 @@ function GrupoDetalhe() {
 
         } catch (err) {
             console.error("Erro ao carregar dados:", err);
-            // Fallback (dados de mock)
             setGroup({ id, name: `Grupo ${id} (Mock)` });
             setQueue([]); 
             setGroupMembers([
@@ -99,10 +84,7 @@ function GrupoDetalhe() {
         }
     };
     
-    // ----------------------------------------------------
-    // FUNÇÕES DE GESTÃO DA FILA (UNIFICADAS)
-    // ----------------------------------------------------
-
+    
     const handleAddToQueue = (song) => {
         setQueue(prevQueue => {
             if (prevQueue.some(item => item.id === song.id)) {
@@ -111,8 +93,7 @@ function GrupoDetalhe() {
             }
             const newQueue = [...prevQueue, song];
             
-            // Opcional: Aqui você pode adicionar a chamada PATCH para o backend
-            // api.patch(`/groups/${id}`, { queue: newQueue }).catch(e => console.error("Falha ao salvar fila:", e));
+         
 
             return newQueue;
         });
@@ -122,8 +103,6 @@ function GrupoDetalhe() {
         setQueue(prevQueue => {
             const newQueue = prevQueue.filter(song => song.id !== songId);
             
-            // Opcional: Aqui você pode adicionar a chamada PATCH para o backend
-            // api.patch(`/groups/${id}`, { queue: newQueue }).catch(e => console.error("Falha ao salvar fila:", e));
             
             return newQueue;
         });
@@ -149,9 +128,7 @@ function GrupoDetalhe() {
         return <Typography sx={{ p: 5, color: 'red' }}>Grupo não encontrado.</Typography>;
     }
 
-    // ----------------------------------------------------
-    // RENDERIZAÇÃO
-    // ----------------------------------------------------
+  
 
     return (
         <>
@@ -167,7 +144,6 @@ function GrupoDetalhe() {
                 
                 <Grid container spacing={4} sx={{ flexGrow: 1 }}>
 
-                    {/* Quadrado 1: Nome do Grupo + Lista de Membros */}
                     <Grid item xs={12}>
                         <StyledPaper elevation={3} className="header-box">
                             <Box sx={{ mb: 1 }}>
@@ -185,7 +161,6 @@ function GrupoDetalhe() {
                                 Membros:
                             </Typography>
                             
-                            {/* LISTA SIMPLES DE NOMES DOS MEMBROS */}
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                                 {groupMembers.length > 0 ? (
                                     groupMembers.map((member) => (
@@ -211,24 +186,20 @@ function GrupoDetalhe() {
                         </StyledPaper>
                     </Grid>
 
-                    {/* Quadrado 2: Busca e Fila de Reprodução (MAIOR PARTE) */}
                     <Grid item xs={12} sx={{ flexGrow: 1 }}>
                         <StyledPaper elevation={3} className="queue-box">
                             <Typography variant="h5" sx={{ color: 'var(--title-color)', mb: 2 }}>
                                 🎵 Adicionar Música à Fila
                             </Typography>
                             
-                            {/* Barra de Pesquisa */}
                             <Box sx={{ mb: 4, position: 'relative' }}>
                                 <SearchMusicLocal 
-                                    // 💡 Passa a função de adicionar à fila local
                                     onSongSelect={handleAddToQueue} 
                                 />
                             </Box>
 
                             <Divider sx={{ my: 3, borderColor: 'var(--border-color)' }} />
 
-                            {/* Fila de Reprodução Atual */}
                             <Box>
                                 <Typography variant="h5" sx={{ color: 'var(--title-color)', mb: 2 }}>
                                     Lista de Espera ({queue.length})

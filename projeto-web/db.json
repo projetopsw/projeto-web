@@ -615,10 +615,7 @@
         "3",
         "71a1"
       ],
-      "friendshipRequests": [],
-      "userPlaylists": [
-        "d02a"
-      ]
+      "img": "https://w7.pngwing.com/pngs/787/162/png-transparent-hello-kitty-hello-kitty-cartoon-desktop-wallpaper-character-thumbnail.png"
     },
     {
       "id": "2",
@@ -633,10 +630,7 @@
         "1",
         "4"
       ],
-      "friendshipRequests": [
-        "3",
-        "71a1"
-      ]
+      "img": "https://akamai.sscdn.co/uploadfile/letras/fotos/b/b/c/1/bbc12de6f692c1c9fd655f3a377f2c71.jpg"
     },
     {
       "id": "3",
@@ -676,63 +670,48 @@
       "email": "Diogo@email.com",
       "likedSongs": [],
       "following": [],
-      "friends": []
+      "friends": [],
+      "img": "https://img.freepik.com/vetores-premium/imagem-de-perfil-de-personagem-de-desenho-animado-avatar-jovem_18591-55057.jpg"
     },
     {
       "id": "101",
       "name": "Luiza",
-      "username": "Luiza",
       "email": "luiza@email.com",
-      "password": "luiza",
-      "image": "https://placehold.co/400x400?text=Luiza",
+      "likedSongs": [],
+      "following": [],
       "friends": [
         "2"
       ],
-      "following": [],
-      "friendshipRequests": [],
-      "requestsReceived": [],
-      "userPlaylists": [
-        "f419"
-      ]
+      "img": "/assets/img/vibe_cover_2.png"
     },
     {
       "id": "102",
       "name": "André",
-      "username": "André",
       "email": "andre@email.com",
-      "password": "andre",
-      "image": "https://placehold.co/400x400?text=André",
-      "friends": [],
-      "following": [],
-      "friendshipRequests": [],
-      "requestsReceived": [],
       "likedSongs": [
         "song-02"
-      ]
+      ],
+      "following": [],
+      "friends": [],
+      "img": "/assets/img/rock_cover_1.png"
     },
     {
       "id": "201",
       "name": "Pedro",
-      "username": "Pedro",
       "email": "pedro@email.com",
-      "password": "pedro",
-      "image": "https://placehold.co/400x400?text=Pedro",
-      "friends": [],
+      "likedSongs": [],
       "following": [],
-      "friendshipRequests": [
-        "4"
-      ]
+      "friends": [],
+      "img": "/assets/img/liked_cover_0.png"
     },
     {
       "id": "202",
       "name": "Carla",
-      "username": "Carla",
       "email": "carla@email.com",
-      "password": "carla",
-      "image": "https://placehold.co/400x400?text=Carla",
-      "friends": [],
+      "likedSongs": [],
       "following": [],
-      "friendshipRequests": []
+      "friends": [],
+      "img": "https://i.pinimg.com/originals/c6/de/4f/c6de4fbc92c32c25dd90c41884968d63.jpg"
     },
     {
       "id": "71a1",

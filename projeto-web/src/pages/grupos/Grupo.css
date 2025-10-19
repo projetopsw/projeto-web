@@ -1,12 +1,9 @@
-/* src/styles/GrupoDetalhe.css */
-
 :root {
-    /* Variáveis de Tema (Cores e Fontes) */
     font-family: 'Poppins', sans-serif;
     --player-height: 80px;
     --player-bg: #1c1c1c; 
     --primary-color: #ff7533; 
-    --orange: #ff7533; /* Convenção para a cor principal */
+    --orange: #ff7533; 
     --title-color: #ffffff; /* Cor para títulos */
     --text-color: #ffffff; /* Cor principal do texto */
     --secondary-text-color: #b3b3b3; /* Cor para texto secundário/subtítulos */
@@ -20,53 +17,38 @@
     --shadow-color-light: rgba(0, 0, 0, 0.1);
 }
 
-/* ---------------------------------------------------- */
-/* ESTILOS DE LAYOUT GERAL E ÁREA DE CONTEÚDO           */
-/* ---------------------------------------------------- */
 
-/* Estilo para a tag <main> no GrupoDetalhe.jsx */
-/* Garante que o conteúdo ocupe todo o espaço da tela, excluindo o Header */
 .content-area {
-    /* O padding foi definido inline no JSX, mas a flex-direction é importante */
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 64px); /* Ajuste com base na altura do seu Header */
+    min-height: calc(100vh - 64px); 
     flex-grow: 1; 
 }
 
 
-/* ---------------------------------------------------- */
-/* ESTILOS DA BARRA DE ROLAGEM CUSTOMIZADA              */
-/* ---------------------------------------------------- */
 
-/* Aplique esta classe ao elemento Box dentro do .queue-box onde o scroll pode ocorrer */
 .queue-scroll-area::-webkit-scrollbar {
     width: 8px; 
 }
 
-/* Trilha/Fundo do Scrollbar (SEM FUNDO) */
 .queue-scroll-area::-webkit-scrollbar-track {
     background: transparent;
     margin: 10px 0;
 }
 
-/* Polegar do Scrollbar */
+
 .queue-scroll-area::-webkit-scrollbar-thumb {
     background-color: var(--orange);
     border-radius: 10px; 
-    border: 2px solid transparent; /* Para evitar que a cor do fundo da trilha apareça */
+    border: 2px solid transparent; 
 }
 
 .queue-scroll-area::-webkit-scrollbar-thumb:hover {
-    background-color: #ff914d; /* Laranja mais claro ao passar o mouse */
+    background-color: #ff914d; 
 }
 
-/* ---------------------------------------------------- */
-/* Estilos legados (MANTIDOS DA BASE, mas não usados)   */
-/* ---------------------------------------------------- */
 
-/* O .tela-musica-container, .player-info-block, .album-art, etc., 
-   não são usados no GrupoDetalhe, mas são mantidos se você os importar globalmente. */
+
 .tela-musica-container {
     display: flex;
     gap: 2rem;
