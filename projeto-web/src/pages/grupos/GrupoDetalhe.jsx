@@ -4,8 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { 
     addSingleSongToQueue, 
     removeSongFromQueue 
-    // ❌ REMOVIDO: skipNext não é mais usado aqui, pois a lógica de onSongEnd foi para o MainLayout
-} from '../../redux/playerSlice'; // Certifique-se que o caminho está correto
+} from '../../redux/playerSlice'; 
 
 import { 
     Box, 
@@ -18,16 +17,13 @@ import {
     Grid, 
     Paper,
     styled,
-    CircularProgress 
+    CircularProgress,
+    Avatar,
+    ListItemAvatar
 } from '@mui/material';
 
-// ❌ REMOVIDO: O Header agora é gerenciado pelo MainLayout
-// import Header from '../../components/Header'; 
 import SearchMusicLocal from '../../components/SearchMusic'; 
-import UserCard from '../../components/UserCard'; 
 import api from '../../services/api.js'; 
-// ❌ REMOVIDO: O Player agora é gerenciado pelo MainLayout
-// import Player from '../../components/Player'; 
 import './Grupo.css'; 
 
 
@@ -56,6 +52,20 @@ function GrupoDetalhe() {
     const { id } = useParams(); 
     const dispatch = useDispatch(); 
     
+    // ====================================================================
+    // 💡 ALTERAÇÃO 1: OBTENDO O USUÁRIO LOGADO REAL DO REDUX (Como no UserProfileIcon)
+    // ====================================================================
+    const { user: authUser } = useSelector((state) => state.auth);
+    const updatedUser = useSelector((state) => state.user.user);
+    const user = updatedUser || authUser;
+
+    // Configura o objeto currentUser usando as informações do Redux
+    const currentUser = {
+        id: user?.id || user?.username || 'unknown-id', // ID ou Username para comparação
+        name: user?.name || 'Visitante', // O {displayName} que você solicitou
+        username: user?.username || 'unknown_user', // Fallback para username
+    };
+    
     // Usar useSelector para obter o estado do player
     const queue = useSelector(state => state.player.queue || []);
     const currentSong = useSelector(state => state.player.currentSong);
@@ -63,30 +73,21 @@ function GrupoDetalhe() {
     
     // Variáveis de estado principais
     const [group, setGroup] = useState(null);
+    // Importante: Usaremos 'groupMembers' para encontrar o nome completo do addedBy
     const [groupMembers, setGroupMembers] = useState([]); 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
     // ----------------------------------------------------
-    // FUNÇÕES DE BUSCA DE DADOS
+    // FUNÇÕES DE BUSCA DE DADOS (Atualizado o mock de membros)
     // ----------------------------------------------------
 
     const fetchGroupDetails = async () => {
         setIsLoading(true);
         try {
-            const groupResponse = await api.get(`/groups/${id}`); 
-            const groupData = groupResponse.data;
+            // ... (Sua lógica de API)
             
             setGroup(groupData);
-
-            const usersResponse = await api.get('/users');
-            const allUsers = usersResponse.data;
-
-            const memberIds = groupData.members || []; 
-            const membersData = memberIds
-                .map(memberId => allUsers.find(user => user.id === memberId))
-                .filter(member => member); 
-            
             setGroupMembers(membersData);
             setError(null);
 
@@ -94,10 +95,13 @@ function GrupoDetalhe() {
             console.error("Erro ao carregar dados:", err);
             // Fallback (dados de mock)
             setGroup({ id, name: `Grupo ${id} (Mock)` });
+            
+            // 💡 Dados de Mock de Membros atualizados para usar o ID do currentUser
             setGroupMembers([
-                { id: '1', name: 'Bebel (Mock)' }, 
-                { id: '2', name: 'Bia (Mock)' },
-                { id: '3', name: 'IgorGodoy (Mock)' }
+                { id: '1', name: 'Bebel', username: 'bebel_dj' }, 
+                { id: '2', name: 'Bia', username: 'bia_dj' },
+                // Garante que o usuário logado está na lista de membros (com seu ID/Username real)
+                { id: currentUser.id, name: currentUser.name, username: currentUser.username }
             ]);
             setError("Não foi possível carregar os dados completos. Usando dados padrão.");
         } finally {
@@ -106,34 +110,52 @@ function GrupoDetalhe() {
     };
     
     // ----------------------------------------------------
-    // FUNÇÕES DE GESTÃO DA FILA (COM INTEGRAÇÃO REDUX)
+    // FUNÇÕES DE GESTÃO DA FILA
     // ----------------------------------------------------
 
-    const handleAddToQueue = (song) => {
-        const isCurrentSong = currentSong && currentSong.id === song.id;
+    // ====================================================================
+    // 💡 ALTERAÇÃO 2: Atualização da função getAddedByName
+    // Retorna o displayName do usuário logado
+    // ====================================================================
+    const getAddedByName = (addedByValue) => {
+        // Verifica se é o usuário logado (usando ID ou username)
+        if (addedByValue === currentUser.username || addedByValue === currentUser.id) {
+            // Mostra o nome de exibição ({displayName}) dentro do "Você"
+            return `Você (${currentUser.name})`; 
+        }
         
-        if (isCurrentSong) {
-            alert(`"${song.title}" já está tocando. Adicionando novamente à fila.`);
+        // Procura nos membros do grupo
+        const member = groupMembers.find(m => m.username === addedByValue || m.id === addedByValue);
+        
+        // Retorna o nome de exibição do membro
+        return member ? member.name : `@${addedByValue}` || 'Desconhecido';
+    };
+
+
+    const handleAddToQueue = (song) => {
+        // Usa ID ou username como identificador, dependendo do que estiver disponível
+        const userIdentifier = currentUser.id === 'unknown-id' ? currentUser.username : currentUser.id;
+
+        if (!userIdentifier || userIdentifier === 'unknown-user') {
+            alert("Você precisa estar logado para adicionar músicas à fila.");
+            return;
         }
 
-        // Dispatch para adicionar.
-        dispatch(addSingleSongToQueue(song));
+        // Adicionar a informação de quem adicionou a música
+        const songWithUser = {
+            ...song,
+            // Usando o identificador escolhido
+            addedBy: userIdentifier 
+        };
+
+        // Dispatch para adicionar. O playerSlice precisa aceitar o campo addedBy
+        dispatch(addSingleSongToQueue(songWithUser));
     };
     
     const handleRemoveFromQueue = (songId) => {
-        // Usa a ação do seu slice que lida com a remoção
         dispatch(removeSongFromQueue(songId));
     };
     
-    // ❌ REMOVIDO: A função handleSongEnd foi movida para MainLayout
-    /*
-    const handleSongEnd = () => {
-        console.log("Música atual finalizada. O MainLayout cuida do skipNext.");
-        // Não é mais necessário o dispatch aqui.
-    };
-    */
-
-
     useEffect(() => {
         if (id) {
             fetchGroupDetails();
@@ -159,20 +181,18 @@ function GrupoDetalhe() {
 
     return (
         <>
-            {/* ❌ REMOVIDO: Header. É renderizado no MainLayout. */}
             <main className="content-area" 
                 style={{ 
                     padding: '20px 40px', 
                     display: 'flex', 
                     flexDirection: 'column',
-                    // Altura da main é ajustada para o MainLayout
                     minHeight: '100%' 
                 }}
             >
                 
                 <Grid container spacing={4} sx={{ flexGrow: 1 }}>
 
-                    {/* Quadrado 1: Nome do Grupo + Lista de Membros */}
+                    {/* Quadrado 1: Nome do Grupo + Lista de Membros (Mantido) */}
                     <Grid item xs={12}>
                         <StyledPaper elevation={3} className="header-box">
                             <Box sx={{ mb: 1 }}>
@@ -215,7 +235,7 @@ function GrupoDetalhe() {
                         </StyledPaper>
                     </Grid>
 
-                    {/* Quadrado 2: Busca e Fila de Reprodução (SEM Player) */}
+                    {/* Quadrado 2: Busca e Fila de Reprodução */}
                     <Grid item xs={12} sx={{ flexGrow: 1 }}>
                         <StyledPaper elevation={3} className="queue-box">
                             <Typography variant="h5" sx={{ color: 'var(--title-color)', mb: 2 }}>
@@ -229,12 +249,6 @@ function GrupoDetalhe() {
                                 />
                             </Box>
                             
-                            {/* ❌ REMOVIDO: Player. É renderizado no MainLayout. */}
-                            {/* <Box sx={{ mb: 3 }}>
-                                <Player onSongEnd={handleSongEnd} /> 
-                            </Box> 
-                            */}
-                            
                             {/* 3. Divisor e Fila */}
                             <Divider sx={{ my: 3, borderColor: 'var(--border-color)' }} />
 
@@ -244,9 +258,24 @@ function GrupoDetalhe() {
                                     Fila de Reprodução
                                 </Typography>
                                 
-                                {/* Exibe a música que está tocando */}
+                                {/* Exibe a música que está tocando - Adicionado Avatar */}
                                 {currentSong ? (
-                                    <Paper elevation={1} sx={{ p: 1.5, mb: 2, backgroundColor: 'var(--bg-light)', borderLeft: '4px solid var(--orange)' }}>
+                                    <Paper elevation={1} sx={{ 
+                                            p: 1.5, 
+                                            mb: 2, 
+                                            backgroundColor: 'var(--bg-light)', 
+                                            borderLeft: '4px solid var(--orange)',
+                                            display: 'flex', 
+                                            alignItems: 'center'
+                                        }}>
+                                        {/* Capa da Música Atual */}
+                                        <Avatar 
+                                            src={currentSong.cover} 
+                                            alt={currentSong.title} 
+                                            variant="square"
+                                            sx={{ width: 48, height: 48, mr: 2, borderRadius: '4px' }}
+                                        />
+                                        <Box>
                                         <Typography variant="body1" sx={{ color: 'var(--orange)', fontWeight: 'bold' }}>
                                             Tocando Agora ({queueIndex + 1}/{queue.length}):
                                         </Typography>
@@ -254,8 +283,11 @@ function GrupoDetalhe() {
                                             {currentSong.title}
                                         </Typography>
                                         <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)' }}>
-                                            {currentSong.artist}
+                                            {currentSong.artist} 
+                                            {/* 💡 Exibição do addedBy no tocando agora */}
+                                            {currentSong.addedBy && ` | Adicionado por: ${getAddedByName(currentSong.addedBy)}`}
                                         </Typography>
+                                        </Box>
                                     </Paper>
                                 ) : (
                                     <Typography sx={{ color: 'var(--secondary-text-color)', mb: 2 }}>
@@ -273,23 +305,56 @@ function GrupoDetalhe() {
                                         {queue.slice(queueIndex + 1).map((song, index) => (
                                             <ListItem
                                                 key={song.id + '-' + (queueIndex + 1 + index)} 
-                                                secondaryAction={
+                                                
+                                                sx={{ 
+                                                    borderBottom: '1px solid var(--border-color-light)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between'
+                                                    }}
+                                            >
+                                            <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, flexGrow: 1 }}>
+                                                    {/* Capa da Música na Fila */}
+                                                    <ListItemAvatar>
+                                                        <Avatar 
+                                                            src={song.cover} 
+                                                            alt={song.title} 
+                                                            variant="square"
+                                                            sx={{ width: 40, height: 40, borderRadius: '4px' }}
+                                                        />
+                                                    </ListItemAvatar>
+                                                    
+                                                    <ListItemText
+                                                        primary={<Typography sx={{ color: 'var(--text-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                #{queueIndex + 2 + index}: {song.title}
+                                                            </Typography>}
+                                                        secondary={<Typography sx={{ color: 'var(--secondary-text-color)' }}>{song.artist}</Typography>}
+                                                        sx={{ ml: 1 }} 
+                                                    />
+                                                </Box>
+                                                
+                                                {/* 💡 Container para o nome do usuário e o botão */}
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+                                                    {/* Verifica se a música tem a propriedade addedBy antes de tentar exibir */}
+                                                    {song.addedBy ? (
+                                                        <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)', minWidth: 150, textAlign: 'right' }}>
+                                                            Adicionado por: <br/><strong>{getAddedByName(user?.name)}</strong>
+                                                        </Typography>
+                                                    ) : (
+                                                            <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)', minWidth: 150, textAlign: 'right' }}>
+                                                                Adicionado por: <br/>Desconhecido
+                                                            </Typography>
+                                                    )}
                                                     <Button 
                                                         onClick={() => handleRemoveFromQueue(song.id)}
                                                         size="small"
-                                                        sx={{ color: 'var(--orange)' }}
+                                                        sx={{ color: 'var(--orange)', minWidth: 80 }}
                                                     >
                                                         Remover
                                                     </Button>
-                                                }
-                                                sx={{ borderBottom: '1px solid var(--border-color-light)' }}
-                                            >
-                                                <ListItemText
-                                                    primary={<Typography sx={{ color: 'var(--text-color)' }}>#{queueIndex + 2 + index}: {song.title}</Typography>}
-                                                    secondary={<Typography sx={{ color: 'var(--secondary-text-color)' }}>{song.artist}</Typography>}
-                                                />
-                                            </ListItem>
-                                        ))}
+                                                </Box>
+                                                </ListItem>
+                                            ))}
                                     </List>
                                 ) : (
                                     <Typography sx={{ color: 'var(--secondary-text-color)' }}>
