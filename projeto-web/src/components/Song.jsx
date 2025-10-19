@@ -20,8 +20,13 @@ const COR_LARANJA = 'var(--orange)';
 const LIKED_SONGS_ID = "0";
 
 export default function Song({ song }) {
-    const { title, duration = "3:20", artist, artistId, albumId, id: songId } = song;
+    // CORREÇÃO: Renomeie 'albumId' na desestruturação para 'initialAlbumId'
+    // A atribuição na linha 23 estava tentando modificar uma 'const'.
+    const { title, duration = "3:20", artist, artistId, albumId: initialAlbumId, id: songId } = song;
 
+    // Declare 'albumId' com 'let' para que possa ser modificada.
+    let albumId = initialAlbumId; 
+    
     if (albumId === null) {
         albumId = songId;
     }
@@ -45,6 +50,8 @@ export default function Song({ song }) {
     
     const aberto = Boolean(anchorEl);
     const playlistMenuAberto = Boolean(playlistAnchorEl);
+
+    // ... (Restante do código de handlers mantido)
 
     const handleMenuClose = () => {
         setAnchorEl(null);
@@ -170,7 +177,7 @@ export default function Song({ song }) {
         { icon: <PersonIcon fontSize="small" />, label: 'Ir para o artista', action: () => navigate(`/artista/${artistId}`) },
         { icon: <AlbumIcon fontSize="small" />, label: 'Ir para o álbum', action: () => {albumId ? navigate(`/album/${albumId}`) : navigate(`/song/${songId}`) } }, 
         { icon: <QueueIcon fontSize="small" />, label: 'Adicionar à fila', action: handleAddToQueue }, 
-        { icon: <ShareIcon fontSize="small" />, label: 'Compartilhar', action: handleOpenShareModal },    
+        { icon: <ShareIcon fontSize="small" />, label: 'Compartilhar', action: handleOpenShareModal },     
     ];
 
     const corIcone = isLiked ? COR_LARANJA : 'var(--secondary-text-color)';

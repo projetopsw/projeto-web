@@ -10,14 +10,21 @@
     --icon-color: #b3b3b3;
     --progress-bg: #535353;
     --card-bg: #282828; /* Fundo dos Paper/Card */
-    --bg-light: #444444; /* Fundo claro para tags/nomes */
+    --bg-light: #444444; /* Fundo claro para tags/nomes (Usado para hover de menu) */
     --border-color: rgba(255, 255, 255, 0.1);
     --border-color-light: rgba(255, 255, 255, 0.05);
     --shadow-color-dark: rgba(0, 0, 0, 0.5);
     --shadow-color-light: rgba(0, 0, 0, 0.1);
+
+    /* VARIÁVEIS ESSENCIAIS PARA O JSX OTIMIZADO */
+    --darker-orange: #e0682d; /* Adicionado para hover de botões (Cor ligeiramente mais escura que --orange) */
+    --input-bg: #333333; /* Fundo do input */
+    --input-bg-hover: #404040; /* Hover do input */
 }
 
-
+/* --------------------------------------------------------------------------
+   Estrutura Principal
+   -------------------------------------------------------------------------- */
 .content-area {
     display: flex;
     flex-direction: column;
@@ -25,8 +32,9 @@
     flex-grow: 1; 
 }
 
-
-
+/* --------------------------------------------------------------------------
+   Scrollbar
+   -------------------------------------------------------------------------- */
 .queue-scroll-area::-webkit-scrollbar {
     width: 8px; 
 }
@@ -48,7 +56,6 @@
 }
 
 
-
 .tela-musica-container {
     display: flex;
     gap: 2rem;
@@ -61,4 +68,168 @@
         align-items: center;
         gap: 3rem; 
     }
+}
+
+/* --------------------------------------------------------------------------
+   Classes Auxiliares de Cor (Geral)
+   -------------------------------------------------------------------------- */
+.icon-orange {
+    color: var(--orange) !important;
+}
+
+.icon-red {
+    color: #f44336 !important; /* Vermelho padrão para Delete */
+}
+
+
+/* --------------------------------------------------------------------------
+   Estilos de Componentes (Cards e Inputs)
+   -------------------------------------------------------------------------- */
+
+/* Estilo Base para os Cards de Grupo */
+.grupo-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px var(--shadow-color-dark);
+    position: relative;
+    height: 100%;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.grupo-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+}
+
+/* Estilo para o Card "Criar Novo Grupo" */
+.grupo-card.is-new {
+    background: var(--border-color);
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 30px 15px;
+    border: 2px dashed var(--secondary-text-color);
+    cursor: pointer;
+}
+
+.grupo-card.is-new:hover {
+    border-color: var(--orange);
+    box-shadow: 0 0 10px rgba(255, 107, 0, 0.3);
+    transform: none;
+}
+
+/* Estilo da Imagem e Overlay do Card */
+.grupo-card .card-cover {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    filter: brightness(70%);
+}
+
+/* Botões de Ação dentro do Card (Compartilhar, Editar, Deletar) */
+.card-action-btn {
+    color: white;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+/* Estilo para Botões Principais (Entrar, Criar, Salvar) */
+.btn-primary-orange {
+    background-color: var(--orange);
+    color: white;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+
+.btn-primary-orange:hover {
+    background-color: var(--darker-orange);
+}
+
+/* Estilo para Inputs Material-UI Customizados */
+.custom-textfield .MuiInputBase-root {
+    color: var(--text-color);
+    background-color: var(--input-bg);
+    border-radius: 4px;
+}
+
+.custom-textfield .MuiInputLabel-root {
+    color: var(--secondary-text-color);
+}
+
+.custom-textfield .MuiFilledInput-root {
+    background-color: var(--input-bg);
+}
+
+.custom-textfield .MuiFilledInput-root:hover {
+    background-color: var(--input-bg-hover);
+}
+
+.custom-textfield .MuiFilledInput-root.Mui-focused {
+    background-color: var(--input-bg);
+}
+
+.custom-textfield .MuiFilledInput-root:after {
+    border-bottom-color: var(--orange); /* Cor da linha inferior quando focado */
+}
+
+/* Estilo para Textarea customizada */
+.custom-textarea {
+    width: 100%;
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+/* Estilo para títulos de seção */
+.section-title {
+    color: var(--secondary-text-color);
+    margin-bottom: 15px;
+}
+
+/* --------------------------------------------------------------------------
+   Estilos de Menu (MenuItem)
+   -------------------------------------------------------------------------- */
+
+/* Estilo para o componente Menu (fundo e borda) */
+.MuiMenu-paper {
+    background-color: var(--card-bg) !important; 
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+}
+
+/* Estilo para cada Opção do Menu (MenuItem) */
+.custom-menu-item {
+    color: var(--text-color) !important;
+    padding: 10px 15px !important;
+    transition: background-color 0.2s;
+}
+
+/* Cor de fundo quando o mouse passa por cima (Cinza mais forte) */
+.custom-menu-item:hover {
+    background-color: var(--bg-light) !important; 
+}
+
+/* Estilo para os Ícones (Cor padrão) */
+.custom-menu-item .MuiSvgIcon-root {
+    color: var(--secondary-text-color);
+    margin-right: 10px;
+    font-size: 1.25rem; 
+}
+
+/* Se você usar um ícone com esta classe no menu, ele ficará laranja */
+.custom-menu-item .icon-orange {
+    color: var(--orange) !important;
+}
+
+/* Se você usar um ícone com esta classe no menu, ele ficará vermelho */
+.custom-menu-item .icon-red {
+    color: #f44336 !important; 
 }

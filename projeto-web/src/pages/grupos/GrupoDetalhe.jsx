@@ -53,7 +53,7 @@ function GrupoDetalhe() {
     const dispatch = useDispatch(); 
     
     // ====================================================================
-    // 💡 ALTERAÇÃO 1: OBTENDO O USUÁRIO LOGADO REAL DO REDUX (Como no UserProfileIcon)
+    // 💡 OBTENDO O USUÁRIO LOGADO REAL DO REDUX
     // ====================================================================
     const { user: authUser } = useSelector((state) => state.auth);
     const updatedUser = useSelector((state) => state.user.user);
@@ -87,6 +87,15 @@ function GrupoDetalhe() {
         try {
             // ... (Sua lógica de API)
             
+            // Simulação de dados (Mock)
+            const groupData = { id, name: `Grupo ${id} (Mock)` };
+            const membersData = [
+                { id: '1', name: 'Bebel', username: 'bebel_dj' }, 
+                { id: '2', name: 'Bia', username: 'bia_dj' },
+                // Garante que o usuário logado está na lista de membros (com seu ID/Username real)
+                { id: currentUser.id, name: currentUser.name, username: currentUser.username }
+            ];
+            
             setGroup(groupData);
             setGroupMembers(membersData);
             setError(null);
@@ -96,7 +105,7 @@ function GrupoDetalhe() {
             // Fallback (dados de mock)
             setGroup({ id, name: `Grupo ${id} (Mock)` });
             
-            // 💡 Dados de Mock de Membros atualizados para usar o ID do currentUser
+            // Dados de Mock de Membros atualizados para usar o ID do currentUser
             setGroupMembers([
                 { id: '1', name: 'Bebel', username: 'bebel_dj' }, 
                 { id: '2', name: 'Bia', username: 'bia_dj' },
@@ -113,10 +122,7 @@ function GrupoDetalhe() {
     // FUNÇÕES DE GESTÃO DA FILA
     // ----------------------------------------------------
 
-    // ====================================================================
-    // 💡 ALTERAÇÃO 2: Atualização da função getAddedByName
-    // Retorna o displayName do usuário logado
-    // ====================================================================
+    // Atualização da função getAddedByName
     const getAddedByName = (addedByValue) => {
         // Verifica se é o usuário logado (usando ID ou username)
         if (addedByValue === currentUser.username || addedByValue === currentUser.id) {
@@ -192,7 +198,7 @@ function GrupoDetalhe() {
                 
                 <Grid container spacing={4} sx={{ flexGrow: 1 }}>
 
-                    {/* Quadrado 1: Nome do Grupo + Lista de Membros (Mantido) */}
+                    {/* Quadrado 1: Nome do Grupo + Lista de Membros */}
                     <Grid item xs={12}>
                         <StyledPaper elevation={3} className="header-box">
                             <Box sx={{ mb: 1 }}>
@@ -217,10 +223,13 @@ function GrupoDetalhe() {
                                             key={member.id}
                                             variant="body2" 
                                             sx={{ 
-                                                color: 'var(--secondary-text-color)', 
-                                                backgroundColor: 'var(--bg-light)', 
+                                                // 💡 ALTERAÇÃO AQUI: Mudando o background para laranja e a cor do texto para o escuro/padrão
+                                                color: 'var(--card-bg)', // Cor do texto (fundo escuro do Card para contraste)
+                                                backgroundColor: 'var(--orange)', // Cor de fundo Laranja
                                                 padding: '2px 8px',
-                                                borderRadius: '4px'
+                                                borderRadius: '4px',
+                                                fontWeight: 'bold', // Opcional, para destacar mais
+                                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)' // Opcional, para dar profundidade
                                             }}
                                         >
                                             {member.name}
@@ -314,47 +323,47 @@ function GrupoDetalhe() {
                                                     }}
                                             >
                                             <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, flexGrow: 1 }}>
-                                                    {/* Capa da Música na Fila */}
-                                                    <ListItemAvatar>
-                                                        <Avatar 
-                                                            src={song.cover} 
-                                                            alt={song.title} 
-                                                            variant="square"
-                                                            sx={{ width: 40, height: 40, borderRadius: '4px' }}
-                                                        />
-                                                    </ListItemAvatar>
-                                                    
-                                                    <ListItemText
-                                                        primary={<Typography sx={{ color: 'var(--text-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                #{queueIndex + 2 + index}: {song.title}
-                                                            </Typography>}
-                                                        secondary={<Typography sx={{ color: 'var(--secondary-text-color)' }}>{song.artist}</Typography>}
-                                                        sx={{ ml: 1 }} 
-                                                    />
-                                                </Box>
-                                                
-                                                {/* 💡 Container para o nome do usuário e o botão */}
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-                                                    {/* Verifica se a música tem a propriedade addedBy antes de tentar exibir */}
-                                                    {song.addedBy ? (
-                                                        <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)', minWidth: 150, textAlign: 'right' }}>
-                                                            Adicionado por: <br/><strong>{getAddedByName(user?.name)}</strong>
-                                                        </Typography>
-                                                    ) : (
-                                                            <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)', minWidth: 150, textAlign: 'right' }}>
-                                                                Adicionado por: <br/>Desconhecido
-                                                            </Typography>
-                                                    )}
-                                                    <Button 
-                                                        onClick={() => handleRemoveFromQueue(song.id)}
-                                                        size="small"
-                                                        sx={{ color: 'var(--orange)', minWidth: 80 }}
-                                                    >
-                                                        Remover
-                                                    </Button>
-                                                </Box>
-                                                </ListItem>
-                                            ))}
+                                                     {/* Capa da Música na Fila */}
+                                                     <ListItemAvatar>
+                                                         <Avatar 
+                                                             src={song.cover} 
+                                                             alt={song.title} 
+                                                             variant="square"
+                                                             sx={{ width: 40, height: 40, borderRadius: '4px' }}
+                                                         />
+                                                     </ListItemAvatar>
+                                                     
+                                                     <ListItemText
+                                                         primary={<Typography sx={{ color: 'var(--text-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                             #{queueIndex + 2 + index}: {song.title}
+                                                             </Typography>}
+                                                         secondary={<Typography sx={{ color: 'var(--secondary-text-color)' }}>{song.artist}</Typography>}
+                                                         sx={{ ml: 1 }} 
+                                                     />
+                                                 </Box>
+                                                 
+                                                 {/* Container para o nome do usuário e o botão */}
+                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+                                                     {/* Verifica se a música tem a propriedade addedBy antes de tentar exibir */}
+                                                     {song.addedBy ? (
+                                                         <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)', minWidth: 150, textAlign: 'right' }}>
+                                                             Adicionado por: <br/><strong>{getAddedByName(song.addedBy)}</strong> {/* Corrigido: Usar song.addedBy */}
+                                                         </Typography>
+                                                     ) : (
+                                                             <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)', minWidth: 150, textAlign: 'right' }}>
+                                                                 Adicionado por: <br/>Desconhecido
+                                                             </Typography>
+                                                     )}
+                                                     <Button 
+                                                         onClick={() => handleRemoveFromQueue(song.id)}
+                                                         size="small"
+                                                         sx={{ color: 'var(--orange)', minWidth: 80 }}
+                                                     >
+                                                         Remover
+                                                     </Button>
+                                                 </Box>
+                                                 </ListItem>
+                                        ))}
                                     </List>
                                 ) : (
                                     <Typography sx={{ color: 'var(--secondary-text-color)' }}>

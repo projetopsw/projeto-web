@@ -8,6 +8,7 @@ import commentsReducer from '../redux/comentarioSlice'
 import votesReducer from '../redux/votesSlice'
 import connectionsReducer from '../redux/connectionsSlice'
 import artistInfo from '../redux/artistaInfoSlice'
+import grupoReducer from '../redux/grupoSlice'
 
 export const store = configureStore({
   reducer: {
@@ -20,5 +21,6 @@ export const store = configureStore({
     comments: commentsReducer,
     votes: votesReducer,
     artistInfo: artistInfo,
+    groups: grupoReducer,
   },
 });
