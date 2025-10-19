@@ -39,6 +39,8 @@ export const playerSlice = createSlice({
             state.queueIndex = 0;
             state.isPlaying = true;
             state.currentTime = 0;
+            // Desliga o Shuffle quando um novo item é tocado (Comportamento Comum)
+            state.isShuffling = false; 
         },
 
         setQueue: (state, action) => {
@@ -53,7 +55,9 @@ export const playerSlice = createSlice({
                 state.queue = newOriginalQueue;
             }
 
-            state.queueIndex = state.queue.findIndex(s => s.id === (action.payload.songs[action.payload.startIndex] || {}).id);
+            // O startIndex indica qual música deve ser a primeira a tocar
+            const songToStart = action.payload.songs[action.payload.startIndex || 0];
+            state.queueIndex = state.queue.findIndex(s => s.id === songToStart.id);
             if(state.queueIndex === -1 && state.queue.length > 0) state.queueIndex = 0;
             
             if (state.queue.length > 0) {
@@ -67,12 +71,19 @@ export const playerSlice = createSlice({
             state.isShuffling = !state.isShuffling;
 
             if (state.isShuffling) {
+                if (!state.currentSong) return;
+                
+                // 1. Pega a música atual da fila original
                 const currentSong = state.currentSong;
-                let shuffled = shuffleArray(state.originalQueue.filter(s => s.id !== currentSong.id));
-                state.queue = [currentSong, ...shuffled];
-                state.queueIndex = 0;
+                // 2. Embaralha o resto da fila original
+                let shuffledRest = shuffleArray(state.originalQueue.filter(s => s.id !== currentSong.id));
+                // 3. Monta a nova fila embaralhada com a música atual na frente
+                state.queue = [currentSong, ...shuffledRest];
+                state.queueIndex = 0; // A música atual é sempre a primeira da fila embaralhada
             } else {
+                // Volta para a fila original (ordenada)
                 state.queue = state.originalQueue;
+                // Encontra a posição da música atual na fila original
                 state.queueIndex = state.queue.findIndex(s => s.id === state.currentSong.id);
             }
         },
@@ -81,49 +92,87 @@ export const playerSlice = createSlice({
             state.repeatMode = (state.repeatMode + 1) % 3; 
         },
 
+        // 💡 REDUCER PARA ADICIONAR UMA MÚSICA (USADO NO GrupoDetalhe)
         addSingleSongToQueue: (state, action) => {
             const song = action.payload;
+            
+            // Adiciona sempre na fila ORIGINAL (para o modo não-shuffle)
+            // Verifica se a música já existe na fila original antes de adicionar
             if (!state.originalQueue.find(s => s.id === song.id)) {
                 state.originalQueue.push(song);
             }
+            
+            // Se estiver em modo Shuffle, a nova música vai para o fim da QUEUE atual
             if (state.isShuffling) {
                 state.queue.push(song);
             } else {
-                 state.queue = state.originalQueue;
+                // Se não estiver em modo Shuffle, atualiza a QUEUE com o ORIGINAL (mantendo a ordem)
+                state.queue = state.originalQueue;
             }
 
+            // Se não houver música tocando, esta se torna a música atual
             if (!state.currentSong) {
-                 state.queueIndex = state.queue.length - 1;
-                 state.currentSong = song;
-                 state.isPlaying = true;
+                // O queueIndex aponta para a música recém-adicionada (última da fila)
+                state.queueIndex = state.queue.length - 1;
+                state.currentSong = song;
+                state.isPlaying = true;
             }
         },
 
-        // NOVO REDUCER PARA REMOVER MÚSICA DA FILA
+        // 💡 REDUCER PARA REMOVER UMA MÚSICA DA FILA (USADO NO GrupoDetalhe)
         removeSongFromQueue: (state, action) => {
             const songIdToRemove = action.payload;
 
+            // Bloqueia a remoção se a fila estiver vazia ou se não houver currentSong
             if (!state.currentSong || state.queue.length === 0) return;
 
-            const currentSongIndex = state.queue.findIndex(s => s.id === state.currentSong.id);
+            // 1. NÃO PERMITE REMOVER A MÚSICA ATUALMENTE TOCANDO
+            if (songIdToRemove === state.currentSong.id) {
+                // Você pode adicionar uma notificação de erro aqui se quiser
+                return; 
+            }
+            
+            // Encontra o índice da música a ser removida na queue atual
             const indexToRemove = state.queue.findIndex(s => s.id === songIdToRemove);
+            if (indexToRemove === -1) return; // Música não está na fila
 
-            // Não remove a música atual
-            if (indexToRemove === -1 || songIdToRemove === state.currentSong.id) return;
-
-            // 1. Remove da fila atual
+            // 2. Remove da fila atual (Queue)
             state.queue.splice(indexToRemove, 1);
-            // 2. Remove da fila original (para manter o reordenamento correto)
+            
+            // 3. Remove da fila original (OriginalQueue)
             state.originalQueue = state.originalQueue.filter(s => s.id !== songIdToRemove);
 
-            // 3. Ajusta o índice de reprodução se a música removida estava antes
-            if (indexToRemove < currentSongIndex) {
+            // 4. Ajusta o queueIndex: se a música removida estava antes da música atual
+            if (indexToRemove < state.queueIndex) {
                 state.queueIndex -= 1;
-            } else if (indexToRemove === currentSongIndex) {
-                // Caso extremo, onde a música atual é removida (já bloqueado acima)
+            } else if (indexToRemove === state.queueIndex) {
+                 // Esta condição deve ser rara devido à verificação do passo 1, 
+                 // mas garante que o player aponte para o próximo item
+                state.queueIndex = Math.min(state.queueIndex, state.queue.length - 1);
+                state.currentSong = state.queue[state.queueIndex] || null;
             }
         },
 
+        // 💡 REDUCER PARA REORDENAR A FILA (USADO NO GrupoDetalhe DND)
+        reorderQueue: (state, action) => {
+            const { sourceIndex, destinationIndex } = action.payload;
+            
+            // 1. Aplica o reordenamento na QUEUE atual (a fila que está sendo exibida e tocada)
+            const [movedItem] = state.queue.splice(sourceIndex, 1);
+            state.queue.splice(destinationIndex, 0, movedItem);
+
+            // 2. O reordenamento manual DESLIGA o Shuffle e torna a fila atual a nova fila original.
+            state.isShuffling = false; 
+            state.originalQueue = state.queue;
+            
+            // 3. Reajusta o índice da música atual (se a música atual mudou de posição)
+            state.queueIndex = state.queue.findIndex(s => s.id === state.currentSong.id);
+            // Se a música atual não estiver mais na fila (por algum motivo, embora não devesse), 
+            // a próxima música deve ser a primeira.
+            if(state.queueIndex === -1 && state.queue.length > 0) state.queueIndex = 0;
+        },
+        
+        // --- Reducers de controle do Player (Mantidos) ---
         togglePlayPause: (state) => {
             if (state.currentSong) {
                 state.isPlaying = !state.isPlaying;
@@ -131,6 +180,7 @@ export const playerSlice = createSlice({
         },
         
         skipNext: (state) => {
+            // ... (lógica skipNext) ...
             if (state.repeatMode === REPEAT_MODES.SONG) {
                 state.isPlaying = true;
                 state.currentTime = 0; 
@@ -163,17 +213,6 @@ export const playerSlice = createSlice({
                 state.currentTime = 0;
             }
         },
-
-        reorderQueue: (state, action) => {
-            const { sourceIndex, destinationIndex } = action.payload;
-            const [movedItem] = state.queue.splice(sourceIndex, 1);
-            state.queue.splice(destinationIndex, 0, movedItem);
-
-            state.queueIndex = state.queue.findIndex(s => s.id === state.currentSong.id);
-            
-            state.isShuffling = false; 
-            state.originalQueue = state.queue;
-        },
         
         setDuration: (state, action) => {
             state.duration = action.payload;
@@ -193,14 +232,17 @@ export const playerSlice = createSlice({
 export const {
     playSong,
     setQueue, 
+    // 💡 Ações que o GrupoDetalhe precisa
     addSingleSongToQueue,
-    removeSongFromQueue, // 👈 EXPORTADO
+    removeSongFromQueue,
+    reorderQueue,
+    
+    // ...outras ações
     togglePlayPause,
     skipNext,
     skipPrevious,
     toggleShuffle,
     toggleRepeat,
-    reorderQueue,
     setDuration,
     updateCurrentTime,
     setVolume,

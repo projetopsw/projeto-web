@@ -1,5 +1,11 @@
+// src/pages/GrupoDetalhe.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useDispatch } from 'react-redux'; // 💡 Adicionado useDispatch
+// 💡 IMPORTANTE: Certifique-se de que este caminho está correto para o seu playerSlice
+import { playSong } from '../../redux/playerSlice'; 
+
 import { 
     Box, 
     Typography, 
@@ -17,9 +23,13 @@ import Header from '../../components/Header';
 import SearchMusicLocal from '../../components/SearchMusic'; 
 import UserCard from '../../components/UserCard'; 
 import api from '../../services/api.js'; 
+import Player from '../../components/Player'; // 💡 IMPORTADO O COMPONENTE PLAYER
 import './Grupo.css'; 
 
 
+// ----------------------------------------------------
+// ESTILO para os Quadrados (Paper)
+// ----------------------------------------------------
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(3),
@@ -38,23 +48,27 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 }));
 
 
-
 function GrupoDetalhe() {
     const { id } = useParams(); 
+    const dispatch = useDispatch(); // 💡 Adicionado useDispatch
     
+    // Variáveis de estado principais
     const [group, setGroup] = useState(null);
     const [groupMembers, setGroupMembers] = useState([]); 
     const [queue, setQueue] = useState([]); 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-  
+    // ----------------------------------------------------
+    // FUNÇÕES DE BUSCA DE DADOS
+    // ----------------------------------------------------
 
     const fetchGroupDetails = async () => {
         setIsLoading(true);
         try {
             const groupResponse = await api.get(`/groups/${id}`); 
             const groupData = groupResponse.data;
+            
             setGroup(groupData);
             setQueue(groupData.queue || groupData.currentQueue || []); 
 
@@ -71,6 +85,7 @@ function GrupoDetalhe() {
 
         } catch (err) {
             console.error("Erro ao carregar dados:", err);
+            // Fallback (dados de mock)
             setGroup({ id, name: `Grupo ${id} (Mock)` });
             setQueue([]); 
             setGroupMembers([
@@ -84,16 +99,33 @@ function GrupoDetalhe() {
         }
     };
     
-    
+    // ----------------------------------------------------
+    // FUNÇÕES DE GESTÃO DA FILA (COM INTEGRAÇÃO REDUX)
+    // ----------------------------------------------------
+
     const handleAddToQueue = (song) => {
         setQueue(prevQueue => {
             if (prevQueue.some(item => item.id === song.id)) {
                 alert(`"${song.title}" já está na fila!`); 
                 return prevQueue; 
             }
+            
+            // 💡 Ação: Se a fila e a música atual estiverem vazias, toca a música imediatamente
+            // Note: Não verificamos 'currentSong' aqui, pois o Redux Player faz isso.
+            // Apenas tentamos tocar e, se já estiver tocando, a música vai para a fila.
+            // A responsabilidade de saber se já está tocando e gerenciar a fila/currentSong
+            // no Redux deve ser do playerSlice. Aqui apenas adicionamos e disparamos o play inicial.
+            
             const newQueue = [...prevQueue, song];
             
-         
+            // Exemplo de como iniciar a reprodução da PRIMEIRA música adicionada
+            if (newQueue.length === 1 && !api.getPlayingSongId()) { 
+               // Se o backend não tem info de qual toca e esta é a primeira na lista:
+               dispatch(playSong(song));
+            }
+            
+            // Opcional: Aqui você pode adicionar a chamada PATCH para o backend
+            // api.patch(`/groups/${id}`, { queue: newQueue }).catch(e => console.error("Falha ao salvar fila:", e));
 
             return newQueue;
         });
@@ -103,6 +135,8 @@ function GrupoDetalhe() {
         setQueue(prevQueue => {
             const newQueue = prevQueue.filter(song => song.id !== songId);
             
+            // Opcional: Aqui você pode adicionar a chamada PATCH para o backend
+            // api.patch(`/groups/${id}`, { queue: newQueue }).catch(e => console.error("Falha ao salvar fila:", e));
             
             return newQueue;
         });
@@ -128,7 +162,9 @@ function GrupoDetalhe() {
         return <Typography sx={{ p: 5, color: 'red' }}>Grupo não encontrado.</Typography>;
     }
 
-  
+    // ----------------------------------------------------
+    // RENDERIZAÇÃO
+    // ----------------------------------------------------
 
     return (
         <>
@@ -144,6 +180,7 @@ function GrupoDetalhe() {
                 
                 <Grid container spacing={4} sx={{ flexGrow: 1 }}>
 
+                    {/* Quadrado 1: Nome do Grupo + Lista de Membros (ORIGINAL REINCLUÍDO) */}
                     <Grid item xs={12}>
                         <StyledPaper elevation={3} className="header-box">
                             <Box sx={{ mb: 1 }}>
@@ -161,6 +198,7 @@ function GrupoDetalhe() {
                                 Membros:
                             </Typography>
                             
+                            {/* LISTA SIMPLES DE NOMES DOS MEMBROS */}
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                                 {groupMembers.length > 0 ? (
                                     groupMembers.map((member) => (
@@ -186,20 +224,29 @@ function GrupoDetalhe() {
                         </StyledPaper>
                     </Grid>
 
+                    {/* Quadrado 2: Busca, Player e Fila de Reprodução */}
                     <Grid item xs={12} sx={{ flexGrow: 1 }}>
                         <StyledPaper elevation={3} className="queue-box">
                             <Typography variant="h5" sx={{ color: 'var(--title-color)', mb: 2 }}>
                                 🎵 Adicionar Música à Fila
                             </Typography>
                             
+                            {/* 1. Barra de Pesquisa */}
                             <Box sx={{ mb: 4, position: 'relative' }}>
                                 <SearchMusicLocal 
                                     onSongSelect={handleAddToQueue} 
                                 />
                             </Box>
-
+                            
+                            {/* 2. 💡 PLAYER DO GRUPO (NOVA POSIÇÃO) */}
+                            <Box sx={{ mb: 3 }}>
+                                <Player /> 
+                            </Box>
+                            
+                            {/* 3. Divisor e Fila */}
                             <Divider sx={{ my: 3, borderColor: 'var(--border-color)' }} />
 
+                            {/* Fila de Reprodução Atual */}
                             <Box>
                                 <Typography variant="h5" sx={{ color: 'var(--title-color)', mb: 2 }}>
                                     Lista de Espera ({queue.length})

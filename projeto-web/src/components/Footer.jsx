@@ -20,6 +20,8 @@ import SkipNextIcon from '@mui/icons-material/SkipNext';
 const ACTIVE_COLOR = 'var(--orange)';
 const INACTIVE_COLOR = 'var(--secondary-text-color)';
 
+// ... (MobileMenuItem e MiniPlayerTabContainer mantidos) ...
+
 const MobileMenuItem = ({ item, isActive }) => (
     <Link to={item.to} style={{ textDecoration: 'none', flexGrow: 1 }}>
         <Box 
@@ -82,6 +84,21 @@ const MiniPlayerTabContainer = styled(Box)(({ theme }) => ({
 function Footer() {
     const location = useLocation(); 
     const [isFooterVisible, setIsFooterVisible] = useState(true);
+
+    // ------------------------------------------------------------------
+    // 💡 LÓGICA DE OCULTAÇÃO DO FOOTER (IMPLEMENTAÇÃO)
+    // Verifica se o caminho atual corresponde ao padrão /grupos/:id
+    // ------------------------------------------------------------------
+    const path = location.pathname;
+    
+    // Regex para checar se o caminho é /grupos/ seguido por qualquer coisa (o ID)
+    const isGrupoDetalhe = /^(\/grupos\/[^/]+)$/.test(path);
+
+    // Se a rota for /grupos/:id, retorne null para não renderizar nada.
+    if (isGrupoDetalhe) {
+        return null;
+    }
+    // ------------------------------------------------------------------
 
     const toggleFooter = () => {
         setIsFooterVisible(prev => !prev);
@@ -229,7 +246,7 @@ function Footer() {
                             key={item.label} 
                             item={item} 
                             isActive={location.pathname === item.to || 
-                                     (item.to !== '/' && location.pathname.startsWith(item.to))} 
+                                         (item.to !== '/' && location.pathname.startsWith(item.to))} 
                         />
                     );
                 })}
