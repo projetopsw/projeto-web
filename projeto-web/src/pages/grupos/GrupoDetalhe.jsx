@@ -1,10 +1,11 @@
-// src/pages/GrupoDetalhe.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useDispatch } from 'react-redux'; // 💡 Adicionado useDispatch
-// 💡 IMPORTANTE: Certifique-se de que este caminho está correto para o seu playerSlice
-import { playSong } from '../../redux/playerSlice'; 
+import { useDispatch, useSelector } from 'react-redux'; 
+import { 
+    addSingleSongToQueue, 
+    removeSongFromQueue 
+    // ❌ REMOVIDO: skipNext não é mais usado aqui, pois a lógica de onSongEnd foi para o MainLayout
+} from '../../redux/playerSlice'; // Certifique-se que o caminho está correto
 
 import { 
     Box, 
@@ -19,11 +20,14 @@ import {
     styled,
     CircularProgress 
 } from '@mui/material';
-import Header from '../../components/Header';
+
+// ❌ REMOVIDO: O Header agora é gerenciado pelo MainLayout
+// import Header from '../../components/Header'; 
 import SearchMusicLocal from '../../components/SearchMusic'; 
 import UserCard from '../../components/UserCard'; 
 import api from '../../services/api.js'; 
-import Player from '../../components/Player'; // 💡 IMPORTADO O COMPONENTE PLAYER
+// ❌ REMOVIDO: O Player agora é gerenciado pelo MainLayout
+// import Player from '../../components/Player'; 
 import './Grupo.css'; 
 
 
@@ -50,12 +54,16 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 
 function GrupoDetalhe() {
     const { id } = useParams(); 
-    const dispatch = useDispatch(); // 💡 Adicionado useDispatch
+    const dispatch = useDispatch(); 
+    
+    // Usar useSelector para obter o estado do player
+    const queue = useSelector(state => state.player.queue || []);
+    const currentSong = useSelector(state => state.player.currentSong);
+    const queueIndex = useSelector(state => state.player.queueIndex);
     
     // Variáveis de estado principais
     const [group, setGroup] = useState(null);
     const [groupMembers, setGroupMembers] = useState([]); 
-    const [queue, setQueue] = useState([]); 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -70,7 +78,6 @@ function GrupoDetalhe() {
             const groupData = groupResponse.data;
             
             setGroup(groupData);
-            setQueue(groupData.queue || groupData.currentQueue || []); 
 
             const usersResponse = await api.get('/users');
             const allUsers = usersResponse.data;
@@ -87,7 +94,6 @@ function GrupoDetalhe() {
             console.error("Erro ao carregar dados:", err);
             // Fallback (dados de mock)
             setGroup({ id, name: `Grupo ${id} (Mock)` });
-            setQueue([]); 
             setGroupMembers([
                 { id: '1', name: 'Bebel (Mock)' }, 
                 { id: '2', name: 'Bia (Mock)' },
@@ -104,43 +110,28 @@ function GrupoDetalhe() {
     // ----------------------------------------------------
 
     const handleAddToQueue = (song) => {
-        setQueue(prevQueue => {
-            if (prevQueue.some(item => item.id === song.id)) {
-                alert(`"${song.title}" já está na fila!`); 
-                return prevQueue; 
-            }
-            
-            // 💡 Ação: Se a fila e a música atual estiverem vazias, toca a música imediatamente
-            // Note: Não verificamos 'currentSong' aqui, pois o Redux Player faz isso.
-            // Apenas tentamos tocar e, se já estiver tocando, a música vai para a fila.
-            // A responsabilidade de saber se já está tocando e gerenciar a fila/currentSong
-            // no Redux deve ser do playerSlice. Aqui apenas adicionamos e disparamos o play inicial.
-            
-            const newQueue = [...prevQueue, song];
-            
-            // Exemplo de como iniciar a reprodução da PRIMEIRA música adicionada
-            if (newQueue.length === 1 && !api.getPlayingSongId()) { 
-               // Se o backend não tem info de qual toca e esta é a primeira na lista:
-               dispatch(playSong(song));
-            }
-            
-            // Opcional: Aqui você pode adicionar a chamada PATCH para o backend
-            // api.patch(`/groups/${id}`, { queue: newQueue }).catch(e => console.error("Falha ao salvar fila:", e));
+        const isCurrentSong = currentSong && currentSong.id === song.id;
+        
+        if (isCurrentSong) {
+            alert(`"${song.title}" já está tocando. Adicionando novamente à fila.`);
+        }
 
-            return newQueue;
-        });
+        // Dispatch para adicionar.
+        dispatch(addSingleSongToQueue(song));
     };
     
     const handleRemoveFromQueue = (songId) => {
-        setQueue(prevQueue => {
-            const newQueue = prevQueue.filter(song => song.id !== songId);
-            
-            // Opcional: Aqui você pode adicionar a chamada PATCH para o backend
-            // api.patch(`/groups/${id}`, { queue: newQueue }).catch(e => console.error("Falha ao salvar fila:", e));
-            
-            return newQueue;
-        });
+        // Usa a ação do seu slice que lida com a remoção
+        dispatch(removeSongFromQueue(songId));
     };
+    
+    // ❌ REMOVIDO: A função handleSongEnd foi movida para MainLayout
+    /*
+    const handleSongEnd = () => {
+        console.log("Música atual finalizada. O MainLayout cuida do skipNext.");
+        // Não é mais necessário o dispatch aqui.
+    };
+    */
 
 
     useEffect(() => {
@@ -148,7 +139,7 @@ function GrupoDetalhe() {
             fetchGroupDetails();
         }
     }, [id]);
-
+    
     if (isLoading) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--text-color)' }}>
@@ -161,26 +152,27 @@ function GrupoDetalhe() {
     if (!group) {
         return <Typography sx={{ p: 5, color: 'red' }}>Grupo não encontrado.</Typography>;
     }
-
+    
     // ----------------------------------------------------
     // RENDERIZAÇÃO
     // ----------------------------------------------------
 
     return (
         <>
-            <Header />
+            {/* ❌ REMOVIDO: Header. É renderizado no MainLayout. */}
             <main className="content-area" 
                 style={{ 
                     padding: '20px 40px', 
                     display: 'flex', 
                     flexDirection: 'column',
-                    minHeight: 'calc(100vh - 64px)' 
+                    // Altura da main é ajustada para o MainLayout
+                    minHeight: '100%' 
                 }}
             >
                 
                 <Grid container spacing={4} sx={{ flexGrow: 1 }}>
 
-                    {/* Quadrado 1: Nome do Grupo + Lista de Membros (ORIGINAL REINCLUÍDO) */}
+                    {/* Quadrado 1: Nome do Grupo + Lista de Membros */}
                     <Grid item xs={12}>
                         <StyledPaper elevation={3} className="header-box">
                             <Box sx={{ mb: 1 }}>
@@ -198,7 +190,6 @@ function GrupoDetalhe() {
                                 Membros:
                             </Typography>
                             
-                            {/* LISTA SIMPLES DE NOMES DOS MEMBROS */}
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                                 {groupMembers.length > 0 ? (
                                     groupMembers.map((member) => (
@@ -224,7 +215,7 @@ function GrupoDetalhe() {
                         </StyledPaper>
                     </Grid>
 
-                    {/* Quadrado 2: Busca, Player e Fila de Reprodução */}
+                    {/* Quadrado 2: Busca e Fila de Reprodução (SEM Player) */}
                     <Grid item xs={12} sx={{ flexGrow: 1 }}>
                         <StyledPaper elevation={3} className="queue-box">
                             <Typography variant="h5" sx={{ color: 'var(--title-color)', mb: 2 }}>
@@ -238,10 +229,11 @@ function GrupoDetalhe() {
                                 />
                             </Box>
                             
-                            {/* 2. 💡 PLAYER DO GRUPO (NOVA POSIÇÃO) */}
-                            <Box sx={{ mb: 3 }}>
-                                <Player /> 
-                            </Box>
+                            {/* ❌ REMOVIDO: Player. É renderizado no MainLayout. */}
+                            {/* <Box sx={{ mb: 3 }}>
+                                <Player onSongEnd={handleSongEnd} /> 
+                            </Box> 
+                            */}
                             
                             {/* 3. Divisor e Fila */}
                             <Divider sx={{ my: 3, borderColor: 'var(--border-color)' }} />
@@ -249,18 +241,38 @@ function GrupoDetalhe() {
                             {/* Fila de Reprodução Atual */}
                             <Box>
                                 <Typography variant="h5" sx={{ color: 'var(--title-color)', mb: 2 }}>
-                                    Lista de Espera ({queue.length})
+                                    Fila de Reprodução
                                 </Typography>
                                 
-                                {queue.length === 0 ? (
-                                    <Typography sx={{ color: 'var(--secondary-text-color)' }}>
-                                        A fila está vazia. Comece a adicionar músicas usando a busca!
-                                    </Typography>
+                                {/* Exibe a música que está tocando */}
+                                {currentSong ? (
+                                    <Paper elevation={1} sx={{ p: 1.5, mb: 2, backgroundColor: 'var(--bg-light)', borderLeft: '4px solid var(--orange)' }}>
+                                        <Typography variant="body1" sx={{ color: 'var(--orange)', fontWeight: 'bold' }}>
+                                            Tocando Agora ({queueIndex + 1}/{queue.length}):
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ color: 'var(--text-color)' }}>
+                                            {currentSong.title}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)' }}>
+                                            {currentSong.artist}
+                                        </Typography>
+                                    </Paper>
                                 ) : (
+                                    <Typography sx={{ color: 'var(--secondary-text-color)', mb: 2 }}>
+                                        Nenhuma música tocando. Adicione a primeira!
+                                    </Typography>
+                                )}
+                                
+                                <Typography variant="h6" sx={{ color: 'var(--title-color)', mb: 2 }}>
+                                    Próximas na Fila ({queue.length - (queueIndex + 1)} restantes)
+                                </Typography>
+                                
+                                {/* Exibe apenas o restante da fila, começando no queueIndex + 1 */}
+                                {queue.length > 0 && queueIndex !== -1 ? (
                                     <List dense>
-                                        {queue.map((song, index) => (
+                                        {queue.slice(queueIndex + 1).map((song, index) => (
                                             <ListItem
-                                                key={song.id}
+                                                key={song.id + '-' + (queueIndex + 1 + index)} 
                                                 secondaryAction={
                                                     <Button 
                                                         onClick={() => handleRemoveFromQueue(song.id)}
@@ -273,12 +285,16 @@ function GrupoDetalhe() {
                                                 sx={{ borderBottom: '1px solid var(--border-color-light)' }}
                                             >
                                                 <ListItemText
-                                                    primary={<Typography sx={{ color: 'var(--text-color)' }}>#{index + 1}: {song.title}</Typography>}
+                                                    primary={<Typography sx={{ color: 'var(--text-color)' }}>#{queueIndex + 2 + index}: {song.title}</Typography>}
                                                     secondary={<Typography sx={{ color: 'var(--secondary-text-color)' }}>{song.artist}</Typography>}
                                                 />
                                             </ListItem>
                                         ))}
                                     </List>
+                                ) : (
+                                    <Typography sx={{ color: 'var(--secondary-text-color)' }}>
+                                        A fila de espera está vazia.
+                                    </Typography>
                                 )}
                             </Box>
                         </StyledPaper>
