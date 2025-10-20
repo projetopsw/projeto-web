@@ -29,22 +29,18 @@ import api from '../../services/api';
 import {
     fetchGroups,
     deleteGroup,
-    selectGroupStatus, // Importação do status para uso na edição/loading
+    selectGroupStatus, 
     updateGroupDetails,
-    // Importamos os selectores na seção 3 para otimizar o componente principal
 } from '../../redux/grupoSlice'; 
 
-// Importa o seletor para otimização
 import { 
     selectAllGroups,
-    selectActiveGroupId // Adicionei este para ter acesso, caso fosse necessário no futuro
+    selectActiveGroupId 
 } from '../../redux/grupoSlice'; 
 
 const DEFAULT_GROUP_COVER = 'https://placehold.co/600x600/607D8B/white?text=GRUPO';
 
-// --------------------------------------------------------------------------
-// 1. Estilizações e Funções Auxiliares (Inalterado)
-// --------------------------------------------------------------------------
+
 
 const GruposContainer = styled(Box)(({ theme }) => ({
     display: 'grid',
@@ -80,12 +76,8 @@ const fileToBase64 = (file) =>
         reader.onerror = (error) => reject(error);
     });
 
-// --------------------------------------------------------------------------
-// 2. Componente: Modal de Compartilhamento (Inalterado)
-// --------------------------------------------------------------------------
 
 const ShareGroupModal = ({ group, onClose }) => {
-    // ... Código inalterado ...
     const groupUrl = `${window.location.origin}/grupos/${group.id}`;
     const [copied, setCopied] = useState(false);
 
@@ -135,10 +127,10 @@ const ShareGroupModal = ({ group, onClose }) => {
                         }}
                     />
                     <Button
-                        className="btn-primary-orange" // Usa a classe CSS
+                        className="btn-primary-orange" 
                         onClick={handleCopy}
                         sx={{
-                            backgroundColor: copied ? '#4CAF50' : 'var(--orange)', // Sobrescreve a cor para feedback
+                            backgroundColor: copied ? '#4CAF50' : 'var(--orange)', 
                             '&:hover': { backgroundColor: copied ? '#4CAF50' : 'var(--darker-orange)' },
                             minWidth: '100px',
                         }}
@@ -162,22 +154,16 @@ const ShareGroupModal = ({ group, onClose }) => {
     );
 };
 
-// --------------------------------------------------------------------------
-// 3. Componente de Edição de Grupo (Modal)
-// OTIMIZAÇÃO: Recebe 'onSave' em vez de 'dispatch' para isolamento
-// OTIMIZAÇÃO: Usa o status global 'isSaving' para o botão (groupsStatus === 'loading')
-// --------------------------------------------------------------------------
+
 const EditGroupModal = ({ group, onClose, onSave, groupsStatus }) => {
     const [name, setName] = useState(group.name);
     const [description, setDescription] = useState(group.description || '');
     const [coverFile, setCoverFile] = useState(null);
     const [fileName, setFileName] = useState('Nenhum arquivo selecionado');
     
-    // O status de salvamento agora vem do Redux (groupsStatus)
     const isSaving = groupsStatus === 'loading'; 
     
-    // GARANTIA: Atualiza estados internos se o grupo mudar
-    // Essencial para garantir que o modal sempre exiba o estado mais recente
+
     useEffect(() => {
         setName(group.name);
         setDescription(group.description || '');
@@ -213,14 +199,11 @@ const EditGroupModal = ({ group, onClose, onSave, groupsStatus }) => {
                 cover: newCover,
             };
 
-            // CHAMA A FUNÇÃO DE SALVAR PASSADA COMO PROP (que usa o dispatch)
             await onSave({ groupId: group.id, data: updatedData });
-            onClose(); // Fecha o modal após o sucesso
+            onClose(); 
             
         } catch (error) {
-            // A lógica de erro final é tratada no thunk e no componente principal (se necessário)
             console.error('Falha ao salvar o grupo:', error);
-            // alert('Não foi possível salvar as alterações. Verifique o console.');
         } 
     };
 
@@ -296,18 +279,14 @@ const EditGroupModal = ({ group, onClose, onSave, groupsStatus }) => {
     );
 };
 
-// --------------------------------------------------------------------------
-// 4. Componente Individual do Grupo (Otimizado com React.memo)
-// --------------------------------------------------------------------------
+
 
 const GrupoItem = React.memo(({ grupo, onJoin, currentUserId, onDelete, onEdit, onShare }) => {
     const listenersCount = grupo.listeners?.length || 0;
-    // Conversão para String antecipada é boa para evitar bugs de comparação
     const currentUserIdStr = String(currentUserId); 
     const isListening = (grupo.listeners || []).includes(currentUserIdStr);
     const isCreator = String(grupo.creatorId) === currentUserIdStr;
 
-    // UseMemo não é estritamente necessário aqui, mas é um bom hábito para cálculos leves em componentes memoizados
     const isMember = useMemo(() => (grupo.members || []).includes(currentUserIdStr), [grupo.members, currentUserIdStr]);
 
     const statusColor = listenersCount > 0 ? 'var(--orange)' : 'var(--secondary-text-color)';

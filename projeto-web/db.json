@@ -649,7 +649,8 @@
       "name": "Malu",
       "email": "malu@email.com",
       "likedSongs": [
-        "song-01"
+        "song-01",
+        "song-02"
       ],
       "following": [
         "artist-02"
@@ -659,10 +660,7 @@
         "2",
         "3"
       ],
-      "userPlaylists": [
-        "187b"
-      ],
-      "friendshipRequests": []
+      "img": "https://pm1.aminoapps.com/7759/2711b1c6d2da142fc9c8680b7527caf246662c52r1-521-521v2_hq.jpg"
     },
     {
       "id": "e297",
@@ -738,8 +736,7 @@
       "creator": "Você",
       "songs": [
         "song-01",
-        "song-05",
-        "song-06"
+        "song-02"
       ]
     },
     {

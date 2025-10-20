@@ -203,7 +203,6 @@ function PlaylistDetalhe() {
         setLocalSongs(prevSongs => sortSongs(prevSongs, sortKey));
     }, [sortKey]); 
 
-    // --- Funções de Menu da Playlist (já existentes) ---
     const handleSortClick = (event) => {
         setSortAnchorEl(event.currentTarget);
     };
@@ -290,8 +289,6 @@ function PlaylistDetalhe() {
     const handleCloseAddToPlaylistModal = () => setIsAddToPlaylistModalOpen(false);
 
     const handleAddSongToPlaylist = async (targetPlaylistId) => {
-        // Se o modal foi aberto pelo menu da música, adiciona apenas essa música.
-        // Se o modal foi aberto pelo menu principal da playlist, adiciona todas.
         const songIdsToAdd = songOptionsSong ? [songOptionsSong.id] : localSongs.map(song => song.id);
 
         try {
@@ -310,7 +307,7 @@ function PlaylistDetalhe() {
             }
             
             handleCloseAddToPlaylistModal();
-            handleSongOptionsClose(); // Fecha o menu da música se estiver aberto
+            handleSongOptionsClose(); 
         } catch (error) {
             console.error("Erro ao adicionar música(s) a outra playlist:", error);
             alert("Não foi possível adicionar a(s) música(s). Tente novamente.");
@@ -319,9 +316,8 @@ function PlaylistDetalhe() {
     
     const availablePlaylists = userPlaylists.filter(p => p.id !== '0' && p.id !== id);
     
-    // --- NOVAS FUNÇÕES: Menu da Música ---
     const handleSongOptionsClick = (event, song) => {
-        event.stopPropagation(); // Evita que o evento de clique da linha da tabela seja disparado
+        event.stopPropagation(); 
         setSongOptionsAnchorEl(event.currentTarget);
         setSongOptionsSong(song);
     };
@@ -337,15 +333,12 @@ function PlaylistDetalhe() {
 
         if (window.confirm(`Tem certeza que deseja excluir "${songOptionsSong.title}" da playlist "${playlistDetails.name}"?`)) {
             try {
-                // Remove a música localmente
                 const newLocalSongs = localSongs.filter(s => s.id !== songOptionsSong.id);
                 setLocalSongs(newLocalSongs);
 
-                // Atualiza a playlist no servidor
                 const newSongIds = newLocalSongs.map(song => song.id);
                 await api.patch(`/userPlaylists/${id}`, { songs: newSongIds });
                 
-                // Atualiza o estado da playlist para recontar músicas e duração
                 fetchPlaylistData();
                 
                 alert(`Música "${songOptionsSong.title}" removida com sucesso!`);
@@ -360,7 +353,6 @@ function PlaylistDetalhe() {
         handleSongOptionsClose();
         if (!songOptionsSong) return;
         
-        // Exemplo: Compartilhar um link genérico para a música
         const songLink = `${window.location.origin}/song/${songOptionsSong.id}`;
         
         if (navigator.clipboard) {
@@ -373,10 +365,8 @@ function PlaylistDetalhe() {
     
     const handleOpenAddSongToPlaylistModal = () => {
         handleSongOptionsClose();
-        // A função handleAddSongToPlaylist usará songOptionsSong para saber qual música adicionar
         setIsAddToPlaylistModalOpen(true);
     };
-    // --- FIM NOVAS FUNÇÕES ---
 
     if (isLoading) {
         return (
@@ -716,7 +706,6 @@ function PlaylistDetalhe() {
                 </Droppable>
             </DragDropContext>
             
-            {/* NOVO: Menu de Opções da Música */}
             <Menu
                 anchorEl={songOptionsAnchorEl}
                 open={songOptionsMenuOpen}
@@ -744,7 +733,7 @@ function PlaylistDetalhe() {
                     Adicionar a Outra Playlist
                 </MenuItem>
                 
-                {isCustomPlaylist && ( // Apenas playlists customizadas permitem remover
+                {isCustomPlaylist && ( 
                     <>
                         <Divider sx={{ backgroundColor: 'var(--border-color)' }} />
                         <MenuItem onClick={handleRemoveSong}>
@@ -754,9 +743,7 @@ function PlaylistDetalhe() {
                     </>
                 )}
             </Menu>
-            {/* FIM NOVO: Menu de Opções da Música */}
             
-            {/* Modal de Edição de Playlist (Já Existente) */}
             {isCustomPlaylist && (
                 <Modal
                     open={isEditModalOpen}
@@ -830,7 +817,6 @@ function PlaylistDetalhe() {
                 </Modal>
             )}
             
-            {/* Modal Adicionar a Outra Playlist (Atualizado para funcionar com seleção de música individual) */}
             <Modal
                 open={isAddToPlaylistModalOpen}
                 onClose={handleCloseAddToPlaylistModal}
