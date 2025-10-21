@@ -78,7 +78,7 @@ export const playerSlice = createSlice({
                 const currentSongId = state.currentSong.id;
                 const currentIndexInOriginal = state.originalQueue.findIndex(s => s.id === currentSongId);
                 
-                if (currentIndexInOriginal === -1) return; 
+                if (currentIndexInOriginal === -1) return;
 
                 const currentSong = state.currentSong;
                 
@@ -88,7 +88,7 @@ export const playerSlice = createSlice({
                 let shuffledRest = shuffleArray(restOfOriginal);
                 
                 state.queue = [currentSong, ...shuffledRest];
-                state.queueIndex = 0; 
+                state.queueIndex = 0;
             } else {
                 state.queue = state.originalQueue;
                 state.queueIndex = state.queue.findIndex(s => s.id === state.currentSong.id);
@@ -132,7 +132,6 @@ export const playerSlice = createSlice({
             }
 
             state.queue.splice(indexToSplice, 1);
-            
             
             state.originalQueue = [...state.queue];
 
@@ -227,7 +226,6 @@ export const {
     addSingleSongToQueue,
     removeSongFromQueue,
     reorderQueue,
-    
     togglePlayPause,
     skipNext,
     skipPrevious,

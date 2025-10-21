@@ -129,13 +129,16 @@ function TelaMusica() {
     }, [currentSong, scrollPosition, abaAtiva]); 
 
 
+    // --- Componente da Aba DESCRIÇÃO (ADAPTADO) ---
     const DescriptionTabContent = () => (
         <Box>
+            {/* Bloco de Rating com a barra de progresso */}
             <Stack direction="row" spacing={2} alignItems="center" className="like-dislike-buttons" sx={{ mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <IconButton 
                         onClick={handleLike} 
                         aria-label="like"
+                        // 💡 Cores adaptadas: Ícone ativo (laranja), Ícone inativo (cor do texto), Hover (laranja)
                         sx={{ color: userRating === 1 ? 'var(--orange, #ff7533)' : 'var(--text-color, white)', 
                               '&:hover': { color: 'var(--orange, #ff7533)' } }}
                     >
@@ -143,6 +146,7 @@ function TelaMusica() {
                     </IconButton>
                     <Typography 
                         variant="body1" 
+                        // 💡 Cor do Texto adaptada
                         sx={{ color: 'var(--text-color, white)', minWidth: '20px' }}
                     >
                         {likes}
@@ -156,8 +160,10 @@ function TelaMusica() {
                         sx={{ 
                             height: 8, 
                             borderRadius: 5, 
+                            // 💡 Fundo da barra inativa (input-bg para ser neutro no tema claro)
                             backgroundColor: 'var(--input-bg, rgba(255, 255, 255, 0.3))',
                             '& .MuiLinearProgress-bar': {
+                                // 💡 Cor da barra de progresso (Laranja)
                                 backgroundColor: 'var(--orange, #ff7533)',
                             }
                         }}
@@ -167,6 +173,7 @@ function TelaMusica() {
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Typography 
                         variant="body1" 
+                        // 💡 Cor do Texto adaptada
                         sx={{ color: 'var(--text-color, white)', minWidth: '20px', textAlign: 'right' }}
                     >
                         {dislikes}
@@ -174,6 +181,7 @@ function TelaMusica() {
                     <IconButton 
                         onClick={handleDislike} 
                         aria-label="dislike"
+                        // 💡 Cores adaptadas: Ícone ativo (laranja), Ícone inativo (cor do texto), Hover (laranja)
                         sx={{ color: userRating === -1 ? 'var(--orange, #ff7533)' : 'var(--text-color, white)', 
                               '&:hover': { color: 'var(--orange, #ff7533)' } }}
                     >
@@ -182,6 +190,7 @@ function TelaMusica() {
                 </Box>
             </Stack>
 
+            {/* Descrição da Música */}
             <Typography variant="body1" className="content-text" sx={{ color: 'var(--text-color, white)' }}>
                 {musicaAtual.descricao || 'Descrição indisponível.'}
             </Typography>
@@ -189,12 +198,15 @@ function TelaMusica() {
     );
 
 
+    // --- Componente da Aba ARTISTA (ADAPTADO) ---
     const ArtistTabContent = () => {
         if (artistStatus === 'loading') {
+            // 💡 Cores de texto adaptadas
             return <Typography variant="body1" sx={{ color: 'var(--text-color, white)' }}>Carregando informações do artista...</Typography>;
         }
         
         if (artistStatus === 'failed') {
+            // 💡 Cores de texto adaptadas
             return <Typography variant="body1" color="error" sx={{ color: 'var(--darker-orange, #ff7533)' }}>Erro ao carregar dados dos artistas: {artistError}</Typography>;
         }
         
@@ -207,6 +219,7 @@ function TelaMusica() {
                             component="h2" 
                             gutterBottom 
                             className="musica-artista" 
+                            // 💡 Cores de título adaptadas
                             sx={{ 
                                 mt: 1, 
                                 mb: 2, 
@@ -214,7 +227,7 @@ function TelaMusica() {
                                 color: 'var(--title-color, white)',
                                 '&:hover': { 
                                     textDecoration: 'underline', 
-                                    color: 'var(--orange, #ff7533)' 
+                                    color: 'var(--orange, #ff7533)' // Laranja no hover
                                 } 
                             }}
                             onClick={handleArtistClick}
@@ -244,12 +257,14 @@ function TelaMusica() {
                         <Typography 
                             variant="body1" 
                             className="content-text"
+                            // 💡 Cores de texto adaptadas
                             sx={{ color: 'var(--text-color, white)' }}
                         >
                             {artistaInfo.about || 'Informação sobre o artista não disponível.'}
                         </Typography>
                     </>
                 ) : (
+                    // 💡 Cores de texto adaptadas
                     <Typography variant="body1" sx={{ color: 'var(--text-color, white)' }}>
                         Informações detalhadas sobre o artista "{musicaArtista}" indisponíveis. (Certifique-se de que o `artistId` da música está correto).
                     </Typography>
@@ -272,6 +287,7 @@ function TelaMusica() {
                     className="content-text" 
                     sx={{ 
                         whiteSpace: 'pre-wrap',
+                        // 💡 Cores de texto adaptadas
                         color: 'var(--text-color, white)' 
                     }} 
                 >
@@ -279,6 +295,7 @@ function TelaMusica() {
                 </Typography>
             );
         } else if (abaAtiva === 'comentarios') {
+            // Presumimos que o componente Comentarios lida com suas próprias cores
             content = <Comentarios musicaId={musicaId} />;
         }
 
@@ -292,8 +309,11 @@ function TelaMusica() {
                     overflowY: 'auto', 
                     p: 2, 
                     mt: 1,
+                    // 💡 Cor de Fundo da aba (card-bg ou um fundo sutil)
                     backgroundColor: 'var(--card-bg, rgba(255, 255, 255, 0.05))', 
                     borderRadius: 1,
+                    // 💡 Cor da barra de rolagem (se necessário, pode ser estilizada via CSS ou Webkit)
+                    // Para o conteúdo interno, o texto já foi adaptado em cada subcomponente.
                 }}
             >
                 {content}
@@ -306,14 +326,17 @@ function TelaMusica() {
         <Container 
             maxWidth="lg" 
             className="tela-musica-container"
+            // 💡 Cor do Texto do Container (fallback para todos os filhos)
             sx={{ color: 'var(--text-color, white)' }} 
         >
+            {/* Bloco de Informações da Música (Fixo) */}
             <Box className="player-info-block">
                 <Typography 
                     variant="h4" 
                     component="h1" 
                     gutterBottom 
                     className="musica-titulo"
+                    // 💡 Cor do Título
                     sx={{ color: 'var(--title-color, white)' }}
                 >
                     {musicaTitulo}
@@ -322,6 +345,7 @@ function TelaMusica() {
                     variant="h6" 
                     gutterBottom 
                     className="musica-artista"
+                    // 💡 Cor do Artista
                     sx={{ color: 'var(--artist-color, rgba(255, 255, 255, 0.8))' }}
                 >
                     {musicaArtista}
@@ -335,7 +359,9 @@ function TelaMusica() {
                 />
             </Box>
 
+            {/* Bloco de Opções e Conteúdo*/}
             <Box className="options-block">
+                {/* Botões das Abas (Fixo) */}
                 <Stack direction="row" spacing={1} className="options-buttons">
                     {['artista', 'descricao', 'letra', 'comentarios'].map(aba => (
                         <Button 
@@ -345,7 +371,9 @@ function TelaMusica() {
                                 setAbaAtiva(aba);
                                 setScrollPosition(0); 
                             }}
+                            // 💡 Estilos do Botão adaptados
                             sx={{
+                                // Contained: Fundo laranja, Texto branco/padrão
                                 backgroundColor: abaAtiva === aba ? 'var(--orange, #ff7533)' : 'transparent',
                                 color: abaAtiva === aba ? 'white' : 'var(--text-color, white)',
                                 border: `1px solid ${abaAtiva === aba ? 'var(--orange, #ff7533)' : 'var(--border-color, rgba(255, 255, 255, 0.5))'}`,

@@ -52,6 +52,9 @@ function GrupoDetalhe() {
     const { id } = useParams(); 
     const dispatch = useDispatch(); 
     
+    // ====================================================================
+    // 💡 OBTENDO O USUÁRIO LOGADO REAL DO REDUX
+    // ====================================================================
     const { user: authUser } = useSelector((state) => state.auth);
     const updatedUser = useSelector((state) => state.user.user);
     const user = updatedUser || authUser;
@@ -70,18 +73,26 @@ function GrupoDetalhe() {
     
     // Variáveis de estado principais
     const [group, setGroup] = useState(null);
+    // Importante: Usaremos 'groupMembers' para encontrar o nome completo do addedBy
     const [groupMembers, setGroupMembers] = useState([]); 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // ----------------------------------------------------
+    // FUNÇÕES DE BUSCA DE DADOS (Atualizado o mock de membros)
+    // ----------------------------------------------------
 
     const fetchGroupDetails = async () => {
         setIsLoading(true);
         try {
+            // ... (Sua lógica de API)
             
-            // Simulação de dados
-            const groupData = { id, name: `Grupo (${id})` };
+            // Simulação de dados (Mock)
+            const groupData = { id, name: `Grupo ${id} (Mock)` };
             const membersData = [
+                { id: '1', name: 'Bebel', username: 'bebel_dj' }, 
+                { id: '2', name: 'Bia', username: 'bia_dj' },
+                // Garante que o usuário logado está na lista de membros (com seu ID/Username real)
                 { id: currentUser.id, name: currentUser.name, username: currentUser.username }
             ];
             
@@ -91,9 +102,14 @@ function GrupoDetalhe() {
 
         } catch (err) {
             console.error("Erro ao carregar dados:", err);
-            setGroup({ id, name: `Grupo (${id})` });
+            // Fallback (dados de mock)
+            setGroup({ id, name: `Grupo ${id} (Mock)` });
             
+            // Dados de Mock de Membros atualizados para usar o ID do currentUser
             setGroupMembers([
+                { id: '1', name: 'Bebel', username: 'bebel_dj' }, 
+                { id: '2', name: 'Bia', username: 'bia_dj' },
+                // Garante que o usuário logado está na lista de membros (com seu ID/Username real)
                 { id: currentUser.id, name: currentUser.name, username: currentUser.username }
             ]);
             setError("Não foi possível carregar os dados completos. Usando dados padrão.");
@@ -102,6 +118,11 @@ function GrupoDetalhe() {
         }
     };
     
+    // ----------------------------------------------------
+    // FUNÇÕES DE GESTÃO DA FILA
+    // ----------------------------------------------------
+
+    // Atualização da função getAddedByName
     const getAddedByName = (addedByValue) => {
         // Verifica se é o usuário logado (usando ID ou username)
         if (addedByValue === currentUser.username || addedByValue === currentUser.id) {
@@ -202,13 +223,13 @@ function GrupoDetalhe() {
                                             key={member.id}
                                             variant="body2" 
                                             sx={{ 
-                                               
-                                                color: 'var(--card-bg)', 
-                                                backgroundColor: 'var(--orange)', 
+                                                // 💡 ALTERAÇÃO AQUI: Mudando o background para laranja e a cor do texto para o escuro/padrão
+                                                color: 'var(--card-bg)', // Cor do texto (fundo escuro do Card para contraste)
+                                                backgroundColor: 'var(--orange)', // Cor de fundo Laranja
                                                 padding: '2px 8px',
                                                 borderRadius: '4px',
-                                                fontWeight: 'bold', 
-                                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)' 
+                                                fontWeight: 'bold', // Opcional, para destacar mais
+                                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)' // Opcional, para dar profundidade
                                             }}
                                         >
                                             {member.name}
@@ -227,17 +248,17 @@ function GrupoDetalhe() {
                     <Grid item xs={12} sx={{ flexGrow: 1 }}>
                         <StyledPaper elevation={3} className="queue-box">
                             <Typography variant="h5" sx={{ color: 'var(--title-color)', mb: 2 }}>
-                                Adicionar Música à Fila
+                                🎵 Adicionar Música à Fila
                             </Typography>
                             
-                            {/* Barra de Pesquisa */}
+                            {/* 1. Barra de Pesquisa */}
                             <Box sx={{ mb: 4, position: 'relative' }}>
                                 <SearchMusicLocal 
                                     onSongSelect={handleAddToQueue} 
                                 />
                             </Box>
                             
-                            {/* Divisor e Fila */}
+                            {/* 3. Divisor e Fila */}
                             <Divider sx={{ my: 3, borderColor: 'var(--border-color)' }} />
 
                             {/* Fila de Reprodução Atual */}
@@ -272,6 +293,7 @@ function GrupoDetalhe() {
                                         </Typography>
                                         <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)' }}>
                                             {currentSong.artist} 
+                                            {/* 💡 Exibição do addedBy no tocando agora */}
                                             {currentSong.addedBy && ` | Adicionado por: ${getAddedByName(currentSong.addedBy)}`}
                                         </Typography>
                                         </Box>
@@ -286,7 +308,7 @@ function GrupoDetalhe() {
                                     Próximas na Fila ({queue.length - (queueIndex + 1)} restantes)
                                 </Typography>
                                 
-                                {/* Exibe apenas o restante da fila*/}
+                                {/* Exibe apenas o restante da fila, começando no queueIndex + 1 */}
                                 {queue.length > 0 && queueIndex !== -1 ? (
                                     <List dense>
                                         {queue.slice(queueIndex + 1).map((song, index) => (

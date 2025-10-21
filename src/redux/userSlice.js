@@ -19,6 +19,7 @@ const loadUserFromStorage = () => {
 const saveUserToStorage = (user) => {
     try {
         const serializedUser = JSON.stringify(user);
+        // Tenta salvar o objeto completo (incluindo a Data URL)
         localStorage.setItem(LOCAL_STORAGE_KEY, serializedUser);
     } catch (e) {
         console.error("Não foi possível salvar o usuário no localStorage. A Data URL é muito grande?", e);

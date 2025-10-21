@@ -642,16 +642,14 @@
         "1",
         "4"
       ],
-      "img": "https://i.pinimg.com/736x/76/d0/b0/76d0b02ca644bfe8e2ed44d49117c52e.jpg"
+      "img": "/assets/img/piano_cover_3.png"
     },
     {
       "id": "4",
       "name": "Malu",
       "email": "malu@email.com",
       "likedSongs": [
-        "song-01",
-        "song-02",
-        "song-03"
+        "song-01"
       ],
       "following": [
         "artist-02"
@@ -661,10 +659,10 @@
         "2",
         "3"
       ],
-      "img": "https://pm1.aminoapps.com/7759/2711b1c6d2da142fc9c8680b7527caf246662c52r1-521-521v2_hq.jpg",
       "userPlaylists": [
-        "78db"
-      ]
+        "187b"
+      ],
+      "friendshipRequests": []
     },
     {
       "id": "e297",
@@ -681,6 +679,7 @@
       "email": "luiza@email.com",
       "likedSongs": [
         "song-01",
+        "song-03",
         "song-02"
       ],
       "following": [],
@@ -743,8 +742,8 @@
       "creator": "Você",
       "songs": [
         "song-01",
-        "song-02",
-        "song-03"
+        "song-03",
+        "song-02"
       ]
     },
     {
@@ -815,37 +814,6 @@
       ],
       "duration": "0 min",
       "songCount": 0
-    },
-    {
-      "id": "a74e",
-      "name": "Academia",
-      "creatorId": "4",
-      "img": "https://blog.supertechfitness.com.br/wp-content/uploads/2023/07/equipamentos-nacionais-academia-1024x683.jpeg",
-      "type": "Playlist do Usuário",
-      "description": "Playlist criada por Malu.",
-      "songs": [
-        "song-02",
-        "song-04",
-        "song-05",
-        "song-08"
-      ],
-      "duration": "0 min",
-      "songCount": 0,
-      "isPublic": false
-    },
-    {
-      "id": "78db",
-      "name": "fantasminha",
-      "creatorId": "4",
-      "img": "https://pm1.aminoapps.com/7759/2711b1c6d2da142fc9c8680b7527caf246662c52r1-521-521v2_hq.jpg",
-      "type": "Playlist do Usuário",
-      "description": "Playlist criada por Malu.",
-      "songs": [
-        "song-04"
-      ],
-      "duration": "0 min",
-      "songCount": 0,
-      "isPublic": false
     }
   ],
   "allSongs": [

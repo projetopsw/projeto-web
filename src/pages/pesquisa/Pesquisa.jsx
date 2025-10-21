@@ -10,7 +10,7 @@ import PlaylistCard from '../../components/PlaylistCard';
 import ArtistCircle from '../../components/ArtistCircle';
 import UserCard from '../../components/UserCard'; 
 import './Pesquisa.css'; 
-import api from '../../services/api.js';
+import api from '../../services/api.js'; 
 
 const navItemsData = ["Tudo", "Usuários", "Playlists", "Músicas", "Álbuns", "Artistas"];
 
@@ -21,6 +21,7 @@ const normalizeName = (str) => {
 
 const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
     if (!query || !data || data.length === 0) return [];
+    
     const lowerQuery = normalizeName(query);
 
     const filtered = data.filter(item => {
@@ -35,10 +36,12 @@ const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
             return lowerFieldValue === lowerQuery;
         } else if (mode === 'includes') {
             return lowerFieldValue.includes(lowerQuery);
-        } else { 
+        } else { // starts_with
             return lowerFieldValue.startsWith(lowerQuery);
         }
     });
+    
+
     return filtered;
 };
 
@@ -50,27 +53,32 @@ const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
  */
 const getRandomItems = (data, count = 5) => {
     if (!data || data.length === 0) return [];
+    
+    // Cria uma cópia e embaralha
     const shuffled = [...data].sort(() => 0.5 - Math.random());
     
+    // Retorna os primeiros 'count' itens
     return shuffled.slice(0, count);
 };
+
 
 function Pesquisa() {
     const [selectedFilter, setSelectedFilter] = useState('Tudo');
     
-    // Estados principais e relacionados (idênticos em A e B)
+    // ESTADOS PARA RESULTADOS DE BUSCA
     const [mainSongs, setMainSongs] = useState([]); 
-    const [mainArtists, setMainArtists] = useState([]);
+    const [mainArtists, setMainArtists] = useState([]); 
     const [mainAlbums, setMainAlbums] = useState([]); 
     const [mainPlaylists, setMainPlaylists] = useState([]); 
     const [mainUsers, setMainUsers] = useState([]); 
     
-    const [relatedSongs, setRelatedSongs] = useState([]);
+    const [relatedSongs, setRelatedSongs] = useState([]); 
     const [relatedArtists, setRelatedArtists] = useState([]); 
     const [relatedAlbums, setRelatedAlbums] = useState([]); 
     const [relatedPlaylists, setRelatedPlaylists] = useState([]); 
-    const [relatedUsers, setRelatedUsers] = useState([]);
+    const [relatedUsers, setRelatedUsers] = useState([]); 
 
+    // NOVO ESTADO PARA ITENS ALEATÓRIOS (SUGESTÕES)
     const [randomSongs, setRandomSongs] = useState([]);
     const [randomArtists, setRandomArtists] = useState([]);
     const [randomAlbums, setRandomAlbums] = useState([]);
@@ -83,13 +91,15 @@ function Pesquisa() {
     const [searchParams] = useSearchParams();
     const query = searchParams.get('q'); 
 
-    // Efeito para buscar resultados quando a 'query' mudar
+    // ----------------------------------------------------
+    // LÓGICA CENTRAL DE BUSCA DE DADOS E ALEATÓRIOS
+    // ----------------------------------------------------
     useEffect(() => {
         if (!query || query.trim() === "") {
-            // Limpa todos os resultados se a busca for vazia
+            // Limpa todos os estados
             setMainSongs([]); setMainArtists([]); setMainAlbums([]); setMainPlaylists([]); setMainUsers([]); 
             setRelatedSongs([]); setRelatedArtists([]); setRelatedAlbums([]); setRelatedPlaylists([]); setRelatedUsers([]); 
-            setRandomSongs([]); setRandomArtists([]); setRandomAlbums([]); setRandomPlaylists([]); setRandomUsers([]); 
+             setRandomSongs([]); setRandomArtists([]); setRandomAlbums([]); setRandomPlaylists([]); setRandomUsers([]); 
             return;
         }
 
@@ -98,11 +108,11 @@ function Pesquisa() {
             setError(null);
             
             try {
-                // Em uma aplicação real, você usaria uma rota única de busca.
+                // PASSO 1: BUSCAR TODOS OS DADOS BRUTOS
                 const artistsPromise = api.get(`/topArtists`); 
-                const songsPromise = api.get(`/topSongs`); 
-                const albumsPromise = api.get(`/topAlbums`); 
-                const playlistsPromise = api.get(`/topPlaylists`);
+                const songsPromise = api.get(`/topSongs`);     
+                const albumsPromise = api.get(`/topAlbums`);   
+                const playlistsPromise = api.get(`/topPlaylists`); 
                 const usersPromise = api.get(`/users`); 
 
                 
@@ -113,22 +123,25 @@ function Pesquisa() {
                     playlistsPromise,
                     usersPromise, 
                 ]);
-
+                
+                // Dados brutos
                 const allArtists = artistsRes.data;
                 const allSongs = songsRes.data;
                 const allAlbums = albumsRes.data;
                 const allPlaylists = playlistsRes.data;
-                const allUsers = usersRes.data;
+                const allUsers = usersRes.data; 
 
-                // 1. Filtragem principal (startsWith)
+                // PASSO 2: BUSCA PRINCIPAL (Starts With)
                 let mainSongsFiltered = filterDataByQuery(allSongs, query, 'title', 'starts_with');
                 const mainArtistsFiltered = filterDataByQuery(allArtists, query, 'name', 'starts_with');
                 const mainAlbumsFiltered = filterDataByQuery(allAlbums, query, 'title', 'starts_with');
                 const mainPlaylistsFiltered = filterDataByQuery(allPlaylists, query, 'title', 'starts_with');
                 const mainUsersFiltered = filterDataByQuery(allUsers, query, 'name', 'starts_with'); 
 
-                // 2. Lógica para incluir músicas do artista com nome exato
+
+                // 🚨 PASSO 3: LÓGICA DE BUSCA EXATA POR ARTISTA E INJEÇÃO DE MÚSICAS (Mantida a existente)
                 const exactArtistMatch = filterDataByQuery(allArtists, query, 'name', 'exact');
+
                 if (exactArtistMatch.length > 0) {
                     const artistId = exactArtistMatch[0].id;
                     const songsByExactArtist = allSongs.filter(song => song.artistId === artistId);
@@ -137,35 +150,36 @@ function Pesquisa() {
                     mainSongsFiltered = [...newSongs, ...mainSongsFiltered];
                     console.log(`Correspondência exata encontrada para Artista: ${exactArtistMatch[0].name}. Adicionadas ${newSongs.length} músicas.`);
                 }
-            
-                // Função auxiliar para remover duplicatas
+                // --------------------------------------------------------------------------------
+
+
+                // PASSO 4: BUSCA RELACIONADA (Includes - Removendo Duplicatas)
                 const removeDuplicates = (mainList, relatedList) => {
                     const mainIds = new Set(mainList.map(item => item.id));
                     return relatedList.filter(item => !mainIds.has(item.id));
                 };
 
-                // 3. Filtragem relacionada (includes)
                 const relatedArtistsRaw = filterDataByQuery(allArtists, query, 'name', 'includes');
                 const relatedSongsRaw = filterDataByQuery(allSongs, query, 'title', 'includes');
                 const relatedAlbumsRaw = filterDataByQuery(allAlbums, query, 'title', 'includes');
                 const relatedPlaylistsRaw = filterDataByQuery(allPlaylists, query, 'title', 'includes');
                 const relatedUsersRaw = filterDataByQuery(allUsers, query, 'name', 'includes'); 
 
-                // 4. Limpeza de duplicatas
                 const relatedArtistsClean = removeDuplicates(mainArtistsFiltered, relatedArtistsRaw);
                 const relatedSongsClean = removeDuplicates(mainSongsFiltered, relatedSongsRaw);
                 const relatedAlbumsClean = removeDuplicates(mainAlbumsFiltered, relatedAlbumsRaw);
                 const relatedPlaylistsClean = removeDuplicates(mainPlaylistsFiltered, relatedPlaylistsRaw);
                 const relatedUsersClean = removeDuplicates(mainUsersFiltered, relatedUsersRaw);
 
-                // 5. Itens aleatórios (sugestões)
+
+                // PASSO 5: BUSCA POR ALEATÓRIOS (USADA APENAS SE A BUSCA FALHAR)
                 setRandomSongs(getRandomItems(allSongs));
                 setRandomArtists(getRandomItems(allArtists));
                 setRandomAlbums(getRandomItems(allAlbums));
                 setRandomPlaylists(getRandomItems(allPlaylists));
-                setRandomUsers(getRandomItems(allUsers));
+                setRandomUsers(getRandomItems(allUsers)); 
 
-                // 6. Atualização de estados
+                // PASSO 6: ATUALIZA OS ESTADOS DA BUSCA 
                 setMainSongs(mainSongsFiltered); 
                 setMainArtists(mainArtistsFiltered);
                 setMainAlbums(mainAlbumsFiltered);
@@ -176,11 +190,13 @@ function Pesquisa() {
                 setRelatedArtists(relatedArtistsClean);
                 setRelatedAlbums(relatedAlbumsClean);
                 setRelatedPlaylists(relatedPlaylistsClean);
-                setRelatedUsers(relatedUsersClean);
+                setRelatedUsers(relatedUsersClean); 
+
             } catch (err) {
-                // Incorporado o console.error do Código A para melhor debug
                 console.error("Erro fatal na chamada da API:", err);
-                setError(`Erro crítico na comunicação. Verifique se o JSON Server está ligado e acessível.`); 
+                // Mantenha a mensagem de erro informativa para o dev.
+                setError(`Erro crítico na comunicação. Verifique se o JSON Server está ligado e acessível.`);
+                
             } finally {
                 setIsLoading(false);
             }
@@ -190,45 +206,45 @@ function Pesquisa() {
 
     }, [query]);
 
-    // Função para atualizar o filtro de navegação
+
     const handleSetFilter = (item) => {
         setSelectedFilter(item);
     };
-
-    // Cálculos de contagem de resultados
+    
+    // Total de resultados StartsWith 
     const totalMainResults = mainSongs.length + mainArtists.length + mainAlbums.length + mainPlaylists.length + mainUsers.length;
-    const totalRelatedResults = relatedSongs.length + relatedArtists.length + relatedAlbums.length + relatedPlaylists.length + relatedUsers.length; 
-    const totalResults = totalMainResults + totalRelatedResults;
-
-    // Definição dos dados para renderização (Incluindo a correção UserCard do Código B)
+    
+    // ESTRUTURA PARA PRINCIPAIS RESULTADOS 
     const mainResults = [
-        // CORRIGIDO: Usando item.img
-        { title: "Usuários", type: "user", data: mainUsers, renderCard: (item) => <UserCard key={item.id} image={item.img} {...item} /> }, 
+        { title: "Usuários", type: "user", data: mainUsers, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
         { title: "Músicas", type: "song", data: mainSongs, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Playlists", type: "playlist", data: mainPlaylists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
         { title: "Álbuns", type: "album", data: mainAlbums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
         { title: "Artistas", type: "artist", data: mainArtists, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
     ];
 
+    // ESTRUTURA PARA RELACIONADOS 
     const relatedResults = [
-        // CORRIGIDO: Usando item.img
-        { title: "Usuários", type: "user", data: relatedUsers, renderCard: (item) => <UserCard key={item.id} image={item.img} {...item} /> }, 
+        { title: "Usuários", type: "user", data: relatedUsers, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
         { title: "Músicas", type: "song", data: relatedSongs, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Playlists", type: "playlist", data: relatedPlaylists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
         { title: "Álbuns", type: "album", data: relatedAlbums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
         { title: "Artistas", type: "artist", data: relatedArtists, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
     ];
-
+    
+    // ESTRUTURA PARA ALEATÓRIOS (SUGESTÕES) 
     const randomSuggestions = [
-        // CORRIGIDO: Usando item.img
-        { title: "Usuários", type: "user", data: randomUsers, renderCard: (item) => <UserCard key={item.id} image={item.img} {...item} /> }, 
+        { title: "Usuários", type: "user", data: randomUsers, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
         { title: "Músicas", type: "song", data: randomSongs, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Playlists", type: "playlist", data: randomPlaylists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
         { title: "Álbuns", type: "album", data: randomAlbums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
         { title: "Artistas", type: "artist", data: randomArtists, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
     ];
-    
-    // Renderização do componente (estrutura completa do Código B)
+
+    const totalRelatedResults = relatedSongs.length + relatedArtists.length + relatedAlbums.length + relatedPlaylists.length + relatedUsers.length; 
+    const totalResults = totalMainResults + totalRelatedResults;
+
+
     return (
         <>
             <Header initialQuery={query} />
@@ -245,31 +261,21 @@ function Pesquisa() {
                 {isLoading && <p>Carregando resultados...</p>}
                 {error && <p style={{ color: 'red' }}>Erro: {error}</p>}
                 
-                {/* 1. Resultados Principais */}
+                {/* 1. PRINCIPAIS RESULTADOS */}
                 {!isLoading && !error && totalMainResults > 0 && (
+// ... (continua)
                     <>
                         <h1 className='search-subtitle'>Principais resultados envolvendo "{query}"</h1>
                         {mainResults.map((section) => {
                             const isFiltered = selectedFilter === 'Tudo' || selectedFilter === section.title;
-                            const isUserSection = section.type === 'user';
-                            // Lógica: Se não for Usuário E tiver 9 ou mais itens, mostra os controles (rolagem lateral)
-                            const shouldShowControls = !isUserSection && section.data.length >= 9;
 
                             if (section.data.length > 0 && isFiltered) {
                                 return (
-                                    <Section 
-                                        key={section.title + '-main'} 
-                                        title={section.title}
-                                        showControls={shouldShowControls}
-                                    >
-                                        {/* Renderização condicional para resultados de Usuário (vertical) vs. outros (horizontal/scroll) */}
-                                        {isUserSection ? (
-                                            <div className="vertical-results-container">
-                                                {section.data.map(section.renderCard)}
-                                            </div>
-                                        ) : (
-                                            section.data.map(section.renderCard)
-                                        )}
+                                    <Section key={section.title + '-main'} title={section.title}>
+                                        {/* 💡 RENDERIZAÇÃO VERTICAL PARA USUÁRIOS */}
+                                        <div className={section.type === 'user' ? "vertical-results-container" : "section-scroll-container"}>
+                                            {section.data.map(section.renderCard)}
+                                        </div>
                                     </Section>
                                 );
                             }
@@ -278,31 +284,20 @@ function Pesquisa() {
                     </>
                 )}
 
-                {/* 2. Resultados Relacionados */}
+                {/* 2. RESULTADOS RELACIONADOS */}
                 {!isLoading && !error && totalRelatedResults > 0 && (
                     <>
                         <h1 className='search-subtitle' style={{ marginTop: totalMainResults > 0 ? '40px' : '0px' }}>Relacionados</h1>
                         {relatedResults.map((section) => {
                             const isFiltered = selectedFilter === 'Tudo' || selectedFilter === section.title;
-                            const isUserSection = section.type === 'user'; 
-                            // Lógica: Se não for Usuário E tiver 9 ou mais itens, mostra os controles (rolagem lateral)
-                            const shouldShowControls = !isUserSection && section.data.length >= 9;
 
                             if (section.data.length > 0 && isFiltered) {
                                 return (
-                                    <Section 
-                                        key={section.title + '-related'} 
-                                        title={section.title}
-                                        showControls={shouldShowControls}
-                                    >
-                                        {/* Renderização condicional para resultados de Usuário (vertical) vs. outros (horizontal/scroll) */}
-                                        {isUserSection ? (
-                                            <div className="vertical-results-container">
-                                                {section.data.map(section.renderCard)}
-                                            </div>
-                                        ) : (
-                                            section.data.map(section.renderCard)
-                                        )}
+                                    <Section key={section.title + '-related'} title={section.title}>
+                                        {/* 💡 RENDERIZAÇÃO VERTICAL PARA USUÁRIOS */}
+                                        <div className={section.type === 'user' ? "vertical-results-container" : "section-scroll-container"}>
+                                            {section.data.map(section.renderCard)}
+                                        </div>
                                     </Section>
                                 );
                             }
@@ -310,24 +305,29 @@ function Pesquisa() {
                         })}
                     </>
                 )}
-                
-                {/* 3. Bloco de "Nenhum Resultado Encontrado" e Sugestões Aleatórias (do Código B) */}
+
+
+                {/* 3. MENSAGEM DE ERRO E SUGESTÕES (totalResults == 0) */}
                 {!isLoading && !error && query && totalResults === 0 && (
                     <div style={{ marginTop: '20px' }}>
+                        {/* Mensagem de erro */}
                         <p style={{ marginBottom: '40px', fontSize: '1.2rem', color: 'var(--text-color)' }}>
                             Eita ferro! Nenhum resultado foi encontrado para "{query}"!
                         </p>
 
+                        {/* Título da sugestão */}
                         <h1 className='search-subtitle' style={{ marginTop: '0px' }}>... Mas talvez você goste:</h1>
 
+                        {/* Renderiza as sugestões aleatórias */}
                         {randomSuggestions.map((section) => {
                             const isFiltered = selectedFilter === 'Tudo' || selectedFilter === section.title;
 
                             if (section.data.length > 0 && isFiltered) {
                                 return (
                                     <Section key={section.title + '-random'} title={section.title}>
-                                        {/* Container ajustado para rolagem horizontal (default) ou vertical (users) */}
+                                        {/* 💡 RENDERIZAÇÃO VERTICAL PARA USUÁRIOS */}
                                         <div className={section.type === 'user' ? "vertical-results-container" : "section-scroll-container"}>
+                                            {/* ✅ Agora exibirá no máximo 5 itens por categoria */}
                                             {section.data.map(section.renderCard)}
                                         </div>
                                     </Section>

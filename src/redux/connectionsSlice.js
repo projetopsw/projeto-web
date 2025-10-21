@@ -22,6 +22,7 @@ const fetchConnectionsData = createAsyncThunk(
             const friends = fetchDetails(currentUser.friends || []);
             const pendingRequests = fetchDetails(currentUser.friendshipRequests || []);
             
+            // Busca reversa dos pedidos enviados
             const sentRequestsUsers = allUsers.filter(user => 
                 (user.friendshipRequests || []).includes(currentUserIdStr)
             );
@@ -50,6 +51,7 @@ const fetchConnectionsData = createAsyncThunk(
 const toggleFriendRequest = createAsyncThunk(
     'connections/toggleRequest',
     async ({ currentUserId, targetUser }, { rejectWithValue }) => {
+        // ... Lógica de toggle Friend Request
         const currentUserIdStr = String(currentUserId);
         const targetUserIdStr = String(targetUser.id);
         const targetResponse = await fetch(`${API_URL}/${targetUserIdStr}`);

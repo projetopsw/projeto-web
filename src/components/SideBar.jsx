@@ -1,32 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Box, IconButton, Typography, Tooltip } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom'; // Adicionado useLocation para gerenciar o estado ativo
 import HomeIcon from '@mui/icons-material/Home'; 
 import QueueMusicIcon from '@mui/icons-material/QueueMusic';
 import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
 import GroupIcon from '@mui/icons-material/Group';
 import QueueOverlay from '../components/Fila'; 
 
-const SideButton = React.forwardRef(({ children, to, label, isMobile, isProfile = false, ...props }, ref) => {
+const ACTIVE_COLOR = 'var(--orange)';
+const INACTIVE_COLOR = 'var(--secondary-text-color)';
+
+const SideButton = React.forwardRef(({ children, to, label, isProfile = false, isMobile = false, isActive = false, ...props }, ref) => {
     
     if (isMobile) {
+        // Versão Mobile (Menu Inferior)
         return (
-            <Link to={to} style={{ textDecoration: 'none', width: '100%' }}>
-                <Box sx={{ 
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background-color 0.3s ease', 
-                    padding: '0', width: '100%',
-                }}>
-                    <IconButton 
+            <Link to={to} style={{ textDecoration: 'none', flexGrow: 1 }}>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                        transition: 'background-color 0.3s ease',
+                    }}
+                >
+                    <IconButton
                         aria-label={label}
                         sx={{
-                            backgroundColor: 'transparent', padding: '0', border: 'none', borderRadius: '0',
-                            width: 'auto', height: 'auto', color: 'var(--icon-color)',
-                            '&:hover': { backgroundColor: 'transparent', color: 'var(--orange)' },
+                            // Usa isActive para a cor do ícone
+                            color: isActive ? ACTIVE_COLOR : 'var(--icon-color)',
+                            padding: 0,
+                            '&:hover': { backgroundColor: 'transparent', color: ACTIVE_COLOR },
                         }}
                     >
                         {children}
                     </IconButton>
-                    <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)', fontSize: '10px', paddingTop: '5px', textTransform: 'uppercase', fontWeight: 600 }}>
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            // Usa isActive para a cor do texto
+                            color: isActive ? ACTIVE_COLOR : INACTIVE_COLOR,
+                            fontSize: '10px',
+                            paddingTop: '3px',
+                            textTransform: 'uppercase',
+                            fontWeight: 600,
+                        }}
+                    >
                         {label}
                     </Typography>
                 </Box>
@@ -34,7 +55,7 @@ const SideButton = React.forwardRef(({ children, to, label, isMobile, isProfile 
         );
     }
 
-    // Versão Desktop
+    // Versão Desktop (Menu Lateral)
     return (
         <Tooltip 
             title={label} 
@@ -93,9 +114,8 @@ const SideButton = React.forwardRef(({ children, to, label, isMobile, isProfile 
 });
 
 
-
 const QueueButton = ({ isVisible, setIsVisible }) => {
-    const buttonRef = React.useRef(null);
+    const buttonRef = useRef(null);
     const [overlayTop, setOverlayTop] = useState(0);
 
     React.useEffect(() => {
@@ -120,7 +140,6 @@ const QueueButton = ({ isVisible, setIsVisible }) => {
             <SideButton 
                 to="/fila" 
                 label="Fila" 
-                isMobile={false}
                 ref={buttonRef} 
             >
                 <QueueMusicIcon sx={{ fontSize: '28px' }} />
@@ -132,9 +151,7 @@ const QueueButton = ({ isVisible, setIsVisible }) => {
                     top: overlayTop, 
                     left: '80px', 
                     zIndex: 1000,
-                    
                     height: `calc(100vh - ${overlayTop}px)`, 
-                    
                     opacity: isVisible ? 1 : 0,
                     visibility: isVisible ? 'visible' : 'hidden',
                     transition: 'opacity 0.3s ease, visibility 0.3s ease',
@@ -147,52 +164,24 @@ const QueueButton = ({ isVisible, setIsVisible }) => {
     );
 }
 
-
-
-function SideBar({ isMobile = false }) {
+function SideBar() {
     const [isQueueVisible, setIsQueueVisible] = useState(false);
+    const location = useLocation();
+    const path = location.pathname;
 
-    if (isMobile) {
-        return (
-            <Box
-                component="nav" 
-                sx={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-around',
-                    width: '100%',
-                    height: '60px',
-                    backgroundColor: 'var(--sidebar-bg)',
-                    gap: '0', 
-                    paddingTop: '0',
-                    paddingBottom: '0', 
-                }}
-                className={'menu-rodape-mobile'}
-            >
-                <SideButton to="/" label="Início" isMobile={true}>
-                    <HomeIcon sx={{ fontSize: '24px' }} />
-                </SideButton>
-
-                <SideButton to="/fila" label="Fila" isMobile={true}>
-                    <QueueMusicIcon sx={{ fontSize: '24px' }} />
-                </SideButton>
-                
-                <SideButton to="/playlists" label="Playlists" isMobile={true}>
-                    <LibraryMusicIcon sx={{ fontSize: '24px' }} />
-                </SideButton>
-                
-                <SideButton to="/grupos" label="Grupos" isMobile={true}>
-                    <GroupIcon sx={{ fontSize: '24px' }} />
-                </SideButton>
-            </Box>
-        );
-    }
+    const mobileMenuItems = [
+        { to: '/', label: 'Início', Icon: HomeIcon },
+        { to: '/fila', label: 'Fila', Icon: QueueMusicIcon },
+        { to: '/playlists', label: 'Playlists', Icon: LibraryMusicIcon },
+        { to: '/grupos', label: 'Grupos', Icon: GroupIcon },
+    ];
     
-    return (
+    // --- Lógica Desktop (Menu Lateral Esquerdo) ---
+    const DesktopSideBar = () => (
         <Box
             component="nav" 
             sx={{
+                display: { xs: 'none', md: 'flex' }, // Display only on MD and up
                 position: 'fixed', 
                 top: 0,
                 left: 0,
@@ -201,7 +190,6 @@ function SideBar({ isMobile = false }) {
                 backgroundColor: 'var(--sidebar-bg)',
                 zIndex: 100, 
                 
-                display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'flex-start',
@@ -211,7 +199,7 @@ function SideBar({ isMobile = false }) {
             }}
             className={'menu-lateral'}
         >
-            <SideButton to="/" label="Início" isMobile={false}>
+            <SideButton to="/" label="Início">
                 <HomeIcon sx={{ fontSize: '28px' }} />
             </SideButton>
 
@@ -220,14 +208,58 @@ function SideBar({ isMobile = false }) {
                 setIsVisible={setIsQueueVisible} 
             />
             
-            <SideButton to="/playlists" label="Playlists" isMobile={false}>
+            <SideButton to="/playlists" label="Playlists">
                 <LibraryMusicIcon sx={{ fontSize: '28px' }} />
             </SideButton>
             
-            <SideButton to="/grupos" label="Grupos" isMobile={false}>
+            <SideButton to="/grupos" label="Grupos">
                 <GroupIcon sx={{ fontSize: '28px' }} />
             </SideButton>
         </Box>
+    );
+
+    // --- Lógica Mobile (Menu Inferior Fixo) ---
+    const MobileSideBar = () => (
+        <Box
+            className="menu-rodape-mobile"
+            component="nav"
+            sx={{
+                display: { xs: 'flex', md: 'none' }, // Display only on XS
+                position: 'fixed', // Fixed position
+                bottom: 0, // Fixed to the bottom
+                left: 0,
+                width: '100%',
+                height: '60px',
+                zIndex: 1002, 
+                boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.3)',
+                backgroundColor: 'var(--sidebar-bg)',
+                alignItems: 'center',
+                justifyContent: 'space-around',
+                padding: '0',
+            }}
+        >
+            {mobileMenuItems.map((item) => {
+                const isActive = path === item.to || (item.to !== '/' && path.startsWith(item.to));
+                return (
+                    <SideButton
+                        key={item.label}
+                        to={item.to}
+                        label={item.label}
+                        isMobile={true} // For compact styling
+                        isActive={isActive} // For active state color
+                    >
+                        <item.Icon sx={{ fontSize: '24px' }} />
+                    </SideButton>
+                );
+            })}
+        </Box>
+    );
+
+    return (
+        <>
+            <DesktopSideBar />
+            <MobileSideBar />
+        </>
     );
 }
 
