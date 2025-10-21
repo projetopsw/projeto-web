@@ -41,16 +41,9 @@ const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
         }
     });
     
-
     return filtered;
 };
 
-/**
- * FUNÇÃO AUXILIAR PARA PEGAR ITENS ALEATÓRIOS
- * @param {Array} data - Array de dados brutos
- * @param {number} count - Quantidade de itens a retornar
- * @returns {Array} - Array de itens aleatórios
- */
 const getRandomItems = (data, count = 5) => {
     if (!data || data.length === 0) return [];
     
@@ -87,12 +80,11 @@ function Pesquisa() {
     const [searchParams] = useSearchParams();
     const query = searchParams.get('q'); 
 
-  
     useEffect(() => {
         if (!query || query.trim() === "") {
             setMainSongs([]); setMainArtists([]); setMainAlbums([]); setMainPlaylists([]); setMainUsers([]); 
             setRelatedSongs([]); setRelatedArtists([]); setRelatedAlbums([]); setRelatedPlaylists([]); setRelatedUsers([]); 
-             setRandomSongs([]); setRandomArtists([]); setRandomAlbums([]); setRandomPlaylists([]); setRandomUsers([]); 
+            setRandomSongs([]); setRandomArtists([]); setRandomAlbums([]); setRandomPlaylists([]); setRandomUsers([]); 
             return;
         }
 
@@ -102,8 +94,8 @@ function Pesquisa() {
             
             try {
                 const artistsPromise = api.get(`/topArtists`); 
-                const songsPromise = api.get(`/topSongs`);     
-                const albumsPromise = api.get(`/topAlbums`);   
+                const songsPromise = api.get(`/topSongs`);     
+                const albumsPromise = api.get(`/topAlbums`);   
                 const playlistsPromise = api.get(`/topPlaylists`); 
                 const usersPromise = api.get(`/users`); 
 
@@ -137,7 +129,6 @@ function Pesquisa() {
                     const songIds = new Set(mainSongsFiltered.map(song => song.id));
                     const newSongs = songsByExactArtist.filter(song => !songIds.has(song.id));
                     mainSongsFiltered = [...newSongs, ...mainSongsFiltered];
-                    console.log(`Correspondência exata encontrada para Artista: ${exactArtistMatch[0].name}. Adicionadas ${newSongs.length} músicas.`);
                 }
               
                 const removeDuplicates = (mainList, relatedList) => {
@@ -177,7 +168,6 @@ function Pesquisa() {
                 setRelatedUsers(relatedUsersClean); 
 
             } catch (err) {
-                console.error("Erro fatal na chamada da API:", err);
                 setError(`Erro crítico na comunicação. Verifique se o JSON Server está ligado e acessível.`);
                 
             } finally {
@@ -197,7 +187,8 @@ function Pesquisa() {
     const totalMainResults = mainSongs.length + mainArtists.length + mainAlbums.length + mainPlaylists.length + mainUsers.length;
     
     const mainResults = [
-        { title: "Usuários", type: "user", data: mainUsers, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
+        // CORRIGIDO: Usando item.img
+        { title: "Usuários", type: "user", data: mainUsers, renderCard: (item) => <UserCard key={item.id} image={item.img} {...item} /> }, 
         { title: "Músicas", type: "song", data: mainSongs, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Playlists", type: "playlist", data: mainPlaylists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
         { title: "Álbuns", type: "album", data: mainAlbums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
@@ -205,7 +196,8 @@ function Pesquisa() {
     ];
 
     const relatedResults = [
-        { title: "Usuários", type: "user", data: relatedUsers, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
+        // CORRIGIDO: Usando item.img
+        { title: "Usuários", type: "user", data: relatedUsers, renderCard: (item) => <UserCard key={item.id} image={item.img} {...item} /> }, 
         { title: "Músicas", type: "song", data: relatedSongs, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Playlists", type: "playlist", data: relatedPlaylists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
         { title: "Álbuns", type: "album", data: relatedAlbums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
@@ -213,7 +205,8 @@ function Pesquisa() {
     ];
     
     const randomSuggestions = [
-        { title: "Usuários", type: "user", data: randomUsers, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
+        // CORRIGIDO: Usando item.img
+        { title: "Usuários", type: "user", data: randomUsers, renderCard: (item) => <UserCard key={item.id} image={item.img} {...item} /> }, 
         { title: "Músicas", type: "song", data: randomSongs, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Playlists", type: "playlist", data: randomPlaylists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
         { title: "Álbuns", type: "album", data: randomAlbums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
@@ -241,7 +234,6 @@ function Pesquisa() {
                 {error && <p style={{ color: 'red' }}>Erro: {error}</p>}
                 
                 {!isLoading && !error && totalMainResults > 0 && (
-// ... (continua)
                     <>
                         <h1 className='search-subtitle'>Principais resultados envolvendo "{query}"</h1>
                         {mainResults.map((section) => {

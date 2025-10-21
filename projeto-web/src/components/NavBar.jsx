@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AppBar, Toolbar, Box, styled, IconButton } from '@mui/material'; 
-import Search from './Search'; 
+import { AppBar, Toolbar, Box, styled, IconButton } from '@mui/material';
+import Search from './Search';
 import UserProfileIcon from './UserProfileIcon';
 
 const ThemeSwitchContainer = styled(Box)(({ theme }) => ({
@@ -34,15 +34,21 @@ const ThemeSwitchContainer = styled(Box)(({ theme }) => ({
     '&.light-theme .theme-toggle-btn': { left: '36px' }
 }));
 
+const getInitialTheme = () => {
+    return localStorage.getItem('theme') === 'light';
+};
+
 function NavBar({ initialQuery = '' }) {
-    const [isLightTheme, setIsLightTheme] = useState(false);
+    const [isLightTheme, setIsLightTheme] = useState(getInitialTheme);
     
     useEffect(() => {
         const body = document.body;
         if (isLightTheme) {
             body.classList.add('light-theme');
+            localStorage.setItem('theme', 'light');
         } else {
             body.classList.remove('light-theme');
+            localStorage.setItem('theme', 'dark');
         }
     }, [isLightTheme]);
 

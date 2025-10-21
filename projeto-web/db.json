@@ -650,7 +650,8 @@
       "email": "malu@email.com",
       "likedSongs": [
         "song-01",
-        "song-02"
+        "song-02",
+        "song-03"
       ],
       "following": [
         "artist-02"
@@ -742,7 +743,8 @@
       "creator": "Você",
       "songs": [
         "song-01",
-        "song-02"
+        "song-02",
+        "song-03"
       ]
     },
     {
