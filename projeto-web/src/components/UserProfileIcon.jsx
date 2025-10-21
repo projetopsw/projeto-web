@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IconButton, Menu, MenuItem, Avatar } from '@mui/material';
-import PersonIcon from '@mui/icons-material/Person';
 import { logout } from '../redux/loginSlice';
 import { useSelector, useDispatch } from 'react-redux';
 
 function UserProfileIcon() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-
     const { user: authUser } = useSelector((state) => state.auth);
     const updatedUser = useSelector((state) => state.user.user);
-
     const user = updatedUser || authUser;
     
-    // Verifica as chaves 'image' e 'img' para máxima compatibilidade.
     const profileImageUrl = user?.image || user?.img || '/assets/img/default_profile.png';
-    
     const displayName = user?.name || 'Visitante';
 
     const [anchorEl, setAnchorEl] = useState(null);
@@ -82,15 +77,13 @@ function UserProfileIcon() {
                 MenuListProps={{
                     'aria-labelledby': 'profile-button',
                 }}
-                // 🎯 ATUALIZAÇÃO: Alinha o menu para a esquerda do botão (right-aligned to anchor)
                 anchorOrigin={{
                     vertical: 'bottom',
-                    horizontal: 'right', // Ancoragem pelo lado direito do botão
+                    horizontal: 'right',
                 }}
-                // 🎯 ATUALIZAÇÃO: Alinha o menu para a direita (o menu se expande para a esquerda)
                 transformOrigin={{
                     vertical: 'top',
-                    horizontal: 'right', // O menu se inicia na borda direita
+                    horizontal: 'right',
                 }}
                 PaperProps={{
                     sx: {

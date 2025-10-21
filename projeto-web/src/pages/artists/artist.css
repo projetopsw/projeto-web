@@ -1,64 +1,50 @@
-  .main-artist-page {
+.main-artist-page {
     margin: 0;
     width: 100%;
     padding-left: 0;
     padding-top: 0;
     padding-right: 0;
-  }
-  
-  p, h1, h3 {
+}
+p, h1, h3 {
     margin: 0;
-  }
-  
-  .lighter-text {
+}
+.lighter-text {
     color: #B3B3B3;
-  }
-  
-  .flex {
+}
+.flex {
     display: flex;
-  }
-  
-  .artist-header {
+}
+.artist-header {
     padding: 60px 40px 40px; 
     border: none; 
     background-color: #69645e;
     width: 100%;  
-  }
-
-
-  .follow-btn.following {
+}
+.follow-btn.following {
     border-color: white;     
-
     color: white; 
 }
-
 .follow-btn.following:hover {
     background-color: var(--darker-orange);
     border-color: var(--darker-orange); 
 }
-  .artist-info {
+.artist-info {
     flex-direction: column;
     text-align: start;
-  }
-
-  .artist-song{
+}
+.artist-song{
     margin: 0 70px;
-
-  }
-
-  .artist-description {
+}
+.artist-description {
     margin-bottom: 1em;
-  }
-  
-  .artist-actions {
+}
+.artist-actions {
     margin-top: 20px;
     margin-left: 40px;
     align-items: center;
     gap: 1em; 
-  }
-  
-
-  .play-btn {
+}
+.play-btn {
     background-color: #ff6b00;
     border: none;
     color: white;
@@ -70,9 +56,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-  
-  .follow-btn {
+}
+.follow-btn {
     background-color: #121212;
     color: white;
     font-size: 17px;
@@ -81,29 +66,24 @@
     padding: 15px 25px;
     border-radius: 50px;
     text-align: start;
-  }
-
-  .follow-btn:hover {
+}
+.follow-btn:hover {
     cursor: pointer;
     background-color: #ff6b00;
-  }
-  
-  
-  .user-icon > img {
+}
+.user-icon > img {
     display: block;
     border-radius: 50%;
-  }
-  
-  .user-info {
+}
+.user-info {
     margin-left: 2em;
     flex-direction: column;
     justify-content: start;
     gap: 0.5em;
     height: fit-content;
     margin-top: auto;
-  }
-  
-  .edit-btn {
+}
+.edit-btn {
     border-radius: 50px;
     padding: 10px 20px;
     font-size: 0.9rem;
@@ -113,156 +93,141 @@
     background-color: #ff6b00;
     height: fit-content;
     margin-top: auto;
-  }
-  
-  .edit-btn:hover {
+}
+.edit-btn:hover {
     background-color: #f58332;
     cursor: pointer;
-  }
-  
-  .name-artist {
+}
+.name-artist {
     font-size: 3.5em;
-  }
-  
-  .user-details {
+}
+.user-details {
     gap: 0.625em;
     align-items: center;
-  }
-  
-  
-  .song {
+}
+.song {
     padding: 1em 1.875em;
     justify-content: space-between;
     align-items: center;
-  }
-  
-  .song:hover,
-  .song:focus {
+}
+.song:hover,
+.song:focus {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     background-color: grey;
     cursor: pointer; 
-  }
-  
-  .song-detail {
+}
+.song-detail {
     gap: 1em;
     align-items: center;
-  }
-  
-  .song-info {
+}
+.song-info {
     flex-direction: column;
-  }
-  
-  .play-icon:hover, .icon:hover {
+}
+.play-icon:hover, .icon:hover {
     transform: scale(1.3);
-  }
-  
-  .mais-tocadas {
+}
+.mais-tocadas {
     padding: 1.6em 0 5em;
     margin-top: 1.5em;
-  }
-  
-  .song-cover {
+}
+.song-cover {
     width: 50px;
-  }
-  
-  .playlists-container,
-  .artists-container,
-  .friends-container {
+}
+.playlists-container,
+.artists-container,
+.friends-container {
     overflow-x: auto;
     gap: 1em;
     padding-top: 1em;
-  }
-  
-  .playlist-card,
-  .artist-card,
-  .amigo-card {
+}
+.playlist-card,
+.artist-card,
+.amigo-card {
     text-align: center;
-  }
-  
- 
-  .playlist-card img {
+}
+.playlist-card img {
     border-radius: 10px; 
-  }
-  
-  .artist-icon, .amigo-icon {
+}
+.artist-icon, .amigo-icon {
     border-radius: 50%;
-  }
-  
-  .seus-artistas, .seus-amigos {
+}
+.seus-artistas, .seus-amigos {
     margin-top: 5em;
-  }
-  
-  .descricao-artista {
+}
+.descricao-artista {
     margin-top: 50px;
-  }
-  
-  .margin-bottom {
+}
+.margin-bottom {
     margin-bottom: 100px;
-  }
-  
-
-  p a {
+}
+p a {
     color: white;
     text-decoration: none;
-  }
-
-  .mais-tocadas {
+}
+.mais-tocadas {
     padding-bottom: 0;
-  }
-
-  .mais-tocadas h3{
+}
+.mais-tocadas h3{
     font-size: 1.5rem;
-  }
+}
 
+/* CORREÇÃO DO POPUP DOS 3 PONTOS (MUI Menu) */
+.MuiMenu-paper {
+    background-color: var(--card-bg) !important; 
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+}
+.MuiMenuItem-root {
+    color: var(--text-color) !important; 
+    font-size: 0.9rem !important;
+    padding: 8px 16px !important;
+}
+.MuiMenuItem-root:hover {
+    background-color: var(--input-bg) !important; 
+}
+.MuiDivider-root {
+    background-color: var(--border-color) !important; 
+}
 
-  @media (max-width: 768px) {
-  
-
-  .artist-header {
+@media (max-width: 768px) {
+.artist-header {
     padding: 30px 20px;
     flex-direction: column;
     align-items: center;
     text-align: center;
-  }
-
-  .artist-song {
+}
+.artist-song {
     margin: 0 20px;
-  }
-
-  .name-artist {
+}
+.name-artist {
     font-size: 2.5em; 
-  }
-
-  .user-info {
+}
+.user-info {
     margin-left: 0;
     align-items: center;
     margin-top: 1em;
-  }
-
-  .artist-actions {
+}
+.artist-actions {
     margin-top: 20px;
     margin-left: 0;
     padding-left: 1em;
     justify-content: start;
-  }
-
-  .follow-btn {
+}
+.follow-btn {
     padding: 12px 20px;
     font-size: 15px;
-  }
-
-  .play-btn {
+}
+.play-btn {
     padding: 12px;
     font-size: 1rem;
-  }
-
-  .mais-tocadas,
-  .seus-artistas,
-  .seus-amigos {
+}
+.mais-tocadas,
+.seus-artistas,
+.seus-amigos {
     margin-top: 2.5em; 
-  }
-
-  .mais-tocadas h3 {
+}
+.mais-tocadas h3 {
     font-size: 1.3rem;
-  }
+}
 }

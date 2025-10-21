@@ -32,7 +32,7 @@ import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useSelector, useDispatch } from 'react-redux';
-import { setQueue, togglePlayPause } from '../../redux/playerSlice';
+import { setQueue, togglePlayPause, toggleShuffle } from '../../redux/playerSlice'; // ADICIONADO toggleShuffle
 import api from '../../services/api';
 
 const INACTIVE_ICON_COLOR = 'var(--secondary-text-color)';
@@ -132,7 +132,7 @@ function PlaylistDetalhe() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     
-    const { currentSong, isPlaying } = useSelector(state => state.player);
+    const { currentSong, isPlaying, isShuffling } = useSelector(state => state.player); // ADICIONADO isShuffling
     const likedSongsFromRedux = useSelector(state => 
         state.auth.userPlaylistsDetail.find(p => p.id === '0')?.songs || []
     );
@@ -155,8 +155,8 @@ function PlaylistDetalhe() {
     const [optionsAnchorEl, setOptionsAnchorEl] = useState(null);
     const optionsMenuOpen = Boolean(optionsAnchorEl);
 
-    const [songOptionsAnchorEl, setSongOptionsAnchorEl] = useState(null); // 👈 NOVO ESTADO
-    const [songOptionsSong, setSongOptionsSong] = useState(null); // 👈 NOVO ESTADO
+    const [songOptionsAnchorEl, setSongOptionsAnchorEl] = useState(null); 
+    const [songOptionsSong, setSongOptionsSong] = useState(null); 
     const songOptionsMenuOpen = Boolean(songOptionsAnchorEl);
 
     const [isAddToPlaylistModalOpen, setIsAddToPlaylistModalOpen] = useState(false);
@@ -396,6 +396,10 @@ function PlaylistDetalhe() {
         }
     };
     
+    const handleShuffleToggle = () => { // NOVO HANDLER
+        dispatch(toggleShuffle());
+    };
+    
     const handleSongClick = (song, index) => {
         if (currentSong?.id === song.id) {
             dispatch(togglePlayPause());
@@ -464,7 +468,19 @@ function PlaylistDetalhe() {
                     {isThisPlaylistPlaying ? <PauseIcon sx={{ fontSize: '32px' }} /> : <PlayArrowIcon sx={{ fontSize: '32px' }} />}
                 </PlayButton>
                 
-                <ActionIcon aria-label="Shuffle"><i className="fas fa-random" style={{ fontSize: '20px' }} /></ActionIcon>
+                <ActionIcon 
+                    aria-label={isShuffling ? "Desativar Aleatório" : "Ativar Aleatório"}
+                    onClick={handleShuffleToggle} // ATUALIZADO: Chama o handler do shuffle
+                    sx={{
+                        color: isShuffling ? 'var(--orange)' : INACTIVE_ICON_COLOR, // ATUALIZADO: Cor Laranja se ativo
+                        '&:hover': { color: 'var(--text-color)', backgroundColor: 'transparent' },
+                        width: '40px', 
+                        height: '40px', 
+                        transition: 'color 0.2s ease',
+                    }}
+                >
+                    <i className="fas fa-random" style={{ fontSize: '20px' }} />
+                </ActionIcon>
                 
                 {isCustomPlaylist && (
                     <ActionIcon 
@@ -618,7 +634,7 @@ function PlaylistDetalhe() {
                                         <TableCell>Álbum</TableCell>
                                         <TableCell>Adicionada em</TableCell>
                                         <TableCell sx={{ width: '50px', paddingRight: '0 !important' }} align="right"><AccessTimeIcon fontSize="small" /></TableCell>
-                                        <TableCell sx={{ width: '40px', paddingRight: '0 !important', paddingLeft: '0 !important' }}></TableCell> {/* Coluna de Ações */}
+                                        <TableCell sx={{ width: '40px', paddingRight: '0 !important', paddingLeft: '0 !important' }}></TableCell> 
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -677,7 +693,6 @@ function PlaylistDetalhe() {
                                                         <TableCell sx={{ color: 'var(--text-color)', borderBottom: 'none' }}>{song.added}</TableCell>
                                                         <TableCell sx={{ color: 'var(--secondary-text-color)', borderBottom: 'none', paddingRight: '0 !important' }} align="right">{song.duration}</TableCell>
 
-                                                        {/* NOVA CÉLULA: Menu de Ações da Música */}
                                                         <TableCell sx={{ width: '40px', paddingRight: '0 !important', paddingLeft: '0 !important', borderBottom: 'none', textAlign: 'center' }}>
                                                             <IconButton
                                                                 aria-label="Mais opções da música"

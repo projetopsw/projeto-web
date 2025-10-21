@@ -660,7 +660,10 @@
         "2",
         "3"
       ],
-      "img": "https://pm1.aminoapps.com/7759/2711b1c6d2da142fc9c8680b7527caf246662c52r1-521-521v2_hq.jpg"
+      "img": "https://pm1.aminoapps.com/7759/2711b1c6d2da142fc9c8680b7527caf246662c52r1-521-521v2_hq.jpg",
+      "userPlaylists": [
+        "78db"
+      ]
     },
     {
       "id": "e297",
@@ -675,7 +678,10 @@
       "id": "101",
       "name": "Luiza",
       "email": "luiza@email.com",
-      "likedSongs": [],
+      "likedSongs": [
+        "song-01",
+        "song-02"
+      ],
       "following": [],
       "friends": [
         "2"
@@ -807,6 +813,37 @@
       ],
       "duration": "0 min",
       "songCount": 0
+    },
+    {
+      "id": "a74e",
+      "name": "Academia",
+      "creatorId": "4",
+      "img": "https://blog.supertechfitness.com.br/wp-content/uploads/2023/07/equipamentos-nacionais-academia-1024x683.jpeg",
+      "type": "Playlist do Usuário",
+      "description": "Playlist criada por Malu.",
+      "songs": [
+        "song-02",
+        "song-04",
+        "song-05",
+        "song-08"
+      ],
+      "duration": "0 min",
+      "songCount": 0,
+      "isPublic": false
+    },
+    {
+      "id": "78db",
+      "name": "fantasminha",
+      "creatorId": "4",
+      "img": "https://pm1.aminoapps.com/7759/2711b1c6d2da142fc9c8680b7527caf246662c52r1-521-521v2_hq.jpg",
+      "type": "Playlist do Usuário",
+      "description": "Playlist criada por Malu.",
+      "songs": [
+        "song-04"
+      ],
+      "duration": "0 min",
+      "songCount": 0,
+      "isPublic": false
     }
   ],
   "allSongs": [

@@ -203,12 +203,16 @@ function Playlists() {
                     }}>
                         <button className="btn-add-playlist" style={{ 
                             fontSize: '40px', 
-                            color: 'var(--orange)', 
+                            color: '#FFFFFF', // ALTERADO: Cor branca para melhor destaque
                             backgroundColor: 'transparent',
                             border: 'none',
                             cursor: 'pointer',
                             padding: 0,
-                        }}>
+                            transition: 'color 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--orange)'} // Hover para laranja
+                        onMouseLeave={(e) => e.currentTarget.style.color = '#FFFFFF'} // Volta para branco
+                        >
                             <i className="fas fa-plus"></i>
                         </button>
                         <p style={{ color: 'var(--secondary-text-color)', marginTop: '15px' }}>Nova Playlist</p>

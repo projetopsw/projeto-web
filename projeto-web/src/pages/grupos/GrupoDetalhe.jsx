@@ -52,9 +52,6 @@ function GrupoDetalhe() {
     const { id } = useParams(); 
     const dispatch = useDispatch(); 
     
-    // ====================================================================
-    // 💡 OBTENDO O USUÁRIO LOGADO REAL DO REDUX
-    // ====================================================================
     const { user: authUser } = useSelector((state) => state.auth);
     const updatedUser = useSelector((state) => state.user.user);
     const user = updatedUser || authUser;
@@ -73,14 +70,10 @@ function GrupoDetalhe() {
     
     // Variáveis de estado principais
     const [group, setGroup] = useState(null);
-    // Importante: Usaremos 'groupMembers' para encontrar o nome completo do addedBy
     const [groupMembers, setGroupMembers] = useState([]); 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // ----------------------------------------------------
-    // FUNÇÕES DE BUSCA DE DADOS (Atualizado o mock de membros)
-    // ----------------------------------------------------
 
     const fetchGroupDetails = async () => {
         setIsLoading(true);
@@ -102,14 +95,11 @@ function GrupoDetalhe() {
 
         } catch (err) {
             console.error("Erro ao carregar dados:", err);
-            // Fallback (dados de mock)
             setGroup({ id, name: `Grupo ${id} (Mock)` });
             
-            // Dados de Mock de Membros atualizados para usar o ID do currentUser
             setGroupMembers([
                 { id: '1', name: 'Bebel', username: 'bebel_dj' }, 
                 { id: '2', name: 'Bia', username: 'bia_dj' },
-                // Garante que o usuário logado está na lista de membros (com seu ID/Username real)
                 { id: currentUser.id, name: currentUser.name, username: currentUser.username }
             ]);
             setError("Não foi possível carregar os dados completos. Usando dados padrão.");
@@ -118,11 +108,6 @@ function GrupoDetalhe() {
         }
     };
     
-    // ----------------------------------------------------
-    // FUNÇÕES DE GESTÃO DA FILA
-    // ----------------------------------------------------
-
-    // Atualização da função getAddedByName
     const getAddedByName = (addedByValue) => {
         // Verifica se é o usuário logado (usando ID ou username)
         if (addedByValue === currentUser.username || addedByValue === currentUser.id) {
@@ -248,7 +233,7 @@ function GrupoDetalhe() {
                     <Grid item xs={12} sx={{ flexGrow: 1 }}>
                         <StyledPaper elevation={3} className="queue-box">
                             <Typography variant="h5" sx={{ color: 'var(--title-color)', mb: 2 }}>
-                                🎵 Adicionar Música à Fila
+                                Adicionar Música à Fila
                             </Typography>
                             
                             {/* 1. Barra de Pesquisa */}

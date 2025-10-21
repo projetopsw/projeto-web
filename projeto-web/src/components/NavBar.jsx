@@ -36,9 +36,6 @@ const ThemeSwitchContainer = styled(Box)(({ theme }) => ({
 
 function NavBar({ initialQuery = '' }) {
     const [isLightTheme, setIsLightTheme] = useState(false);
-
-    // Lógica do Redux e cálculo da imagem removidos, pois UserProfileIcon faz isso agora.
-    // const userImage = useSelector(state => state.auth.user?.image); // Removido
     
     useEffect(() => {
         const body = document.body;
