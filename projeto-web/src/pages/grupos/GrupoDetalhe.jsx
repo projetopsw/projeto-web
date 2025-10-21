@@ -78,14 +78,10 @@ function GrupoDetalhe() {
     const fetchGroupDetails = async () => {
         setIsLoading(true);
         try {
-            // ... (Sua lógica de API)
             
-            // Simulação de dados (Mock)
+            // Simulação de dados
             const groupData = { id, name: `Grupo ${id} (Mock)` };
             const membersData = [
-                { id: '1', name: 'Bebel', username: 'bebel_dj' }, 
-                { id: '2', name: 'Bia', username: 'bia_dj' },
-                // Garante que o usuário logado está na lista de membros (com seu ID/Username real)
                 { id: currentUser.id, name: currentUser.name, username: currentUser.username }
             ];
             
@@ -208,13 +204,13 @@ function GrupoDetalhe() {
                                             key={member.id}
                                             variant="body2" 
                                             sx={{ 
-                                                // 💡 ALTERAÇÃO AQUI: Mudando o background para laranja e a cor do texto para o escuro/padrão
-                                                color: 'var(--card-bg)', // Cor do texto (fundo escuro do Card para contraste)
-                                                backgroundColor: 'var(--orange)', // Cor de fundo Laranja
+                                               
+                                                color: 'var(--card-bg)', 
+                                                backgroundColor: 'var(--orange)', 
                                                 padding: '2px 8px',
                                                 borderRadius: '4px',
-                                                fontWeight: 'bold', // Opcional, para destacar mais
-                                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)' // Opcional, para dar profundidade
+                                                fontWeight: 'bold', 
+                                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)' 
                                             }}
                                         >
                                             {member.name}
@@ -236,14 +232,14 @@ function GrupoDetalhe() {
                                 Adicionar Música à Fila
                             </Typography>
                             
-                            {/* 1. Barra de Pesquisa */}
+                            {/* Barra de Pesquisa */}
                             <Box sx={{ mb: 4, position: 'relative' }}>
                                 <SearchMusicLocal 
                                     onSongSelect={handleAddToQueue} 
                                 />
                             </Box>
                             
-                            {/* 3. Divisor e Fila */}
+                            {/* Divisor e Fila */}
                             <Divider sx={{ my: 3, borderColor: 'var(--border-color)' }} />
 
                             {/* Fila de Reprodução Atual */}
@@ -278,7 +274,6 @@ function GrupoDetalhe() {
                                         </Typography>
                                         <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)' }}>
                                             {currentSong.artist} 
-                                            {/* 💡 Exibição do addedBy no tocando agora */}
                                             {currentSong.addedBy && ` | Adicionado por: ${getAddedByName(currentSong.addedBy)}`}
                                         </Typography>
                                         </Box>
@@ -293,7 +288,7 @@ function GrupoDetalhe() {
                                     Próximas na Fila ({queue.length - (queueIndex + 1)} restantes)
                                 </Typography>
                                 
-                                {/* Exibe apenas o restante da fila, começando no queueIndex + 1 */}
+                                {/* Exibe apenas o restante da fila*/}
                                 {queue.length > 0 && queueIndex !== -1 ? (
                                     <List dense>
                                         {queue.slice(queueIndex + 1).map((song, index) => (
