@@ -80,7 +80,7 @@ function GrupoDetalhe() {
         try {
             
             // Simulação de dados
-            const groupData = { id, name: `Grupo ${id} (Mock)` };
+            const groupData = { id, name: `Grupo (${id})` };
             const membersData = [
                 { id: currentUser.id, name: currentUser.name, username: currentUser.username }
             ];
@@ -91,11 +91,9 @@ function GrupoDetalhe() {
 
         } catch (err) {
             console.error("Erro ao carregar dados:", err);
-            setGroup({ id, name: `Grupo ${id} (Mock)` });
+            setGroup({ id, name: `Grupo (${id})` });
             
             setGroupMembers([
-                { id: '1', name: 'Bebel', username: 'bebel_dj' }, 
-                { id: '2', name: 'Bia', username: 'bia_dj' },
                 { id: currentUser.id, name: currentUser.name, username: currentUser.username }
             ]);
             setError("Não foi possível carregar os dados completos. Usando dados padrão.");
