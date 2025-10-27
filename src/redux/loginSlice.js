@@ -11,12 +11,16 @@ const loadUserFromLocalStorage = () => {
             return null;
         }
         const user = JSON.parse(serializedUser);
+        
+        // 👑 Garante que o campo 'role' existe ao carregar do storage.
         if (user) {
             user.likedSongs = user.likedSongs || [];
             user.userPlaylists = user.userPlaylists || [];
+            user.role = user.role || 'user'; // Define 'user' como padrão
         }
         return user;
     } catch (e) {
+        console.error("Erro ao carregar usuário do localStorage:", e);
         return null;
     }
 };
@@ -150,6 +154,7 @@ const initialState = {
     user: initialUser,
     isAuthenticated: !!initialUser, 
     token: localStorage.getItem('token') || null,
+    isAdmin: initialUser ? initialUser.role === 'admin' : false, 
     userPlaylistsDetail: [], 
     playlistsStatus: 'idle',
     friends: {
@@ -164,11 +169,17 @@ const authSlice = createSlice({
     initialState,
     reducers: {
         loginSuccess: (state, action) => {
+            const { user, token } = action.payload;
+            
+            // Garante o campo role antes de salvar
+            const userWithRole = { ...user, role: user.role || 'user' }; 
+            
             state.isAuthenticated = true;
-            state.user = action.payload.user;
-            state.token = action.payload.token;
+            state.user = userWithRole;
+            state.token = token;
+            state.isAdmin = userWithRole.role === 'admin'; 
 
-            localStorage.setItem('user', JSON.stringify(action.payload.user));
+            localStorage.setItem('user', JSON.stringify(userWithRole));
             localStorage.setItem('token', action.payload.token);
         },
         logout: (state) => {
@@ -176,12 +187,13 @@ const authSlice = createSlice({
             state.user = null;
             state.token = null;
             state.userPlaylistsDetail = [];
+            state.isAdmin = false;
             
             localStorage.removeItem('user');
             localStorage.removeItem('token');
         },
         setTestUser: (state, action) => {
-            const { id, name } = action.payload;
+            const { id, name, role = 'user' } = action.payload; 
             
             const newUser = state.user ? { ...state.user } : { 
                 id: id, 
@@ -193,9 +205,11 @@ const authSlice = createSlice({
             
             newUser.id = id;
             newUser.username = name;
+            newUser.role = role;
             
             state.user = newUser;
             state.isAuthenticated = true;
+            state.isAdmin = newUser.role === 'admin';
 
             localStorage.setItem('user', JSON.stringify(newUser));
         }

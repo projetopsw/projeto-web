@@ -20,7 +20,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import MainLayout from './components/MainLayout'
 import ProfileEdition from "./components/ProfileEdition.jsx";
 import Conexoes from './components/Conexoes';
-import UploadMusica from './pages/musicas/UploadMusica.jsx';
+import AdminDashboard from './pages/admin/AdminDashboard.jsx';
+import Upload from './pages/musicas/UploadMusica';
 
 const theme = createTheme({
   typography: {
@@ -45,6 +46,7 @@ function App() {
 
           <Route element={<MainLayout />}>
             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
             <Route path="/playlists/:id" element={<ProtectedRoute><PlaylistDetalhe /></ProtectedRoute>} /> 
             <Route path="/pesquisa" element={<ProtectedRoute><Pesquisa /></ProtectedRoute>} />
@@ -58,7 +60,7 @@ function App() {
             <Route path="/playlist/:id" element={<ProtectedRoute><PlaylistDetalhe /></ProtectedRoute>} />
             <Route path="/artistDetail/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
             <Route path="/artist/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
-            <Route path="/upload" element={<ProtectedRoute><UploadMusica /></ProtectedRoute>} />
+            <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
             <Route path="/fila" element={<ProtectedRoute><FilaPage /></ProtectedRoute>} />
  
             <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} /> 
