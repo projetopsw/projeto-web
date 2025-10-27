@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { useDispatch } from 'react-redux';
-import { uploadMusica } from '../../redux/uploadSlice'; 
+import React, { useState, useRef, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { uploadMusicaToDB, resetUploadStatus } from '../../redux/dbUploadSlice'; 
+import { API_BASE_URL } from '../../services/api'; 
 import './css/UploadMusica.css';
-import MusicasEnviadas from '../../components/MusicaEnviada';
+import MusicasEnviadas from '../../components/MusicaEnviada'; 
 
 const musicGenres = [
     "Pop", "Rock", "Hip Hop", "Eletrônica", "Jazz", 
@@ -50,59 +51,128 @@ const getAudioDuration = (file) => {
 
 const MusicaPreviewModal = ({ isOpen, onClose, musica }) => {
     
+    const uploadStatus = useSelector(state => state.dbUpload.status);
+    const uploadError = useSelector(state => state.dbUpload.error);
+    const uploadedSongData = useSelector(state => state.dbUpload.uploadedSongData);
+
+    const dispatch = useDispatch();
+
+    const handleClose = () => {
+        dispatch(resetUploadStatus());
+        if (musica && musica.cover && musica.cover.startsWith('blob:')) {
+            URL.revokeObjectURL(musica.cover);
+        }
+        onClose();
+    };
+
     if (!isOpen || !musica) return null;
 
-    const generosFormatados = musica.generos.filter(g => g.trim() !== '').join(', ');
-    const duracaoFormatada = musica.duracao || "00:00"; 
+    const generosFormatados = (musica.generos || []).filter(g => g.trim() !== '').join(', ');
+    const duracaoFormatada = musica.duration || "00:00"; 
     
-    const capaURL = musica.arquivoCapa ? URL.createObjectURL(musica.arquivoCapa) : '';
+    const capaURL = musica.cover || ' https://placehold.co/400x400/8d6a4f/e7e7e7?text=CAPA+MOCK';
+    
+    const songPageLink = `http://localhost:5173/song/${musica.id}`; 
+    
+    let successMessage = "Upload CONCLUÍDO!";
+    let linkElement = null;
 
-
+    if (uploadStatus === 'succeeded' && uploadedSongData && uploadedSongData.id) {
+        const dbLink = `${API_BASE_URL}/musicas/${uploadedSongData.id}`;
+        
+        successMessage = "Link da página da música (DB):";
+        
+        linkElement = (
+            <div className="success-link-block">
+                <a 
+                    href={dbLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="song-db-link"
+                >
+                    {dbLink}
+                </a>
+            </div>
+        );
+    }
+    
     return (
         <div className="modal-backdrop">
-            <div className="modal-content">
+            <div className="modal-content modal-content-horizontal">
                 
-                <h3 className="modal-header">Upload Concluído! Preview da Música</h3>
+                <h3 className="modal-header">
+                    {uploadStatus === 'loading' && "Enviando para o DB..."}
+                    {uploadStatus === 'succeeded' && successMessage}
+                    {uploadStatus === 'failed' && "Falha no Upload"}
+                    {uploadStatus === 'idle' && "Preview da Música (Local)"}
+                </h3>
+
+                {linkElement}
                 
                 <button 
-                    onClick={onClose} 
+                    onClick={handleClose} 
                     className="modal-close-button"
                     title="Fechar Preview"
                 >
                     &times;
                 </button>
 
-                {/* Removido o Bloco de Controles de Áudio (Player) */}
-                <div className="modal-media-block">
-                    <div className="modal-art">
-                        {capaURL ? (
+                {uploadStatus === 'loading' && <p className="loading-message">Aguarde, enviando dados para {API_BASE_URL}/topSongs...</p>}
+
+                {uploadStatus === 'failed' && (
+                    <div className="error-message">
+                        <p>Erro: Não foi possível adicionar a música ao DB.</p>
+                        <p>Detalhes: {uploadError}</p>
+                        <p>Certifique-se de que o JSON Server está rodando.</p>
+                    </div>
+                )}
+                
+                <div className="modal-horizontal-layout">
+                    <div className="modal-media-block">
+                        <div className="modal-art">
                             <img 
                                 src={capaURL} 
-                                alt={`Capa: ${musica.titulo}`}
+                                alt={`Capa: ${musica.title}`}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => { e.target.src = 'https://placehold.co/400x400/8d6a4f/e7e7e7?text=CAPA+MOCK'; }}
                             />
-                        ) : (
-                            <span>Sem Pré-visualização de Capa</span>
-                        )}
+                        </div>
+                    </div>
+
+                    <div className="modal-info-grid">
+                        <div className="modal-info-item"><strong>ID (DB):</strong> {musica.id}</div>
+                        <div className="modal-info-item"><strong>Título:</strong> {musica.title}</div>
+                        <div className="modal-info-item"><strong>Artista:</strong> {musica.artist}</div> 
+                        <div className="modal-info-item"><strong>Gravadora:</strong> {musica.recordLabel}</div>
+                        <div className="modal-info-item-full"><strong>Gênero(s):</strong> {generosFormatados || "Nenhum"}</div>
+                        <div className="modal-info-item"><strong>Data Upload:</strong> {new Date(musica.releaseDate).toLocaleString('pt-BR')}</div>
+                        <div className="modal-info-item"><strong>Duração:</strong> {duracaoFormatada}</div> 
+                        <div className="modal-info-item-full"><strong>Descrição:</strong> {musica.descricao || "Nenhuma"}</div>
+                        
+                        <div className="modal-info-item-full modal-lyrics-block">
+                            <strong>Letra:</strong>
+                            <pre className="modal-lyrics-text">
+                                {musica.letra || "Letra não fornecida."}
+                            </pre>
+                        </div>
+                        
+                        <div className="modal-info-item-full modal-file-link-block">
+                            <strong className="modal-file-label">Música:</strong>
+                            <a 
+                                href={songPageLink} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="modal-file-info"
+                            >
+                                {songPageLink}
+                            </a>
+                        </div>
+
                     </div>
                 </div>
 
-                <div className="modal-info-grid">
-                    <div className="modal-info-item"><strong>ID:</strong> {musica.id}</div>
-                    <div className="modal-info-item"><strong>Título:</strong> {musica.titulo}</div>
-                    <div className="modal-info-item-full"><strong>Descrição:</strong> {musica.descricao || "Nenhuma"}</div>
-                    
-                    <div className="modal-info-item"><strong>Artista:</strong> Artista Padrão (Mock)</div> 
-                    <div className="modal-info-item"><strong>Álbum:</strong> Nenhum</div>
-                    <div className="modal-info-item-full"><strong>Gênero(s):</strong> {generosFormatados || "Nenhum"}</div>
-                    
-                    <div className="modal-info-item"><strong>Data e Horário:</strong> {new Date(musica.dataUpload).toLocaleString('pt-BR')}</div>
-                    <div className="modal-info-item"><strong>Duração:</strong> {duracaoFormatada}</div> 
-                </div>
+                <button onClick={handleClose} className="modal-close-button-footer">Fechar</button>
 
-                <p className="modal-file-info">
-                    Arquivos: Música: *{musica.nomeArquivoMusica}* | Capa: *{musica.nomeArquivoCapa}*
-                </p>
             </div>
         </div>
     );
@@ -110,21 +180,30 @@ const MusicaPreviewModal = ({ isOpen, onClose, musica }) => {
 
 const UploadMusica = () => {
     const dispatch = useDispatch();
+    const { status, error } = useSelector(state => state.dbUpload);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [lastUploadedMusic, setLastUploadedMusic] = useState(null);
 
     const [titulo, setTitulo] = useState('');
     const [descricao, setDescricao] = useState('');
+    const [letra, setLetra] = useState(''); 
     const [generosSelecionados, setGenerosSelecionados] = useState([]);
     const [outroGenero, setOutroGenero] = useState('');
     const [isOutroChecked, setIsOutroChecked] = useState(false);
-    const [arquivoMusica, setArquivoMusica] = useState(null);
-    const [arquivoCapa, setArquivoCapa] = useState(null);
+    const [arquivoMusica, setArquivoMusica] = useState(null); 
+    const [arquivoCapa, setArquivoCapa] = useState(null); 
     const [duracaoMusica, setDuracaoMusica] = useState("00:00"); 
 
     const musicaInputRef = useRef(null);
     const capaInputRef = useRef(null);
+
+    useEffect(() => {
+        if (status === 'succeeded' || status === 'failed') {
+             if (!isModalOpen) setIsModalOpen(true); 
+        }
+    }, [status, isModalOpen]);
+
 
     const openModal = (musicaData) => {
         setLastUploadedMusic(musicaData);
@@ -170,38 +249,76 @@ const UploadMusica = () => {
         const tituloMusica = titulo.trim();
         
         if (!tituloMusica) {
-            alert("Atenção: Você deve preencher o campo 'Título da Música' para fazer o upload.");
+            alert("Atenção: Por favor, preencha o campo 'Título da Música' antes de fazer o upload.");
             return; 
         }
-        
-        const generosFinais = generosSelecionados.includes("Outro") 
-            ? [...generosSelecionados.filter(g => g !== "Outro"), outroGenero]
-            : generosSelecionados;
 
-        const novaMusica = {
-            id: Date.now(), 
-            titulo: tituloMusica,
-            descricao: descricao,
-            generos: generosFinais.filter(g => g.trim() !== ''), 
-            nomeArquivoMusica: arquivoMusica ? arquivoMusica.name : 'N/A',
-            nomeArquivoCapa: arquivoCapa ? arquivoCapa.name : 'N/A',
-            dataUpload: new Date().toISOString(),
-            duracao: duracaoMusica,
-            arquivoMusica: arquivoMusica,
-            arquivoCapa: arquivoCapa,
+        if (!arquivoMusica) {
+            alert("Atenção: Por favor, selecione um 'Arquivo de Música' antes de fazer o upload.");
+            return;
+        }
+
+        const generosFinaisParaValidacao = generosSelecionados.includes("Outro") 
+            ? [...generosSelecionados.filter(g => g !== "Outro"), outroGenero.trim()]
+            : generosSelecionados;
+        
+        const generosValidos = generosFinaisParaValidacao.filter(g => g && g.trim() !== '');
+
+        if (generosValidos.length === 0) {
+            alert("Atenção: Por favor, selecione pelo menos um Gênero para a música.");
+            return; 
+        }
+
+        if (isOutroChecked && outroGenero.trim() === '' && generosSelecionados.length === 1) {
+             alert("Atenção: Você selecionou 'Outro' gênero, mas não especificou qual. Por favor, preencha o campo ou selecione outro gênero.");
+             return;
+        }
+
+        dispatch(resetUploadStatus());
+        
+        const generosFinais = generosValidos; 
+        
+        const newId = `song-${Date.now()}`;
+        const uploadTime = new Date().toISOString();
+        
+        const coverUrlParaPreview = arquivoCapa
+            ? URL.createObjectURL(arquivoCapa) 
+            : 'https://placehold.co/400x400/8d6a4f/e7e7e7?text=CAPA+MOCK';
+        
+        const coverUrlFinalDB = arquivoCapa
+            ? `${API_BASE_URL}/assets/covers/${newId}.jpg`
+            : coverUrlParaPreview;
+
+        const novaMusicaParaDB = {
+            title: tituloMusica,
+            duration: duracaoMusica,
+            descricao: descricao || `Nenhuma`, 
+            letra: letra || `Letra não fornecida.`, 
+            
+            id: newId, 
+            artistId: `artist-${Date.now()}`, 
+            artist: 'Artista Desconhecido (Upload)', 
+            recordLabel: 'Independente', 
+            releaseDate: uploadTime,
+            caminho: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3', 
+            
+            cover: coverUrlFinalDB,
+            
+            generos: generosFinais,
         };
 
-        dispatch(uploadMusica(novaMusica));
+        dispatch(uploadMusicaToDB(novaMusicaParaDB));
         
-        openModal(novaMusica);
+        openModal({ ...novaMusicaParaDB, cover: coverUrlParaPreview });
 
         setTitulo('');
         setDescricao('');
+        setLetra(''); 
         setGenerosSelecionados([]);
         setOutroGenero('');
         setIsOutroChecked(false);
         setArquivoMusica(null);
-        setArquivoCapa(null);
+        setArquivoCapa(null); 
         setDuracaoMusica("00:00"); 
     };
 
@@ -213,7 +330,8 @@ const UploadMusica = () => {
         }
         return name;
     };
-
+    
+    const isUploading = status === 'loading';
 
     return (
         <div className="upload-screen-wrapper"> 
@@ -248,6 +366,7 @@ const UploadMusica = () => {
                             onChange={(e) => setTitulo(e.target.value)}
                             placeholder="Ex: Minha Nova Canção"
                             required 
+                            disabled={isUploading}
                         />
                     </div>
                     <div className="form-group">
@@ -257,6 +376,19 @@ const UploadMusica = () => {
                             value={descricao}
                             onChange={(e) => setDescricao(e.target.value)}
                             placeholder="Detalhes sobre a música, inspirações, créditos..."
+                            disabled={isUploading}
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="letra">Letra</label>
+                        <textarea
+                            id="letra"
+                            rows="8" 
+                            value={letra}
+                            onChange={(e) => setLetra(e.target.value)}
+                            placeholder="Cole a letra completa da música aqui..."
+                            disabled={isUploading}
                         />
                     </div>
                     
@@ -271,6 +403,7 @@ const UploadMusica = () => {
                                         value={genero}
                                         checked={generosSelecionados.includes(genero)}
                                         onChange={() => handleGenreChange(genero)}
+                                        disabled={isUploading}
                                     />
                                     {genero}
                                 </label>
@@ -283,6 +416,7 @@ const UploadMusica = () => {
                                     value={outroGenero}
                                     onChange={(e) => setOutroGenero(e.target.value)}
                                     placeholder="Especifique o outro gênero"
+                                    disabled={isUploading}
                                 />
                             </div>
                         )}
@@ -300,6 +434,7 @@ const UploadMusica = () => {
                         <button 
                             className="upload-file-button" 
                             onClick={() => musicaInputRef.current.click()}
+                            disabled={isUploading}
                         >
                             {getButtonText(arquivoMusica, "Upload Arquivo de Música", duracaoMusica)} 
                         </button>
@@ -315,6 +450,7 @@ const UploadMusica = () => {
                         <button 
                             className="upload-file-button" 
                             onClick={() => capaInputRef.current.click()}
+                            disabled={isUploading}
                         >
                             {getButtonText(arquivoCapa, "Upload Imagem da Música (Capa)")}
                         </button>
@@ -322,15 +458,18 @@ const UploadMusica = () => {
                         <button 
                             className="submit-button"
                             onClick={handleUploadMusica}
+                            disabled={isUploading}
                         >
-                            Fazer Upload da Música
+                            {isUploading ? "Enviando..." : "Fazer Upload da Música"}
                         </button>
                     </div>
+                    
+                    {error && <div className="api-error-message">Erro na API: {error}</div>}
                 </div>
             </div>
             
             <MusicaPreviewModal 
-                isOpen={isModalOpen} 
+                isOpen={isModalOpen || isUploading || status === 'succeeded' || status === 'failed'} 
                 onClose={closeModal} 
                 musica={lastUploadedMusic} 
             />

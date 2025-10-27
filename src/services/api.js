@@ -25,6 +25,8 @@ function resolveBaseURL() {
 
 const finalBaseURL = resolveBaseURL();
 
+export const API_BASE_URL = finalBaseURL;
+
 console.log("Axios Base URL para a API:", finalBaseURL);
 
 const api = axios.create({

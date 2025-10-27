@@ -10,6 +10,7 @@ import connectionsReducer from '../redux/connectionsSlice'
 import artistInfo from '../redux/artistaInfoSlice'
 import grupoReducer from '../redux/grupoSlice'
 import uploadReducer from '../redux/uploadSlice'
+import dbUploadReducer from '../redux/dbUploadSlice'
 
 export const store = configureStore({
   reducer: {
@@ -24,5 +25,6 @@ export const store = configureStore({
     artistInfo: artistInfo,
     groups: grupoReducer,
     upload: uploadReducer,
+    dbUpload: dbUploadReducer
   },
 });
