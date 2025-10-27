@@ -1,206 +1,269 @@
+// authSlice.js (CÓDIGO COMPLETO)
+
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../services/api';
 import axios from 'axios';
 
 const LIKED_SONGS_ID = "0";
 
+const loadUserFromLocalStorage = () => {
+    try {
+        const serializedUser = localStorage.getItem('user');
+        if (serializedUser === null) {
+            return null;
+        }
+        const user = JSON.parse(serializedUser);
+        
+        // Garante que o campo 'role' existe ao carregar do storage.
+        if (user) {
+            user.likedSongs = user.likedSongs || [];
+            user.userPlaylists = user.userPlaylists || [];
+            user.role = user.role || 'user'; // Define 'user' como padrão
+        }
+        return user;
+    } catch (e) {
+        console.error("Erro ao carregar usuário do localStorage:", e);
+        return null;
+    }
+};
+
+const initialUser = loadUserFromLocalStorage();
+
+
+
 export const toggleLikeSongAsync = createAsyncThunk(
-    'auth/toggleLikeSong',
-    async ({ userId, songId, currentLikedSongs }, { rejectWithValue }) => {
-        const isLiked = currentLikedSongs.includes(songId);
-        
-        const newLikedSongs = isLiked
-            ? currentLikedSongs.filter(id => id !== songId) 
-            : [...currentLikedSongs, songId]; 
-        
-        try {
-            await api.patch(`/users/${userId}`, { likedSongs: newLikedSongs });
-            return newLikedSongs; 
-        } catch (error) {
-            return rejectWithValue(error.response.data);
-        }
-    }
+    'auth/toggleLikeSong',
+    async ({ userId, songId }, { rejectWithValue }) => {
+        
+        try {
+            const userResponse = await api.get(`/users/${userId}`);
+            const currentLikedSongs = userResponse.data.likedSongs || [];
+            
+            const isLiked = currentLikedSongs.includes(songId);
+    
+            const newLikedSongs = isLiked
+                ? currentLikedSongs.filter(id => id !== songId)
+                : [...currentLikedSongs, songId];
+
+            await api.patch(`/users/${userId}`, { likedSongs: newLikedSongs });
+
+            await api.patch(`/userPlaylists/${LIKED_SONGS_ID}`, { songs: newLikedSongs });
+
+            return newLikedSongs; 
+
+        } catch (error) {
+            console.error("Erro na dupla atualização de curtir:", error);
+            return rejectWithValue(error.response?.data || error.message || 'Falha ao curtir/descurtir música na API.');
+        }
+    }
 );
 
 export const addSongToPlaylistAsync = createAsyncThunk(
-    'auth/addSongToPlaylist',
-    async ({ userId, playlistId, songId }, { rejectWithValue }) => {
-        try {
-            if (playlistId === LIKED_SONGS_ID) {
-                const userResponse = await api.get(`/users/${userId}`);
-                const currentLikedSongs = userResponse.data.likedSongs || [];
-                
-                if (!currentLikedSongs.includes(songId)) {
-                    const newLikedSongs = [...currentLikedSongs, songId].filter(Boolean);
-                    await api.patch(`/users/${userId}`, { likedSongs: newLikedSongs });
-                    return { songId, playlistId: LIKED_SONGS_ID, added: true };
-                }
-                return { songId: null, playlistId: LIKED_SONGS_ID, added: false };
-            } else {
-                const playlistResponse = await api.get(`/userPlaylists/${playlistId}`);
-                const currentSongs = playlistResponse.data.songs || [];
+    'auth/addSongToPlaylist',
+    async ({ userId, playlistId, songId }, { rejectWithValue, dispatch, getState }) => {
+        
+        try {
+            if (playlistId === LIKED_SONGS_ID) {
+                
+                const result = await dispatch(toggleLikeSongAsync({ userId, songId })).unwrap();
+                
+                const isNowInList = result.includes(songId);
+                
+                if (isNowInList) {
+                    return { songId, playlistId: LIKED_SONGS_ID, added: true, message: "Música curtida com sucesso!" };
+                } else {
+                    return { songId: null, playlistId: LIKED_SONGS_ID, added: false, message: "Música já curtida (ou removida inesperadamente)." };
+                }
 
-                if (!currentSongs.includes(songId)) {
-                    const updatedSongs = [...currentSongs, songId];
-                    await api.patch(`/userPlaylists/${playlistId}`, { songs: updatedSongs });
-                    return { songId, playlistId, added: true };
-                }
-                return { songId: null, playlistId, added: false };
-            }
-        } catch (error) {
-            return rejectWithValue(error.response.data);
-        }
-    }
+            } else {
+                const playlistResponse = await api.get(`/userPlaylists/${playlistId}`);
+                const currentSongs = playlistResponse.data.songs || [];
+
+                if (!currentSongs.includes(songId)) {
+                    const updatedSongs = [...currentSongs, songId];
+                    await api.patch(`/userPlaylists/${playlistId}`, { songs: updatedSongs });
+                    
+                    return { songId, playlistId, updatedSongs, added: true, message: "Adicionada à playlist com sucesso!" };
+                }
+                
+                return { songId: null, playlistId, added: false, message: "Música já está nesta playlist." };
+            }
+        } catch (error) {
+            const errorMessage = error.message || 'Falha ao adicionar música à playlist.';
+            return rejectWithValue(errorMessage);
+        }
+    }
 );
 
 export const fetchUserPlaylistsDetail = createAsyncThunk(
-    'auth/fetchUserPlaylistsDetail',
-    async (userId, { rejectWithValue }) => {
-        try {
-            const userResponse = await api.get(`/users/${userId}`);
-            const userPlaylistsIds = userResponse.data.userPlaylists || [];
-            
-            const promises = userPlaylistsIds.map(id => api.get(`/userPlaylists/${id}`));
-            const responses = await Promise.all(promises);
+    'auth/fetchUserPlaylistsDetail',
+    async (userId, { rejectWithValue }) => {
+        try {
+            const userResponse = await api.get(`/users/${userId}`);
+            const userPlaylistsIds = userResponse.data.userPlaylists || []; 
+            
+            const promises = userPlaylistsIds.map(id => api.get(`/userPlaylists/${id}`));
+            const responses = await Promise.all(promises);
 
-            return responses.map(response => response.data);
-        } catch (error) {
-            return rejectWithValue(error.response.data);
-        }
-    }
+            return responses.map(response => response.data);
+        } catch (error) {
+            return rejectWithValue(error.response?.data || 'Falha ao buscar detalhes das playlists.');
+        }
+    }
 );
 
 export const toggleFollowArtistAsync = createAsyncThunk(
-    'auth/toggleFollowArtist',
-    async ({ userId, artistId, currentFollowing }, { rejectWithValue }) => {
-        const isFollowing = currentFollowing.includes(artistId);
-        
-        const newFollowing = isFollowing
-            ? currentFollowing.filter(id => id !== artistId)
-            : [...currentFollowing, artistId]; 
+    'auth/toggleFollowArtist',
+    async ({ userId, artistId, currentFollowing }, { rejectWithValue }) => {
+        const isFollowing = currentFollowing.includes(artistId);
+        
+        const newFollowing = isFollowing
+            ? currentFollowing.filter(id => id !== artistId)
+            : [...currentFollowing, artistId]; 
 
-        try {
-            await api.patch(`/users/${userId}`, { following: newFollowing });
-            return newFollowing;
-        } catch (error) {
-            return rejectWithValue(error.response.data);
-        }
-    }
+        try {
+            await api.patch(`/users/${userId}`, { following: newFollowing });
+            return newFollowing;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || 'Falha ao seguir/deixar de seguir artista.');
+        }
+    }
 );
 
 
 export const fetchUsersByIds = createAsyncThunk(
-    'auth/fetchUsersByIds',
-    async (ids, { rejectWithValue }) => {
-        try {
-            const userPromises = ids.map(id =>
-                axios.get(`http://localhost:3001/users/${id}`)
-            );
+    'auth/fetchUsersByIds',
+    async (ids, { rejectWithValue }) => {
+        try {
+            const userPromises = ids.map(id =>
+                axios.get(`http://localhost:3001/users/${id}`)
+            );
 
-            const responses = await Promise.all(userPromises);
+            const responses = await Promise.all(userPromises);
 
-            const users = responses.map(response => response.data);
-            
-            return users;
+            const users = responses.map(response => response.data);
+            
+            return users;
 
-        } catch (error) {
-            return rejectWithValue('Falha ao buscar os detalhes dos amigos.');
-        }
-    }
+        } catch (error) {
+            return rejectWithValue('Falha ao buscar os detalhes dos amigos.');
+        }
+    }
 );
 
 
 const initialState = {
-    user: null,
-    isAuthenticated: false,
-    token: null,
-    userPlaylistsDetail: [], 
-    playlistsStatus: 'idle',
-    friends: {
-        items: [],
-        status: 'idle',
-        error: null,
-    },
+    user: initialUser,
+    isAuthenticated: !!initialUser, 
+    token: localStorage.getItem('token') || null,
+    isAdmin: initialUser ? initialUser.role === 'admin' : false, 
+    userPlaylistsDetail: [], 
+    playlistsStatus: 'idle',
+    friends: {
+        items: [],
+        status: 'idle',
+        error: null,
+    },
 };
 
 const authSlice = createSlice({
-    name: 'auth',
-    initialState,
-    reducers: {
-        loginSuccess: (state, action) => {
-            state.isAuthenticated = true;
-            state.user = action.payload.user;
-            state.token = action.payload.token;
+    name: 'auth',
+    initialState,
+    reducers: {
+        loginSuccess: (state, action) => {
+            const { user, token } = action.payload;
+            
+            // Garante o campo role antes de salvar
+            const userWithRole = { ...user, role: user.role || 'user' }; 
+            
+            state.isAuthenticated = true;
+            state.user = userWithRole;
+            state.token = token;
+            state.isAdmin = userWithRole.role === 'admin'; 
 
-            localStorage.setItem('user', JSON.stringify(action.payload.user));
-            localStorage.setItem('token', action.payload.token);
-        },
-        logout: (state) => {
-            state.isAuthenticated = false;
-            state.user = null;
-            state.token = null;
-            state.userPlaylistsDetail = [];
-            
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-        },
-    },
-    extraReducers: (builder) => {
-        builder
-            .addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
-                if (state.user) {
-                    state.user.likedSongs = action.payload;
-                    localStorage.setItem('user', JSON.stringify(state.user));
-                }
-            })
-            .addCase(toggleFollowArtistAsync.fulfilled, (state, action) => {
-                if (state.user) {
-                    state.user.following = action.payload;
-                    localStorage.setItem('user', JSON.stringify(state.user));
-                }
-            })
-            .addCase(fetchUserPlaylistsDetail.pending, (state) => {
-                state.playlistsStatus = 'loading';
-            })
-            .addCase(fetchUserPlaylistsDetail.fulfilled, (state, action) => {
-                state.userPlaylistsDetail = action.payload;
-                state.playlistsStatus = 'succeeded';
-            })
-            .addCase(fetchUserPlaylistsDetail.rejected, (state) => {
-                state.playlistsStatus = 'failed';
-                state.userPlaylistsDetail = [];
-            })
-            .addCase(addSongToPlaylistAsync.fulfilled, (state, action) => {
-                const { songId, playlistId, added } = action.payload;
-                
-                if (added && songId) {
-                    if (playlistId === LIKED_SONGS_ID) {
-                        if (state.user && !state.user.likedSongs.includes(songId)) {
-                            state.user.likedSongs.push(songId);
-                            localStorage.setItem('user', JSON.stringify(state.user));
-                        }
-                    } else {
-                        const playlist = state.userPlaylistsDetail.find(p => p.id === playlistId);
-                        if (playlist && !playlist.songs.includes(songId)) {
-                            playlist.songs.push(songId);
-                            playlist.songCount = playlist.songs.length;
-                        }
-                    }
-                }
-            })
-            .addCase(fetchUsersByIds.pending, (state) => {
-                state.friends.status = 'loading';
-            })
-            .addCase(fetchUsersByIds.fulfilled, (state, action) => {
-                state.friends.status = 'succeeded';
-                state.friends.items = action.payload;
-            })
-            .addCase(fetchUsersByIds.rejected, (state, action) => {
-                state.friends.status = 'failed';
-                state.friends.error = action.error.message;
-            });
-    },
+            localStorage.setItem('user', JSON.stringify(userWithRole));
+            localStorage.setItem('token', action.payload.token);
+        },
+        logout: (state) => {
+            state.isAuthenticated = false;
+            state.user = null;
+            state.token = null;
+            state.userPlaylistsDetail = [];
+            state.isAdmin = false;
+            
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+        },
+        setTestUser: (state, action) => {
+            const { id, name, role = 'user' } = action.payload; 
+            
+            const newUser = state.user ? { ...state.user } : { 
+                id: id, 
+                username: name, 
+                likedSongs: [], 
+                following: [],
+                userPlaylists: [],
+            };
+            
+            newUser.id = id;
+            newUser.username = name;
+            newUser.role = role;
+            
+            state.user = newUser;
+            state.isAuthenticated = true;
+            state.isAdmin = newUser.role === 'admin';
+
+            localStorage.setItem('user', JSON.stringify(newUser));
+        }
+    },
+    extraReducers: (builder) => {
+        builder
+            .addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
+                if (state.user) {
+                    state.user.likedSongs = action.payload;
+                    localStorage.setItem('user', JSON.stringify(state.user));
+                }
+            })
+            .addCase(addSongToPlaylistAsync.fulfilled, (state, action) => {
+                const { songId, playlistId, added, updatedSongs } = action.payload;
+                
+                if (added && songId && playlistId !== LIKED_SONGS_ID) {
+                    const playlist = state.userPlaylistsDetail.find(p => p.id === playlistId);
+                    if (playlist) {
+                        playlist.songs = updatedSongs;
+                    }
+                }
+            })
+            .addCase(toggleFollowArtistAsync.fulfilled, (state, action) => {
+                if (state.user) {
+                    state.user.following = action.payload;
+                    localStorage.setItem('user', JSON.stringify(state.user));
+                }
+            })
+            .addCase(fetchUserPlaylistsDetail.pending, (state) => {
+                state.playlistsStatus = 'loading';
+            })
+            .addCase(fetchUserPlaylistsDetail.fulfilled, (state, action) => {
+                state.userPlaylistsDetail = action.payload;
+                state.playlistsStatus = 'succeeded';
+            })
+            .addCase(fetchUserPlaylistsDetail.rejected, (state) => {
+                state.playlistsStatus = 'failed';
+                state.userPlaylistsDetail = [];
+            })
+            .addCase(fetchUsersByIds.pending, (state) => {
+                state.friends.status = 'loading';
+            })
+            .addCase(fetchUsersByIds.fulfilled, (state, action) => {
+                state.friends.status = 'succeeded';
+                state.friends.items = action.payload;
+            })
+            .addCase(fetchUsersByIds.rejected, (state, action) => {
+                state.friends.status = 'failed';
+                state.friends.error = action.error.message;
+            });
+            },
 });
 
-export const { loginSuccess, logout } = authSlice.actions;
+export const { loginSuccess, logout, setTestUser } = authSlice.actions; 
 export default authSlice.reducer;

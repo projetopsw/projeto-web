@@ -20,6 +20,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import MainLayout from './components/MainLayout'
 import ProfileEdition from "./components/ProfileEdition.jsx";
 import Conexoes from './components/Conexoes';
+import AdminDashboard from './pages/admin/AdminDashboard.jsx';
 
 const theme = createTheme({
   typography: {
@@ -44,6 +45,7 @@ function App() {
 
           <Route element={<MainLayout />}>
             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
             <Route path="/playlists/:id" element={<ProtectedRoute><PlaylistDetalhe /></ProtectedRoute>} /> 
             <Route path="/pesquisa" element={<ProtectedRoute><Pesquisa /></ProtectedRoute>} />

@@ -317,6 +317,212 @@ body:not(.light-theme) #moon-icon {
     font-size: 1.125rem;
 }
 
+/* --- ESTILOS ESPECÍFICOS DO PAINEL DE ADMIN --- */
+
+/* 1. Layout Principal */
+.admin-dashboard {
+    min-height: 100vh;
+    /* Usando a variável global de fundo */
+    background-color: var(--bg-color);
+    /* Usando a variável global de texto */
+    color: var(--text-color);
+    padding: 30px 40px; 
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* 2. Título Principal */
+.admin-header {
+    font-size: 2.5rem; 
+    font-weight: 800;
+    margin-bottom: 30px;
+    color: var(--text-color);
+    /* Destaque com laranja */
+    border-bottom: 2px solid var(--orange); 
+    padding-bottom: 8px;
+}
+
+/* 3. Navegação (Tabs) */
+.admin-tabs-container {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 30px;
+    padding-bottom: 16px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-tab-button {
+    padding: 8px 20px;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+    white-space: nowrap;
+    cursor: pointer;
+    background-color: var(--card-bg);
+    color: var(--secondary-text-color);
+    border: none;
+}
+
+.admin-tab-button:hover:not(.active) {
+    background-color: var(--button-hover-bg);
+    color: var(--text-color);
+}
+
+.admin-tab-button.active {
+    /* Cor de destaque principal */
+    background-color: var(--orange); 
+    color: white;
+    /* Sombra laranja */
+    box-shadow: 0 4px 10px rgba(255, 107, 0, 0.4); 
+    transform: scale(1.05);
+}
+
+/* 4. Cabeçalho da Tabela, Busca e Botão Adicionar */
+.admin-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px; 
+    margin-bottom: 24px;
+    padding: 20px;
+    border-radius: 8px;
+    /* Fundo do cabeçalho */
+    background-color: var(--header-bg);
+    box-shadow: 0 4px 10px var(--shadow-color-dark);
+}
+
+.admin-management-title {
+    font-size: 1.5rem; 
+    font-weight: 700;
+    /* Usando a cor de destaque principal (Laranja) */
+    color: var(--orange);
+}
+
+.admin-search-input {
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--input-text-color);
+    width: clamp(200px, 40%, 350px);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-size: 0.95rem;
+}
+
+.admin-search-input::placeholder {
+    color: var(--secondary-text-color);
+}
+
+.admin-search-input:focus {
+    outline: none;
+    border-color: var(--orange);
+    box-shadow: 0 0 0 1px var(--orange);
+}
+
+.admin-add-button {
+    /* Cor de destaque principal (Laranja) */
+    background-color: var(--orange); 
+    color: white;
+    font-weight: 700;
+    padding: 10px 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+    border: none;
+    cursor: pointer;
+}
+
+.admin-add-button:hover {
+    /* Cor de destaque mais escura */
+    background-color: var(--darker-orange); 
+    transform: scale(1.05);
+}
+
+/* 5. Container da Tabela */
+.admin-table-container {
+    /* Fundo da tabela/cartão */
+    background-color: var(--header-bg);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px var(--shadow-color-light);
+}
+
+/* Estilos de Tabela (Classes usadas nos componentes *Table.jsx) */
+.admin-table-wrapper {
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    min-width: 600px; 
+    border-collapse: collapse;
+}
+
+.admin-table-head {
+    /* Fundo levemente mais claro que o card */
+    background-color: var(--card-bg); 
+}
+
+.admin-table-head th {
+    padding: 12px 24px;
+    text-align: left;
+    font-size: 0.75rem;
+    color: var(--secondary-text-color);
+    text-transform: uppercase;
+}
+
+.admin-table-body td {
+    padding: 15px 24px;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    /* Borda da cor de borda global */
+    border-bottom: 1px solid var(--border-color); 
+    white-space: nowrap; 
+}
+
+.admin-table-body tr:hover {
+    /* Cor de hover mais escura */
+    background-color: #2a2a2a;
+}
+
+/* Botões de Ação na Tabela */
+.admin-action-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    margin-right: 12px;
+    transition: color 0.2s;
+}
+
+.admin-action-button.edit {
+    /* Usando a cor de destaque principal */
+    color: var(--orange); 
+}
+
+.admin-action-button.delete {
+    /* Mantendo o vermelho padrão */
+    color: #ef4444; 
+}
+
+@media (max-width: 768px) {
+    .admin-table-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .admin-search-input {
+        width: 100%;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        order: 2; 
+    }
+    .admin-management-title {
+        order: 1;
+    }
+    .admin-add-button {
+        width: 100%;
+        order: 3;
+    }
+}
 main {
     padding: 3rem 0.5rem 7.5rem 0;
     overflow-y: auto;
