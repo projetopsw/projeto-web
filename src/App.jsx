@@ -20,6 +20,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import MainLayout from './components/MainLayout'
 import ProfileEdition from "./components/ProfileEdition.jsx";
 import Conexoes from './components/Conexoes';
+import UploadMusica from './pages/musicas/UploadMusica.jsx';
 
 const theme = createTheme({
   typography: {
@@ -57,6 +58,7 @@ function App() {
             <Route path="/playlist/:id" element={<ProtectedRoute><PlaylistDetalhe /></ProtectedRoute>} />
             <Route path="/artistDetail/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
             <Route path="/artist/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
+            <Route path="/upload" element={<ProtectedRoute><UploadMusica /></ProtectedRoute>} />
             <Route path="/fila" element={<ProtectedRoute><FilaPage /></ProtectedRoute>} />
  
             <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} /> 

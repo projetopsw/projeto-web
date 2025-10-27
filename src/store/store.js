@@ -9,6 +9,7 @@ import votesReducer from '../redux/votesSlice'
 import connectionsReducer from '../redux/connectionsSlice'
 import artistInfo from '../redux/artistaInfoSlice'
 import grupoReducer from '../redux/grupoSlice'
+import uploadReducer from '../redux/uploadSlice'
 
 export const store = configureStore({
   reducer: {
@@ -22,5 +23,6 @@ export const store = configureStore({
     votes: votesReducer,
     artistInfo: artistInfo,
     groups: grupoReducer,
+    upload: uploadReducer,
   },
 });
