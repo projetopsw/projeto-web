@@ -28,7 +28,7 @@ import './Grupo.css';
 
 
 // ----------------------------------------------------
-// ESTILO para os Quadrados (Paper)
+// Paper
 // ----------------------------------------------------
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -53,46 +53,38 @@ function GrupoDetalhe() {
     const dispatch = useDispatch(); 
     
     // ====================================================================
-    // 💡 OBTENDO O USUÁRIO LOGADO REAL DO REDUX
+    // Usuário logado
     // ====================================================================
     const { user: authUser } = useSelector((state) => state.auth);
     const updatedUser = useSelector((state) => state.user.user);
     const user = updatedUser || authUser;
 
-    // Configura o objeto currentUser usando as informações do Redux
     const currentUser = {
-        id: user?.id || user?.username || 'unknown-id', // ID ou Username para comparação
-        name: user?.name || 'Visitante', // O {displayName} que você solicitou
-        username: user?.username || 'unknown_user', // Fallback para username
+        id: user?.id || user?.username || 'unknown-id',
+        name: user?.name || 'Visitante', 
+        username: user?.username || 'unknown_user',
     };
     
-    // Usar useSelector para obter o estado do player
     const queue = useSelector(state => state.player.queue || []);
     const currentSong = useSelector(state => state.player.currentSong);
     const queueIndex = useSelector(state => state.player.queueIndex);
     
-    // Variáveis de estado principais
     const [group, setGroup] = useState(null);
-    // Importante: Usaremos 'groupMembers' para encontrar o nome completo do addedBy
     const [groupMembers, setGroupMembers] = useState([]); 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
     // ----------------------------------------------------
-    // FUNÇÕES DE BUSCA DE DADOS (Atualizado o mock de membros)
+    // Busca de dados
     // ----------------------------------------------------
 
     const fetchGroupDetails = async () => {
         setIsLoading(true);
         try {
-            // ... (Sua lógica de API)
-            
-            // Simulação de dados (Mock)
             const groupData = { id, name: `Grupo ${id} (Mock)` };
             const membersData = [
                 { id: '1', name: 'Bebel', username: 'bebel_dj' }, 
                 { id: '2', name: 'Bia', username: 'bia_dj' },
-                // Garante que o usuário logado está na lista de membros (com seu ID/Username real)
                 { id: currentUser.id, name: currentUser.name, username: currentUser.username }
             ];
             
@@ -102,14 +94,11 @@ function GrupoDetalhe() {
 
         } catch (err) {
             console.error("Erro ao carregar dados:", err);
-            // Fallback (dados de mock)
             setGroup({ id, name: `Grupo ${id} (Mock)` });
             
-            // Dados de Mock de Membros atualizados para usar o ID do currentUser
             setGroupMembers([
                 { id: '1', name: 'Bebel', username: 'bebel_dj' }, 
                 { id: '2', name: 'Bia', username: 'bia_dj' },
-                // Garante que o usuário logado está na lista de membros (com seu ID/Username real)
                 { id: currentUser.id, name: currentUser.name, username: currentUser.username }
             ]);
             setError("Não foi possível carregar os dados completos. Usando dados padrão.");
@@ -119,27 +108,21 @@ function GrupoDetalhe() {
     };
     
     // ----------------------------------------------------
-    // FUNÇÕES DE GESTÃO DA FILA
+    // Fila
     // ----------------------------------------------------
 
-    // Atualização da função getAddedByName
     const getAddedByName = (addedByValue) => {
-        // Verifica se é o usuário logado (usando ID ou username)
         if (addedByValue === currentUser.username || addedByValue === currentUser.id) {
-            // Mostra o nome de exibição ({displayName}) dentro do "Você"
-            return `Você (${currentUser.name})`; 
+            return `Você`; 
         }
         
-        // Procura nos membros do grupo
         const member = groupMembers.find(m => m.username === addedByValue || m.id === addedByValue);
         
-        // Retorna o nome de exibição do membro
         return member ? member.name : `@${addedByValue}` || 'Desconhecido';
     };
 
 
     const handleAddToQueue = (song) => {
-        // Usa ID ou username como identificador, dependendo do que estiver disponível
         const userIdentifier = currentUser.id === 'unknown-id' ? currentUser.username : currentUser.id;
 
         if (!userIdentifier || userIdentifier === 'unknown-user') {
@@ -147,14 +130,11 @@ function GrupoDetalhe() {
             return;
         }
 
-        // Adicionar a informação de quem adicionou a música
         const songWithUser = {
             ...song,
-            // Usando o identificador escolhido
             addedBy: userIdentifier 
         };
 
-        // Dispatch para adicionar. O playerSlice precisa aceitar o campo addedBy
         dispatch(addSingleSongToQueue(songWithUser));
     };
     
@@ -182,7 +162,7 @@ function GrupoDetalhe() {
     }
     
     // ----------------------------------------------------
-    // RENDERIZAÇÃO
+    // Render
     // ----------------------------------------------------
 
     return (
@@ -198,7 +178,6 @@ function GrupoDetalhe() {
                 
                 <Grid container spacing={4} sx={{ flexGrow: 1 }}>
 
-                    {/* Quadrado 1: Nome do Grupo + Lista de Membros */}
                     <Grid item xs={12}>
                         <StyledPaper elevation={3} className="header-box">
                             <Box sx={{ mb: 1 }}>
@@ -223,13 +202,12 @@ function GrupoDetalhe() {
                                             key={member.id}
                                             variant="body2" 
                                             sx={{ 
-                                                // 💡 ALTERAÇÃO AQUI: Mudando o background para laranja e a cor do texto para o escuro/padrão
-                                                color: 'var(--card-bg)', // Cor do texto (fundo escuro do Card para contraste)
-                                                backgroundColor: 'var(--orange)', // Cor de fundo Laranja
+                                                color: 'var(--card-bg)', 
+                                                backgroundColor: 'var(--orange)', 
                                                 padding: '2px 8px',
                                                 borderRadius: '4px',
-                                                fontWeight: 'bold', // Opcional, para destacar mais
-                                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)' // Opcional, para dar profundidade
+                                                fontWeight: 'bold', 
+                                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)' 
                                             }}
                                         >
                                             {member.name}
@@ -244,30 +222,25 @@ function GrupoDetalhe() {
                         </StyledPaper>
                     </Grid>
 
-                    {/* Quadrado 2: Busca e Fila de Reprodução */}
                     <Grid item xs={12} sx={{ flexGrow: 1 }}>
                         <StyledPaper elevation={3} className="queue-box">
                             <Typography variant="h5" sx={{ color: 'var(--title-color)', mb: 2 }}>
-                                🎵 Adicionar Música à Fila
+                                 Adicionar Música à Fila
                             </Typography>
                             
-                            {/* 1. Barra de Pesquisa */}
                             <Box sx={{ mb: 4, position: 'relative' }}>
                                 <SearchMusicLocal 
                                     onSongSelect={handleAddToQueue} 
                                 />
                             </Box>
                             
-                            {/* 3. Divisor e Fila */}
                             <Divider sx={{ my: 3, borderColor: 'var(--border-color)' }} />
 
-                            {/* Fila de Reprodução Atual */}
                             <Box>
                                 <Typography variant="h5" sx={{ color: 'var(--title-color)', mb: 2 }}>
                                     Fila de Reprodução
                                 </Typography>
-                                
-                                {/* Exibe a música que está tocando - Adicionado Avatar */}
+                            
                                 {currentSong ? (
                                     <Paper elevation={1} sx={{ 
                                             p: 1.5, 
@@ -277,7 +250,6 @@ function GrupoDetalhe() {
                                             display: 'flex', 
                                             alignItems: 'center'
                                         }}>
-                                        {/* Capa da Música Atual */}
                                         <Avatar 
                                             src={currentSong.cover} 
                                             alt={currentSong.title} 
@@ -293,7 +265,6 @@ function GrupoDetalhe() {
                                         </Typography>
                                         <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)' }}>
                                             {currentSong.artist} 
-                                            {/* 💡 Exibição do addedBy no tocando agora */}
                                             {currentSong.addedBy && ` | Adicionado por: ${getAddedByName(currentSong.addedBy)}`}
                                         </Typography>
                                         </Box>
@@ -308,7 +279,6 @@ function GrupoDetalhe() {
                                     Próximas na Fila ({queue.length - (queueIndex + 1)} restantes)
                                 </Typography>
                                 
-                                {/* Exibe apenas o restante da fila, começando no queueIndex + 1 */}
                                 {queue.length > 0 && queueIndex !== -1 ? (
                                     <List dense>
                                         {queue.slice(queueIndex + 1).map((song, index) => (
@@ -323,7 +293,6 @@ function GrupoDetalhe() {
                                                     }}
                                             >
                                             <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, flexGrow: 1 }}>
-                                                     {/* Capa da Música na Fila */}
                                                      <ListItemAvatar>
                                                          <Avatar 
                                                              src={song.cover} 
@@ -342,12 +311,10 @@ function GrupoDetalhe() {
                                                      />
                                                  </Box>
                                                  
-                                                 {/* Container para o nome do usuário e o botão */}
                                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-                                                     {/* Verifica se a música tem a propriedade addedBy antes de tentar exibir */}
                                                      {song.addedBy ? (
                                                          <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)', minWidth: 150, textAlign: 'right' }}>
-                                                             Adicionado por: <br/><strong>{getAddedByName(song.addedBy)}</strong> {/* Corrigido: Usar song.addedBy */}
+                                                             Adicionado por: <br/><strong>{getAddedByName(song.addedBy)}</strong> 
                                                          </Typography>
                                                      ) : (
                                                              <Typography variant="caption" sx={{ color: 'var(--secondary-text-color)', minWidth: 150, textAlign: 'right' }}>
