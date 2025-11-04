@@ -317,32 +317,25 @@ body:not(.light-theme) #moon-icon {
     font-size: 1.125rem;
 }
 
-/* --- ESTILOS ESPECÍFICOS DO PAINEL DE ADMIN --- */
-
-/* 1. Layout Principal */
 .admin-dashboard {
     min-height: 100vh;
-    /* Usando a variável global de fundo */
     background-color: var(--bg-color);
-    /* Usando a variável global de texto */
     color: var(--text-color);
     padding: 30px 40px; 
     max-width: 1400px;
     margin: 0 auto;
+    margin-bottom: 4rem;
 }
 
-/* 2. Título Principal */
 .admin-header {
     font-size: 2.5rem; 
     font-weight: 800;
     margin-bottom: 30px;
     color: var(--text-color);
-    /* Destaque com laranja */
     border-bottom: 2px solid var(--orange); 
     padding-bottom: 8px;
 }
 
-/* 3. Navegação (Tabs) */
 .admin-tabs-container {
     display: flex;
     gap: 16px;
@@ -370,15 +363,12 @@ body:not(.light-theme) #moon-icon {
 }
 
 .admin-tab-button.active {
-    /* Cor de destaque principal */
     background-color: var(--orange); 
     color: white;
-    /* Sombra laranja */
     box-shadow: 0 4px 10px rgba(255, 107, 0, 0.4); 
     transform: scale(1.05);
 }
 
-/* 4. Cabeçalho da Tabela, Busca e Botão Adicionar */
 .admin-table-header {
     display: flex;
     justify-content: space-between;
@@ -387,7 +377,6 @@ body:not(.light-theme) #moon-icon {
     margin-bottom: 24px;
     padding: 20px;
     border-radius: 8px;
-    /* Fundo do cabeçalho */
     background-color: var(--header-bg);
     box-shadow: 0 4px 10px var(--shadow-color-dark);
 }
@@ -395,7 +384,6 @@ body:not(.light-theme) #moon-icon {
 .admin-management-title {
     font-size: 1.5rem; 
     font-weight: 700;
-    /* Usando a cor de destaque principal (Laranja) */
     color: var(--orange);
 }
 
@@ -421,7 +409,6 @@ body:not(.light-theme) #moon-icon {
 }
 
 .admin-add-button {
-    /* Cor de destaque principal (Laranja) */
     background-color: var(--orange); 
     color: white;
     font-weight: 700;
@@ -433,20 +420,16 @@ body:not(.light-theme) #moon-icon {
 }
 
 .admin-add-button:hover {
-    /* Cor de destaque mais escura */
     background-color: var(--darker-orange); 
     transform: scale(1.05);
 }
 
-/* 5. Container da Tabela */
 .admin-table-container {
-    /* Fundo da tabela/cartão */
     background-color: var(--header-bg);
     border-radius: 8px;
     box-shadow: 0 4px 15px var(--shadow-color-light);
 }
 
-/* Estilos de Tabela (Classes usadas nos componentes *Table.jsx) */
 .admin-table-wrapper {
     overflow-x: auto;
 }
@@ -458,7 +441,6 @@ body:not(.light-theme) #moon-icon {
 }
 
 .admin-table-head {
-    /* Fundo levemente mais claro que o card */
     background-color: var(--card-bg); 
 }
 
@@ -474,17 +456,14 @@ body:not(.light-theme) #moon-icon {
     padding: 15px 24px;
     font-size: 0.9rem;
     color: var(--text-color);
-    /* Borda da cor de borda global */
     border-bottom: 1px solid var(--border-color); 
     white-space: nowrap; 
 }
 
 .admin-table-body tr:hover {
-    /* Cor de hover mais escura */
     background-color: #2a2a2a;
 }
 
-/* Botões de Ação na Tabela */
 .admin-action-button {
     background: none;
     border: none;
@@ -495,12 +474,10 @@ body:not(.light-theme) #moon-icon {
 }
 
 .admin-action-button.edit {
-    /* Usando a cor de destaque principal */
     color: var(--orange); 
 }
 
 .admin-action-button.delete {
-    /* Mantendo o vermelho padrão */
     color: #ef4444; 
 }
 
@@ -719,3 +696,62 @@ footer {
     }
 }
 
+/* Fundo escuro semitransparente que cobre toda a tela */
+.modal-overlay {
+  position: fixed; /* Fica fixo na tela inteira */
+  top: 0;
+  left: 0;
+  width: 100vw; /* ocupa toda a largura */
+  height: 100vh; /* ocupa toda a altura */
+  background: rgba(0, 0, 0, 0.5); /* fundo escuro */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999; /* garante que fique acima de tudo */
+}
+
+/* O conteúdo do modal em si */
+.modal-content {
+  background: #fff; /* fundo branco */
+  border-radius: 12px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  position: relative;
+  animation: modalFadeIn 0.2s ease-in-out;
+}
+
+/* Botão de fechar (X) no canto superior direito */
+.modal-close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #333;
+}
+.form-submit-button {
+    font-family: 'Poppins', sans-serif;
+    font-weight: bolder;
+    font-size: 1rem;
+    color: var(--main-bg);
+    background-color: var(--orange);
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.8rem;
+}
+
+/* Efeito suave de entrada */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
