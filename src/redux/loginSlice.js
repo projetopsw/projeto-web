@@ -66,7 +66,7 @@ export const addSongToPlaylistAsync = createAsyncThunk(
                 const result = await dispatch(toggleLikeSongAsync({ userId, songId })).unwrap();
                 
                 const isNowInList = result.includes(songId);
-                
+                   
                 if (isNowInList) {
                     return { songId, playlistId: LIKED_SONGS_ID, added: true, message: "Música curtida com sucesso!" };
                 } else {
@@ -191,6 +191,7 @@ const authSlice = createSlice({
             
             localStorage.removeItem('user');
             localStorage.removeItem('token');
+            localStorage.removeItem('loggedUser');
         },
         setTestUser: (state, action) => {
             const { id, name, role = 'user' } = action.payload; 

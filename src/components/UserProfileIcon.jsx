@@ -123,9 +123,9 @@ function UserProfileIcon() {
                 <MenuItem onClick={handleProfileClick}>Ver Perfil</MenuItem>
                 
                 
-                    <MenuItem onClick={handleAdminClick} sx={{ fontWeight: 'bold', color: 'var(--orange)' }}>
+                    {isAdmin && <MenuItem onClick={handleAdminClick} sx={{ fontWeight: 'bold', color: 'var(--orange)' }}>
                         Admin Dashboard 👑
-                    </MenuItem>
+                    </MenuItem>}
                
             
                 <MenuItem onClick={handleLogout}>Sair</MenuItem>

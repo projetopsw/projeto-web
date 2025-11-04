@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
-// import './Admin.css'; // Não esqueça de importar o CSS no seu arquivo AdminDashboard.jsx
 
 import UsersTable from '../../components/UsersTable'; 
 import SongsTable from '../../components/SongsTable'; 
@@ -14,8 +13,12 @@ const AdminDashboard = () => {
     const isAdmin = useSelector((state) => state.auth.isAdmin);
     const [selectedTable, setSelectedTable] = useState('Songs'); 
     const [searchTerm, setSearchTerm] = useState(''); 
+    console.log(isAdmin)
+        if (!isAdmin) {
+            // 'replace' impede que o usuário volte para a página de admin com o botão "voltar"
+            return <Navigate to="/" replace />;
+        }
 
-    // Limpa o termo de busca quando a tabela muda
     const handleTableChange = (newTable) => {
         setSelectedTable(newTable);
         setSearchTerm(''); 
@@ -55,12 +58,10 @@ const AdminDashboard = () => {
 
     return (
         <div className="admin-dashboard">
-            {/* Título Principal */}
             <h1 className="admin-header">
-                Painel de Administração Moosica 👑
+                Painel de Administração Moosica 👑🐄
             </h1>
 
-            {/* Navegação da Tabela (Tabs) */}
             <div className="admin-tabs-container">
                 {tableOptions.map((table) => (
                     <button
@@ -73,7 +74,6 @@ const AdminDashboard = () => {
                 ))}
             </div>
 
-            {/* Cabeçalho, Busca e Botão Adicionar */}
             <div className="admin-table-header">
                 <h2 className="admin-management-title">
                     Gerenciamento de {selectedTable}
@@ -93,7 +93,6 @@ const AdminDashboard = () => {
                 </button>
             </div>
 
-            {/* Container da Tabela */}
             <div className="admin-table-container">
                 {renderTable()}
             </div>

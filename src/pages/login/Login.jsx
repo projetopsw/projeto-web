@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../redux/loginSlice';
 import { useNavigate, Link } from 'react-router-dom';
-import { setUserData } from '../../redux/userSlice';
 import './login.css';
 
 export default function Login() {
@@ -19,24 +18,14 @@ export default function Login() {
         try {
             const response = await fetch(`http://localhost:3001/users?email=${email}&password=${password}`);
             const data = await response.json();
+            console.log("DADOS DA RESPOSTA DA API:", data);
 
             if (data.length > 0) {
                 const userFromDb = data[0];
 
-                const userDataForRedux = {
-                    id: userFromDb.id,
-                    name: userFromDb.name,
-                    email: userFromDb.email,
-                    likedSongs: userFromDb.likedSongs || [],
-                    following: userFromDb.following || [],
-                    friends: (userFromDb.friends || []).map(String).filter(Boolean),
-                };
-
-                dispatch(setUserData(userDataForRedux));
-
                 dispatch(
                     loginSuccess({
-                        user: userDataForRedux,
+                        user: userFromDb,
                         token: 'fake-jwt-token-for-simulation',
                     })
                 );
