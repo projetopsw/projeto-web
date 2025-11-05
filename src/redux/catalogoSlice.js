@@ -3,29 +3,29 @@ import api from '../services/api';
 import { logout } from './loginSlice';
 
 export const fetchArtists = createAsyncThunk('catalog/fetchArtists', async () => {
-  const response = await api.get('/topArtists');
+  const response = await api.get('/artists');
   return response.data;
 });
 
 export const fetchAlbums = createAsyncThunk('catalog/fetchAlbums', async () => {
-  const response = await api.get('/topAlbums');
+  const response = await api.get('/albums');
   return response.data;
 });
 
 export const fetchArtistById = createAsyncThunk('catalog/fetchArtistById', async (artistId) => {
-  const response = await api.get(`/topArtists/${artistId}`);
+  const response = await api.get(`/artists/${artistId}`);
   return response.data;
 });
 
 export const fetchSongById = createAsyncThunk('catalog/fetchSongById', async (songId) => {
-  const response = await api.get(`/topSongs/${songId}`);
+  const response = await api.get(`/songs/${songId}`);
   return response.data;
 });
 
 export const fetchAlbumsByArtist = createAsyncThunk(
   'catalog/fetchAlbumsByArtist',
   async (artistName) => {
-    const response = await api.get(`/topAlbums?artist_like=${artistName}`);
+    const response = await api.get(`/albums?artist_like=${artistName}`);
     return response.data;
   }
 );
@@ -34,7 +34,7 @@ export const fetchArtistsByIds = createAsyncThunk(
   async (artistIds) => {
     if (!artistIds || artistIds.length === 0) return [];
     
-    const response = await api.get('/topArtists');
+    const response = await api.get('/artists');
     const allArtists = response.data;
     
     const filteredArtists = allArtists.filter(artist => artistIds.includes(String(artist.id)));
@@ -50,7 +50,7 @@ export const fetchSongsByIds = createAsyncThunk(
 
     const queryParams = songIds.map(id => `id=${id}`).join('&');
     
-    const response = await api.get(`/topSongs?${queryParams}`);
+    const response = await api.get(`/songs?${queryParams}`);
     return response.data; 
   }
 );

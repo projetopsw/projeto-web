@@ -1,6 +1,6 @@
 export const ADMIN_CONFIG = {
     Songs: {
-        endpoint: 'allSongs',   
+        endpoint: 'songs',   
         singular: 'Música',    
         plural: 'Songs',       
         columns: [
@@ -38,7 +38,7 @@ export const ADMIN_CONFIG = {
     },
 
     Artists: {
-        endpoint: 'topArtists',
+        endpoint: 'artists',
         singular: 'Artista',
         plural: 'Artists',
         columns: [
@@ -53,7 +53,7 @@ export const ADMIN_CONFIG = {
     },
 
     Albums: {
-        endpoint: 'topAlbums',   
+        endpoint: 'albums',   
         singular: 'Álbum',    
         plural: 'Albums',       
         columns: [

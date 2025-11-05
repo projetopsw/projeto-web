@@ -1,9 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
-const API_URL = 'http://localhost:3001/topArtists'; 
+const API_URL = 'http://localhost:3001/artists'; 
 
-export const fetchTopArtists = createAsyncThunk(
-  'artistInfo/fetchTopArtists',
+export const fetchArtists = createAsyncThunk(
+  'artistInfo/fetchArtists',
   async (_, { rejectWithValue }) => {
     try {
       const response = await fetch(API_URL);
@@ -35,11 +35,11 @@ const artistInfoSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-      .addCase(fetchTopArtists.pending, (state) => {
+      .addCase(fetchArtists.pending, (state) => {
         state.isLoading = 'loading';
         state.error = null;
       })
-      .addCase(fetchTopArtists.fulfilled, (state, action) => {
+      .addCase(fetchArtists.fulfilled, (state, action) => {
         state.isLoading = 'succeeded';
         state.allArtists = action.payload;
         state.artistMap = action.payload.reduce((map, artist) => {
@@ -47,7 +47,7 @@ const artistInfoSlice = createSlice({
           return map;
         }, {});
       })
-      .addCase(fetchTopArtists.rejected, (state, action) => {
+      .addCase(fetchArtists.rejected, (state, action) => {
         state.isLoading = 'failed';
         state.error = action.payload || 'Falha na requisição de dados.';
         state.allArtists = []; 

@@ -165,7 +165,7 @@ function PlaylistDetalhe() {
         setIsLoading(true);
         try {
             if (id === '0') {
-                const songsPromises = likedSongsFromRedux.map(songId => api.get(`/allSongs/${songId}`));
+                const songsPromises = likedSongsFromRedux.map(songId => api.get(`/songs/${songId}`));
                 const songsResponses = await Promise.all(songsPromises);
                 const songs = songsResponses.map(res => res.data);
                 
@@ -191,7 +191,7 @@ function PlaylistDetalhe() {
             let playlistData = playlistResponse.data;
             let songIds = playlistData.songs || [];
 
-            const songsPromises = songIds.map(songId => api.get(`/allSongs/${songId}`));
+            const songsPromises = songIds.map(songId => api.get(`/songs/${songId}`));
             const songsResponses = await Promise.all(songsPromises);
             const songs = songsResponses.map(res => res.data);
             

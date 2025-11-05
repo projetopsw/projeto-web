@@ -99,7 +99,7 @@ function SearchMusicLocal({ onSongSelect }) {
         const fetchAllSongs = async () => {
             setIsLoading(true);
             try {
-                const response = await api.get('/topSongs'); 
+                const response = await api.get('/songs'); 
                 setAllSongs(response.data);
                 setError(null);
             } catch (err) {

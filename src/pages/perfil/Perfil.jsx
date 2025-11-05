@@ -95,8 +95,8 @@ export default function Perfil() {
                         const [playlists, friendsDetails, songsDetails, artistsDetails] = await Promise.all([
                             fetch(`${API_URL}/userPlaylists?creatorId=${user.id}`).then(res => res.ok ? res.json() : []), 
                             user.friends?.length ? fetch(`${API_URL}/users?${user.friends.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [],
-                            user.likedSongs?.length ? fetch(`${API_URL}/allSongs?${user.likedSongs.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [], 
-                            user.following?.length ? fetch(`${API_URL}/topArtists?${user.following.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : []
+                            user.likedSongs?.length ? fetch(`${API_URL}/songs?${user.likedSongs.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [], 
+                            user.following?.length ? fetch(`${API_URL}/artists?${user.following.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : []
                         ]);
                         setTargetPlaylists(playlists.filter(p => p)); 
                         setTargetFriendsDetails(friendsDetails.filter(f => f));

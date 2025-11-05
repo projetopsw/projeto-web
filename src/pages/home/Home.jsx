@@ -46,25 +46,25 @@ function Home() {
   const [playlists, setPlaylists] = useState([]);
 
   useEffect(() => {
-    api.get("/topAlbums")
+    api.get("/albums")
       .then((res) => setAlbums(res.data))
       .catch((err) => console.error("Erro ao buscar álbuns:", err));
   }, []);
 
   useEffect(() => {
-    api.get("/topArtists")
+    api.get("/artists")
       .then((res) => setArtists(res.data))
       .catch((err) => console.error("Erro ao buscar artistas:", err));
   }, []);
 
   useEffect(() => {
-    api.get("/topPlaylists")
+    api.get("/playlists")
       .then((res) => setPlaylists(res.data))
       .catch((err) => console.error("Erro ao buscar playlists:", err));
   }, []);
 
   useEffect(() => {
-    api.get("/topSongs")
+    api.get("/songs")
       .then((res) => setSongs(res.data))
       .catch((err) => console.error("Erro ao buscar músicas:", err));
   }, []);

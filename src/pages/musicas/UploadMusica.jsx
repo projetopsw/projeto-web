@@ -117,7 +117,7 @@ const MusicaPreviewModal = ({ isOpen, onClose, musica }) => {
                     &times;
                 </button>
 
-                {uploadStatus === 'loading' && <p className="loading-message">Aguarde, enviando dados para {API_BASE_URL}/topSongs...</p>}
+                {uploadStatus === 'loading' && <p className="loading-message">Aguarde, enviando dados para {API_BASE_URL}/songs...</p>}
 
                 {uploadStatus === 'failed' && (
                     <div className="error-message">

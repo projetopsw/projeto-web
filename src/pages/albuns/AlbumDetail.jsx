@@ -14,7 +14,7 @@ export default function AlbumDetail( {albumID} ) {
   const [album, setAlbum] = useState(null);
 
     useEffect(() => {
-      api.get(`/topAlbums/${effectiveId}`)
+      api.get(`/albums/${effectiveId}`)
         .then((res) => setAlbum(res.data))
         .catch((err) => console.error("Erro ao buscar álbum:", err));
     }, []);

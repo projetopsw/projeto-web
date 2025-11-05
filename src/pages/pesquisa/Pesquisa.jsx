@@ -100,10 +100,10 @@ function Pesquisa() {
             setError(null);
             
             try {
-                const artistsPromise = api.get(`/topArtists`); 
-                const songsPromise = api.get(`/topSongs`);     
-                const albumsPromise = api.get(`/topAlbums`);   
-                const playlistsPromise = api.get(`/topPlaylists`); 
+                const artistsPromise = api.get(`/artists`); 
+                const songsPromise = api.get(`/songs`);
+                const albumsPromise = api.get(`/albums`);
+                const playlistsPromise = api.get(`/playlists`); 
                 const usersPromise = api.get(`/users`); 
 
                 

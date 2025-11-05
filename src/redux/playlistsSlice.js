@@ -5,7 +5,7 @@ export const fetchPlaylistsByUserId = createAsyncThunk(
   'playlists/fetchByUserId',
   async (userId) => {
     try {
-      const response = await api.get('/topPlaylists');
+      const response = await api.get('/playlists');
       const allPlaylists = response.data;
 
       const userPlaylists = allPlaylists.filter(playlist => String(playlist.userId) === String(userId));

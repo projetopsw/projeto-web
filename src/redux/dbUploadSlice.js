@@ -5,7 +5,7 @@ export const uploadMusicaToDB = createAsyncThunk(
     'dbUpload/uploadMusica',
     async (musicaData, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/topSongs`, { 
+            const response = await fetch(`${API_BASE_URL}/songs`, { 
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -14,7 +14,7 @@ import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 
 import { useSelector, useDispatch } from 'react-redux'; 
-import { fetchTopArtists } from '../../redux/artistaInfoSlice';
+import { fetchArtists } from '../../redux/artistaInfoSlice';
 import './css/TelaMusica.css';
 import Comentarios from '../../components/Comentarios'; 
 import { useNavigate } from 'react-router-dom'; 
@@ -34,7 +34,7 @@ function TelaMusica() {
 
     useEffect(() => {
         if (artistStatus === 'idle') {
-            dispatch(fetchTopArtists());
+            dispatch(fetchArtists());
         }
     }, [artistStatus, dispatch]); 
 
