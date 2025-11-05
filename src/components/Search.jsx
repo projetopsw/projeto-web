@@ -97,7 +97,6 @@ function Search({ initialQuery = '' }) {
                     </IconButton>
                 </SearchIconWrapper>
                 <StyledInputBase
-                    // ✅ ALTERAÇÃO AQUI: Mudando o texto do placeholder para "Pesquisar"
                     placeholder="Pesquisar"
                     inputProps={{ 'aria-label': 'search' }}
                     value={searchTerm}

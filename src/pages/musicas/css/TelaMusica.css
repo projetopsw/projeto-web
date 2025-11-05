@@ -89,7 +89,6 @@ font-family: 'Poppins', sans-serif;
     width: 8px; 
 }
 
-/* 2. Trilha/Fundo do Scrollbar (SEM FUNDO) */
 .aba-content-scroll::-webkit-scrollbar-track {
     background: transparent;
     margin: 10px 0;

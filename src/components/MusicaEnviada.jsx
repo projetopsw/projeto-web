@@ -6,11 +6,9 @@ const selectMusicas = (state) => {
 };
 
 const ListaMusicasEnviadas = () => {
-    // A função retorna null para não renderizar NADA na página.
     return null;
 };
 
-// O objeto styles foi mantido, mas não é usado, já que o componente não renderiza elementos visíveis.
 const styles = {
     container: {
         maxWidth: '700px',

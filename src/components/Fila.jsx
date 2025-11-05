@@ -4,8 +4,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useSelector, useDispatch } from 'react-redux';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-
-// Importa a nova action 'removeSongFromQueue'
 import { reorderQueue, togglePlayPause, setQueue, removeSongFromQueue } from '../redux/playerSlice';
 
 const VolumeIcon = () => (<i className="fas fa-volume-up" style={{ color: 'var(--orange)', fontSize: '12px' }} />);
@@ -49,7 +47,6 @@ function QueueOverlay() {
         }
     };
     
-    // FUNÇÃO PARA REMOVER MÚSICA DA FILA
     const handleRemoveSong = (e, songId) => {
         e.stopPropagation(); 
         
@@ -111,7 +108,7 @@ function QueueOverlay() {
                             <Typography sx={{ color: INACTIVE_COLOR, fontSize: '0.8rem' }}>
                                 {song.duration}
                             </Typography>
-                            {/* CHAMADA CORRIGIDA PARA REMOVER MÚSICA DA FILA */}
+                            
                             <IconButton 
                                 size="small" 
                                 onClick={(e) => handleRemoveSong(e, song.id)} 

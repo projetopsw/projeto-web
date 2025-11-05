@@ -2,11 +2,10 @@ import React from 'react';
 import { Box, Typography, Button, Avatar, styled } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
-// Estilo para o botão principal
 const StyledPlayButton = styled(Button)(({ theme }) => ({
     backgroundColor: 'var(--orange)',
-    color: 'var(--card-bg)', // Texto escuro para contraste
-    borderRadius: '500px', // Borda arredondada
+    color: 'var(--card-bg)', 
+    borderRadius: '500px',
     padding: '10px 20px',
     fontSize: '1rem',
     fontWeight: 'bold',
@@ -17,14 +16,12 @@ const StyledPlayButton = styled(Button)(({ theme }) => ({
     },
 }));
 
-// Estilo para o container principal (Header)
 const HeaderContainer = styled(Box)(({ theme }) => ({
     display: 'flex',
     alignItems: 'flex-end',
     padding: '30px 0',
-    backgroundColor: 'var(--bg-light)', // Um fundo levemente diferente para o header
+    backgroundColor: 'var(--bg-light)', 
     marginBottom: '20px',
-    // Adaptação para mobile
     [theme.breakpoints.down('sm')]: {
         flexDirection: 'column',
         alignItems: 'center',
@@ -37,11 +34,10 @@ export default function GroupHeader({ cover, type, title, creator, year, details
     
     return (
         <HeaderContainer>
-            {/* 1. Capa/Ícone do Grupo */}
             <Avatar 
                 src={cover} 
                 alt={title} 
-                variant="square" // Usar quadrado para capas
+                variant="square" 
                 sx={(theme) => ({
                     width: 230, 
                     height: 230, 
@@ -57,7 +53,6 @@ export default function GroupHeader({ cover, type, title, creator, year, details
                 })}
             />
 
-            {/* 2. Informações do Grupo */}
             <Box sx={(theme) => ({ 
                 color: 'var(--text-color)', 
                 [theme.breakpoints.down('sm')]: {
@@ -65,7 +60,6 @@ export default function GroupHeader({ cover, type, title, creator, year, details
                     alignItems: 'center'
                 }
             })}>
-                {/* Tipo de Grupo/Playlist */}
                 <Typography variant="body2" sx={{ 
                     fontWeight: 'bold', 
                     textTransform: 'uppercase', 
@@ -75,7 +69,6 @@ export default function GroupHeader({ cover, type, title, creator, year, details
                     {type}
                 </Typography>
 
-                {/* Título Principal */}
                 <Typography variant="h2" component="h1" sx={{ 
                     color: 'var(--title-color)', 
                     fontWeight: '900',
@@ -84,8 +77,7 @@ export default function GroupHeader({ cover, type, title, creator, year, details
                 }}>
                     {title}
                 </Typography>
-                
-                {/* Detalhes e Criador */}
+
                 <Box sx={{ 
                     display: 'flex', 
                     alignItems: 'center', 
@@ -104,7 +96,6 @@ export default function GroupHeader({ cover, type, title, creator, year, details
                     </Typography>
                 </Box>
 
-                {/* Botão Principal de Ação (Entrar/Seguir/Play) */}
                 <Box sx={{ mt: 3, textAlign: { xs: 'center', sm: 'left' } }}>
                     <StyledPlayButton onClick={onPlay} startIcon={<PlayArrowIcon />}>
                         Participar

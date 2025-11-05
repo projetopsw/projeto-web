@@ -29,22 +29,17 @@ import api from '../../services/api';
 import {
     fetchGroups,
     deleteGroup,
-    selectGroupStatus, // Importação do status para uso na edição/loading
+    selectGroupStatus,
     updateGroupDetails,
-    // Importamos os selectores na seção 3 para otimizar o componente principal
 } from '../../redux/grupoSlice'; 
 
-// Importa o seletor para otimização
 import { 
     selectAllGroups,
-    selectActiveGroupId // Adicionei este para ter acesso, caso fosse necessário no futuro
+    selectActiveGroupId 
 } from '../../redux/grupoSlice'; 
 
 const DEFAULT_GROUP_COVER = 'https://placehold.co/600x600/607D8B/white?text=GRUPO';
 
-// --------------------------------------------------------------------------
-// 1. Estilizações e Funções Auxiliares (Inalterado)
-// --------------------------------------------------------------------------
 
 const GruposContainer = styled(Box)(({ theme }) => ({
     display: 'grid',
@@ -80,12 +75,7 @@ const fileToBase64 = (file) =>
         reader.onerror = (error) => reject(error);
     });
 
-// --------------------------------------------------------------------------
-// 2. Componente: Modal de Compartilhamento (Inalterado)
-// --------------------------------------------------------------------------
-
 const ShareGroupModal = ({ group, onClose }) => {
-    // ... Código inalterado ...
     const groupUrl = `${window.location.origin}/grupos/${group.id}`;
     const [copied, setCopied] = useState(false);
 
@@ -135,10 +125,10 @@ const ShareGroupModal = ({ group, onClose }) => {
                         }}
                     />
                     <Button
-                        className="btn-primary-orange" // Usa a classe CSS
+                        className="btn-primary-orange"
                         onClick={handleCopy}
                         sx={{
-                            backgroundColor: copied ? '#4CAF50' : 'var(--orange)', // Sobrescreve a cor para feedback
+                            backgroundColor: copied ? '#4CAF50' : 'var(--orange)',
                             '&:hover': { backgroundColor: copied ? '#4CAF50' : 'var(--darker-orange)' },
                             minWidth: '100px',
                         }}
@@ -162,22 +152,14 @@ const ShareGroupModal = ({ group, onClose }) => {
     );
 };
 
-// --------------------------------------------------------------------------
-// 3. Componente de Edição de Grupo (Modal)
-// OTIMIZAÇÃO: Recebe 'onSave' em vez de 'dispatch' para isolamento
-// OTIMIZAÇÃO: Usa o status global 'isSaving' para o botão (groupsStatus === 'loading')
-// --------------------------------------------------------------------------
 const EditGroupModal = ({ group, onClose, onSave, groupsStatus }) => {
     const [name, setName] = useState(group.name);
     const [description, setDescription] = useState(group.description || '');
     const [coverFile, setCoverFile] = useState(null);
     const [fileName, setFileName] = useState('Nenhum arquivo selecionado');
     
-    // O status de salvamento agora vem do Redux (groupsStatus)
     const isSaving = groupsStatus === 'loading'; 
     
-    // GARANTIA: Atualiza estados internos se o grupo mudar
-    // Essencial para garantir que o modal sempre exiba o estado mais recente
     useEffect(() => {
         setName(group.name);
         setDescription(group.description || '');
@@ -213,14 +195,11 @@ const EditGroupModal = ({ group, onClose, onSave, groupsStatus }) => {
                 cover: newCover,
             };
 
-            // CHAMA A FUNÇÃO DE SALVAR PASSADA COMO PROP (que usa o dispatch)
             await onSave({ groupId: group.id, data: updatedData });
-            onClose(); // Fecha o modal após o sucesso
+            onClose(); 
             
         } catch (error) {
-            // A lógica de erro final é tratada no thunk e no componente principal (se necessário)
             console.error('Falha ao salvar o grupo:', error);
-            // alert('Não foi possível salvar as alterações. Verifique o console.');
         } 
     };
 
@@ -241,7 +220,7 @@ const EditGroupModal = ({ group, onClose, onSave, groupsStatus }) => {
                         Nome do Grupo *
                     </Typography>
                     <CustomTextField
-                        className="custom-textfield" // USA A CLASSE CSS
+                        className="custom-textfield" 
                         placeholder="Nome do Grupo"
                         variant="filled"
                         value={name}
@@ -257,7 +236,7 @@ const EditGroupModal = ({ group, onClose, onSave, groupsStatus }) => {
                         minRows={3}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        className="custom-textarea" // USA A CLASSE CSS
+                        className="custom-textarea" 
                     />
 
                     <Typography component="label" sx={{ display: 'block', color: 'var(--secondary-text-color)' }}>
@@ -270,7 +249,7 @@ const EditGroupModal = ({ group, onClose, onSave, groupsStatus }) => {
                         <Button 
                             component="label" 
                             variant="contained" 
-                            className="btn-primary-orange" // USA A CLASSE CSS
+                            className="btn-primary-orange" 
                         >
                             Escolher arquivo
                             <input type="file" hidden accept="image/*" onChange={handleFileChange} />
@@ -284,7 +263,7 @@ const EditGroupModal = ({ group, onClose, onSave, groupsStatus }) => {
                         <Button
                             type="submit"
                             variant="contained"
-                            className="btn-primary-orange" // USA A CLASSE CSS
+                            className="btn-primary-orange" 
                             disabled={isSaving || !name.trim()}
                         >
                             {isSaving ? <CircularProgress size={24} color="inherit" /> : 'Salvar'}
@@ -296,18 +275,13 @@ const EditGroupModal = ({ group, onClose, onSave, groupsStatus }) => {
     );
 };
 
-// --------------------------------------------------------------------------
-// 4. Componente Individual do Grupo (Otimizado com React.memo)
-// --------------------------------------------------------------------------
 
 const GrupoItem = React.memo(({ grupo, onJoin, currentUserId, onDelete, onEdit, onShare }) => {
     const listenersCount = grupo.listeners?.length || 0;
-    // Conversão para String antecipada é boa para evitar bugs de comparação
     const currentUserIdStr = String(currentUserId); 
     const isListening = (grupo.listeners || []).includes(currentUserIdStr);
     const isCreator = String(grupo.creatorId) === currentUserIdStr;
 
-    // UseMemo não é estritamente necessário aqui, mas é um bom hábito para cálculos leves em componentes memoizados
     const isMember = useMemo(() => (grupo.members || []).includes(currentUserIdStr), [grupo.members, currentUserIdStr]);
 
     const statusColor = listenersCount > 0 ? 'var(--orange)' : 'var(--secondary-text-color)';
@@ -318,11 +292,10 @@ const GrupoItem = React.memo(({ grupo, onJoin, currentUserId, onDelete, onEdit, 
             <Link to={`/grupos/${grupo.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <Box className="img-cima" sx={{ position: 'relative' }}>
                     <img
-                        src={grupo.cover || DEFAULT_GROUP_COVER} // Adicionada fallback para a capa
+                        src={grupo.cover || DEFAULT_GROUP_COVER} 
                         alt={`Capa do grupo ${grupo.name}`}
                         className="card-cover"
                     />
-                    {/* Status Ouvindo */}
                     <Typography
                         variant="caption"
                         sx={{
@@ -335,14 +308,11 @@ const GrupoItem = React.memo(({ grupo, onJoin, currentUserId, onDelete, onEdit, 
                         {listenersCount} ouvindo
                     </Typography>
 
-                    {/* Botões de Ação */}
                     <Stack direction="row" spacing={1} sx={{ position: 'absolute', bottom: 10, right: 10 }}>
                         
-                        {/* COMPARTILHAR */}
                         <IconButton 
                             size="small" 
                             className="card-action-btn icon-orange"
-                            // Garante que o clique não navegue para a página do grupo
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onShare(grupo); }} 
                         >
                             <ShareIcon fontSize="small" />
@@ -350,7 +320,6 @@ const GrupoItem = React.memo(({ grupo, onJoin, currentUserId, onDelete, onEdit, 
 
                         {isCreator && (
                             <>
-                                {/* EDITAR */}
                                 <IconButton 
                                     size="small" 
                                     className="card-action-btn icon-orange"
@@ -359,7 +328,6 @@ const GrupoItem = React.memo(({ grupo, onJoin, currentUserId, onDelete, onEdit, 
                                     <EditIcon fontSize="small" />
                                 </IconButton>
                                 
-                                {/* EXCLUIR */}
                                 <IconButton 
                                     size="small" 
                                     className="card-action-btn icon-red"
@@ -398,7 +366,6 @@ const GrupoItem = React.memo(({ grupo, onJoin, currentUserId, onDelete, onEdit, 
                 <Button
                     variant="contained"
                     className="btn-primary-orange"
-                    // O onJoin agora simplesmente navega, o check de membro é feito no destino
                     onClick={() => onJoin(grupo.id)} 
                     disabled={isListening}
                     sx={{
@@ -414,23 +381,17 @@ const GrupoItem = React.memo(({ grupo, onJoin, currentUserId, onDelete, onEdit, 
     );
 });
 
-// --------------------------------------------------------------------------
-// 5. Componente Principal Grupos
-// OTIMIZAÇÃO: Uso de useMemo para filtrar grupos
-// --------------------------------------------------------------------------
-
 function Grupos() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    // Melhorar a obtenção do ID e garantir que seja uma string
     const currentUserId = String(useSelector((state) => state.auth.user?.id) || ''); 
 
     const allGroups = useSelector(selectAllGroups);
     const groupsStatus = useSelector(selectGroupStatus);
 
     const [isFormVisible, setIsFormVisible] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false); // Mantido para o form de criação (POST)
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [groupName, setGroupName] = useState('');
     const [groupDescription, setGroupDescription] = useState('');
     const [groupCoverFile, setGroupCoverFile] = useState(null);
@@ -438,7 +399,6 @@ function Grupos() {
     const [editingGroup, setEditingGroup] = useState(null);
     const [groupToShare, setGroupToShare] = useState(null); 
 
-    // Otimização: usa useMemo para evitar recalcular a lista a cada render
     const { myCreatedGroups, featuredGroups } = useMemo(() => {
         const created = allGroups.filter((g) => String(g.creatorId) === currentUserId);
         const featured = allGroups.filter((g) => String(g.creatorId) !== currentUserId);
@@ -446,9 +406,7 @@ function Grupos() {
     }, [allGroups, currentUserId]);
 
 
-    // Efeito para buscar grupos na montagem
     useEffect(() => {
-        // Busca apenas se o status for 'idle' (ou 'failed' se desejar retry) e o usuário estiver logado
         if (groupsStatus === 'idle' && currentUserId) {
             dispatch(fetchGroups());
         }
@@ -458,7 +416,6 @@ function Grupos() {
         setGroupName(''); setGroupDescription(''); setGroupCoverFile(null); setFileName('Nenhum arquivo selecionado');
     };
 
-    // FUNÇÃO handleFileChange para o Formulário de CRIAÇÃO (Inalterado)
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -485,19 +442,15 @@ function Grupos() {
             description: groupDescription.trim(),
             creatorId: currentUserId,
             cover: coverBase64,
-            members: [currentUserId], // O criador é membro por padrão
+            members: [currentUserId], 
             listeners: [],
             currentSong: '',
             status: 'Inativo',
         };
 
         try {
-            // Assumindo que a API retorna o novo grupo
             const response = await api.post('/groups', newGroupData); 
-            
-            // Depois de criar, buscamos novamente para atualizar o estado global
-            // OU melhor: podemos despachar uma ação para adicionar o grupo localmente,
-            // mas manter o fetchGroups simplifica o código e garante o estado completo.
+         
             dispatch(fetchGroups()); 
             
             setIsFormVisible(false);
@@ -511,9 +464,7 @@ function Grupos() {
         }
     };
     
-    // Função unificada para despacho de edição (passada ao Modal)
     const handleUpdateGroup = async (payload) => {
-        // O status 'loading' para a edição será definido no Redux Slice
         await dispatch(updateGroupDetails(payload));
     };
 
@@ -542,7 +493,6 @@ function Grupos() {
     return (
         <main className="content-area">
 
-            {/* Tratamento de Loading Global (Fetch de grupos) */}
             {groupsStatus === 'loading' && !allGroups.length && !isFormVisible && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
                     <CircularProgress sx={{ color: 'var(--orange)' }} />
@@ -552,7 +502,6 @@ function Grupos() {
 
             <Box sx={{ display: isFormVisible ? 'none' : 'block' }}>
                 
-                {/* Meus Grupos Criados */}
                 <Box className="meus-grupos">
                     <Typography
                         variant="h5"
@@ -562,7 +511,6 @@ function Grupos() {
                         Meus Grupos Criados ({myCreatedGroups.length})
                     </Typography>
                     <GruposContainer>
-                        {/* Card para Criar Novo Grupo */}
                         <Box 
                             className="grupo-card is-new"
                             onClick={() => { setIsFormVisible(true); resetForm(); }}
@@ -575,7 +523,6 @@ function Grupos() {
                             </Typography>
                         </Box>
 
-                        {/* Listagem dos Grupos Criados */}
                         {myCreatedGroups.map((grupo) => (
                             <GrupoItem
                                 key={grupo.id}
@@ -592,7 +539,6 @@ function Grupos() {
 
                 <Divider sx={{ my: 4, borderColor: 'var(--border-color)' }} />
 
-                {/* Outros Grupos (Destaque) */}
                 <Box className="grupos-destaque">
                     <Typography
                         variant="h5"
@@ -602,7 +548,6 @@ function Grupos() {
                         Outros Grupos ({featuredGroups.length})
                     </Typography>
                     <GruposContainer>
-                        {/* Listagem dos Outros Grupos */}
                         {featuredGroups.map((grupo) => (
                             <GrupoItem
                                 key={grupo.id}
@@ -618,7 +563,6 @@ function Grupos() {
                 </Box>
             </Box>
 
-            {/* Formulário de Criação de Grupo (Inalterado) */}
             <Box
                 sx={{
                     display: isFormVisible ? 'block' : 'none',
@@ -687,18 +631,14 @@ function Grupos() {
                 </form>
             </Box>
 
-
-            {/* Modal de Edição de Grupo */}
             {editingGroup && (
                 <EditGroupModal
                     group={editingGroup}
                     onClose={() => setEditingGroup(null)}
-                    onSave={handleUpdateGroup} // Passa a função de despacho otimizada
-                    groupsStatus={groupsStatus} // Passa o status para controle do botão
+                    onSave={handleUpdateGroup} 
+                    groupsStatus={groupsStatus} 
                 />
             )}
-
-            {/* Modal de Compartilhamento */}
             {groupToShare && (
                 <ShareGroupModal
                     group={groupToShare}

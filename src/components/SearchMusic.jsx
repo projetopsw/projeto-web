@@ -14,13 +14,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
-// Importação de AddIcon não é mais estritamente necessária, mas pode ser mantida
-// import AddIcon from '@mui/icons-material/Add'; 
 import api from '../services/api.js'; 
-
-// ----------------------------------------------------
-// FUNÇÕES AUXILIARES (Mantidas)
-// ----------------------------------------------------
 
 const normalizeName = (str) => {
     if (!str) return '';
@@ -41,16 +35,11 @@ const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
         if (mode === 'exact') return lowerFieldValue === lowerQuery;
         if (mode === 'includes') return lowerFieldValue.includes(lowerQuery);
         
-        // Tenta buscar o nome do artista se o campo for o 'artist' (do db.json)
         if (field === 'artist' && mode === 'includes') return lowerFieldValue.includes(lowerQuery);
         
-        return lowerFieldValue.startsWith(lowerQuery); // starts_with
+        return lowerFieldValue.startsWith(lowerQuery); 
     });
 };
-
-// ----------------------------------------------------
-// ESTILOS MUI (Mantidos)
-// ----------------------------------------------------
 
 const SearchContainer = styled('div')(({ theme }) => ({
     position: 'relative',
@@ -75,10 +64,9 @@ const SearchResultsBox = styled(Box)(({ theme }) => ({
     overflowY: 'auto',
     backgroundColor: 'var(--card-bg)',
     border: '1px solid var(--border-color)',
-    borderRadius: '0 0 8px 8px', // Alterado para combinar com o topo arredondado
+    borderRadius: '0 0 8px 8px', 
     zIndex: 100, 
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-    // Nota: O marginTop '5px' foi removido para grudar na SearchContainer
 }));
 
 const SearchIconWrapper = styled('div')(({ theme }) => ({
@@ -101,17 +89,12 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
     },
 }));
 
-// ----------------------------------------------------
-// COMPONENTE PRINCIPAL: SearchMusicLocal
-// ----------------------------------------------------
-
 function SearchMusicLocal({ onSongSelect }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [allSongs, setAllSongs] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Carrega TODAS as músicas uma vez ao montar o componente
     useEffect(() => {
         const fetchAllSongs = async () => {
             setIsLoading(true);
@@ -129,7 +112,6 @@ function SearchMusicLocal({ onSongSelect }) {
         fetchAllSongs();
     }, []);
 
-    // Filtra as músicas em tempo real
     const searchResults = useMemo(() => {
         if (!searchTerm.trim()) return [];
 
@@ -162,13 +144,9 @@ function SearchMusicLocal({ onSongSelect }) {
         event.stopPropagation();
     };
 
-    /**
-     * 💡 ALTERAÇÃO PRINCIPAL AQUI: 
-     * Esta função agora é chamada pelo clique no ListItem.
-     */
     const handleAddSong = (song) => {
         onSongSelect(song); 
-        setSearchTerm(''); // Limpa a busca após adicionar
+        setSearchTerm(''); 
     }
 
     return (
@@ -196,7 +174,6 @@ function SearchMusicLocal({ onSongSelect }) {
                 )}
             </SearchContainer>
 
-            {/* Lista de Resultados de Busca Condicional */}
             {searchTerm.trim() && !error && (
                 <SearchResultsBox>
                     {isLoading ? (
@@ -208,25 +185,18 @@ function SearchMusicLocal({ onSongSelect }) {
                             {searchResults.map((song) => (
                                 <ListItem
                                     key={song.id}
-                                    // ✅ MODIFICAÇÃO 1: Adicionar o manipulador de clique ao ListItem
                                     onClick={() => handleAddSong(song)} 
-                                    // ✅ MODIFICAÇÃO 2: Remover o secondaryAction, pois o botão "+" não é mais necessário
-                                    // secondaryAction={
-                                    //     <IconButton edge="end" aria-label="add to queue" onClick={() => handleAddSong(song)}>
-                                    //         <AddIcon sx={{ color: 'var(--orange)' }} />
-                                    //     </IconButton>
-                                    // }
+                        
                                     sx={{ 
                                         '&:hover': { 
                                             backgroundColor: 'var(--hover-bg)', 
-                                            cursor: 'pointer' // 💡 Adicionar cursor pointer para indicar clicabilidade
+                                            cursor: 'pointer' 
                                         },
                                         display: 'flex',
                                         alignItems: 'center',
                                         borderBottom: '1px solid var(--border-color-light)'
                                     }}
                                 >
-                                    {/* Capa da Música nos Resultados da Busca */}
                                     <ListItemAvatar sx={{ minWidth: 'auto', mr: 1.5 }}>
                                         <Avatar 
                                             src={song.cover} 

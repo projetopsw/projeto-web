@@ -79,7 +79,6 @@ function NavBar({ initialQuery = '' }) {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-          {/* Ícone de Menu (3 Barrinhas) para o popup no mobile */}
           <IconButton
             onClick={handleMenuOpen}
             sx={{

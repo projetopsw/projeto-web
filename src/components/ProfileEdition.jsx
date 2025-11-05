@@ -40,7 +40,7 @@ export default function ProfileEdition() {
     });
     
     const [newProfileImage, setNewProfileImage] = useState(null);
-    const [linkImage, setLinkImage] = useState(''); // 👈 NOVO ESTADO: Link de imagem
+    const [linkImage, setLinkImage] = useState(''); 
     
     useEffect(() => {
         if (user && userId) {
@@ -68,7 +68,7 @@ export default function ProfileEdition() {
     };
 
     const handleImageUploadClick = () => {
-        setLinkImage(''); // Limpa o link ao abrir o modal
+        setLinkImage(''); 
         setIsImageModalOpen(true);
     };
 
@@ -78,7 +78,7 @@ export default function ProfileEdition() {
         setIsImageModalOpen(false); 
     };
     
-    const handleLinkImageSelect = () => { // 👈 NOVA FUNÇÃO: Aplicar link
+    const handleLinkImageSelect = () => { 
         const trimmedLink = linkImage.trim();
         if (trimmedLink) {
             handleImageSelect(trimmedLink);
@@ -123,7 +123,6 @@ export default function ProfileEdition() {
             ...currentUserData, 
             name: name,
             email: email,
-            // Prioriza newProfileImage, depois a imagem existente, depois a padrão.
             img: newProfileImage || currentUserData.img || DEFAULT_USER_IMAGE, 
         };
         
@@ -351,7 +350,6 @@ export default function ProfileEdition() {
                 </DialogTitle>
                 <DialogContent dividers sx={{ borderBottom: '1px solid var(--border-color)' }}>
                     
-                    {/* CAMPO PARA LINK DE IMAGEM */}
                     <Typography variant="subtitle1" sx={{ color: 'var(--text-color)', mb: 1, mt: 1, fontWeight: 'bold' }}>
                         Adicionar por URL:
                     </Typography>
@@ -411,7 +409,7 @@ export default function ProfileEdition() {
                                     item 
                                     xs={6} 
                                     sm={4} 
-                                    md={3} // Alterado para 3 para um melhor grid
+                                    md={3} 
                                     key={index}
                                     sx={{ display: 'flex', justifyContent: 'center' }}
                                 >

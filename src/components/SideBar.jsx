@@ -13,7 +13,6 @@ const INACTIVE_COLOR = 'var(--secondary-text-color)';
 const SideButton = React.forwardRef(({ children, to, label, isProfile = false, isMobile = false, isActive = false, ...props }, ref) => {
     
     if (isMobile) {
-        // Versão Mobile (Menu Inferior)
         return (
             <Link to={to} style={{ textDecoration: 'none', flexGrow: 1 }}>
                 <Box
@@ -29,7 +28,6 @@ const SideButton = React.forwardRef(({ children, to, label, isProfile = false, i
                     <IconButton
                         aria-label={label}
                         sx={{
-                            // Usa isActive para a cor do ícone
                             color: isActive ? ACTIVE_COLOR : 'var(--icon-color)',
                             padding: 0,
                             '&:hover': { backgroundColor: 'transparent', color: ACTIVE_COLOR },
@@ -40,7 +38,6 @@ const SideButton = React.forwardRef(({ children, to, label, isProfile = false, i
                     <Typography
                         variant="caption"
                         sx={{
-                            // Usa isActive para a cor do texto
                             color: isActive ? ACTIVE_COLOR : INACTIVE_COLOR,
                             fontSize: '10px',
                             paddingTop: '3px',
@@ -55,7 +52,6 @@ const SideButton = React.forwardRef(({ children, to, label, isProfile = false, i
         );
     }
 
-    // Versão Desktop (Menu Lateral)
     return (
         <Tooltip 
             title={label} 
@@ -176,12 +172,11 @@ function SideBar() {
         { to: '/grupos', label: 'Grupos', Icon: GroupIcon },
     ];
     
-    // --- Lógica Desktop (Menu Lateral Esquerdo) ---
     const DesktopSideBar = () => (
         <Box
             component="nav" 
             sx={{
-                display: { xs: 'none', md: 'flex' }, // Display only on MD and up
+                display: { xs: 'none', md: 'flex' },
                 position: 'fixed', 
                 top: 0,
                 left: 0,
@@ -218,15 +213,14 @@ function SideBar() {
         </Box>
     );
 
-    // --- Lógica Mobile (Menu Inferior Fixo) ---
     const MobileSideBar = () => (
         <Box
             className="menu-rodape-mobile"
             component="nav"
             sx={{
-                display: { xs: 'flex', md: 'none' }, // Display only on XS
-                position: 'fixed', // Fixed position
-                bottom: 0, // Fixed to the bottom
+                display: { xs: 'flex', md: 'none' },
+                position: 'fixed', 
+                bottom: 0, 
                 left: 0,
                 width: '100%',
                 height: '60px',
@@ -245,8 +239,8 @@ function SideBar() {
                         key={item.label}
                         to={item.to}
                         label={item.label}
-                        isMobile={true} // For compact styling
-                        isActive={isActive} // For active state color
+                        isMobile={true} 
+                        isActive={isActive}
                     >
                         <item.Icon sx={{ fontSize: '24px' }} />
                     </SideButton>

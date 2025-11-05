@@ -26,11 +26,6 @@ import SearchMusicLocal from '../../components/SearchMusic';
 import api from '../../services/api.js'; 
 import './Grupo.css'; 
 
-
-// ----------------------------------------------------
-// Paper
-// ----------------------------------------------------
-
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(3),
     backgroundColor: 'var(--card-bg)',
@@ -51,10 +46,7 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 function GrupoDetalhe() {
     const { id } = useParams(); 
     const dispatch = useDispatch(); 
-    
-    // ====================================================================
-    // Usuário logado
-    // ====================================================================
+   
     const { user: authUser } = useSelector((state) => state.auth);
     const updatedUser = useSelector((state) => state.user.user);
     const user = updatedUser || authUser;
@@ -74,9 +66,6 @@ function GrupoDetalhe() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // ----------------------------------------------------
-    // Busca de dados
-    // ----------------------------------------------------
 
     const fetchGroupDetails = async () => {
         setIsLoading(true);
@@ -106,10 +95,7 @@ function GrupoDetalhe() {
             setIsLoading(false);
         }
     };
-    
-    // ----------------------------------------------------
-    // Fila
-    // ----------------------------------------------------
+
 
     const getAddedByName = (addedByValue) => {
         if (addedByValue === currentUser.username || addedByValue === currentUser.id) {
@@ -161,9 +147,6 @@ function GrupoDetalhe() {
         return <Typography sx={{ p: 5, color: 'red' }}>Grupo não encontrado.</Typography>;
     }
     
-    // ----------------------------------------------------
-    // Render
-    // ----------------------------------------------------
 
     return (
         <>

@@ -12,11 +12,10 @@ const loadUserFromLocalStorage = () => {
         }
         const user = JSON.parse(serializedUser);
         
-        // 👑 Garante que o campo 'role' existe ao carregar do storage.
         if (user) {
             user.likedSongs = user.likedSongs || [];
             user.userPlaylists = user.userPlaylists || [];
-            user.role = user.role || 'user'; // Define 'user' como padrão
+            user.role = user.role || 'user'; 
         }
         return user;
     } catch (e) {
@@ -171,7 +170,6 @@ const authSlice = createSlice({
         loginSuccess: (state, action) => {
             const { user, token } = action.payload;
             
-            // Garante o campo role antes de salvar
             const userWithRole = { ...user, role: user.role || 'user' }; 
             
             state.isAuthenticated = true;

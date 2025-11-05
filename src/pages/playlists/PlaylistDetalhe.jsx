@@ -164,9 +164,7 @@ function PlaylistDetalhe() {
     const fetchPlaylistData = async () => {
         setIsLoading(true);
         try {
-            // Lógica para lidar com a playlist '0' (Músicas Curtidas) do Redux
             if (id === '0') {
-                // Simula a busca no servidor para a playlist de curtidas
                 const songsPromises = likedSongsFromRedux.map(songId => api.get(`/allSongs/${songId}`));
                 const songsResponses = await Promise.all(songsPromises);
                 const songs = songsResponses.map(res => res.data);
@@ -189,7 +187,6 @@ function PlaylistDetalhe() {
                 return;
             }
 
-            // Lógica para playlists customizadas
             const playlistResponse = await api.get(`/userPlaylists/${id}`);
             let playlistData = playlistResponse.data;
             let songIds = playlistData.songs || [];
@@ -221,18 +218,14 @@ function PlaylistDetalhe() {
         }
     };
 
-    // Efeito para carregar dados
     useEffect(() => {
         fetchPlaylistData();
-    }, [id, likedSongsFromRedux.length]); // Dependência em likedSongsFromRedux.length garante atualização para playlist 0
+    }, [id, likedSongsFromRedux.length]); 
     
-    // Efeito para reordenar músicas localmente ao mudar a chave de ordenação
     useEffect(() => {
-        // A função sortSongs pode ser aplicada no array local sem recarregar tudo do servidor
         setLocalSongs(prevSongs => sortSongs(prevSongs, sortKey));
     }, [sortKey]); 
 
-    // --- Funções de Menu da Playlist ---
     const handleSortClick = (event) => {
         setSortAnchorEl(event.currentTarget);
     };
@@ -313,14 +306,13 @@ function PlaylistDetalhe() {
 
     const handleOpenAddToPlaylistModal = () => {
         handleOptionsClose();
-        setSongOptionsSong(null); // Garante que o modal será para a playlist inteira, não uma música
+        setSongOptionsSong(null); 
         setIsAddToPlaylistModalOpen(true);
     };
     
     const handleCloseAddToPlaylistModal = () => setIsAddToPlaylistModalOpen(false);
 
     const handleAddSongToPlaylist = async (targetPlaylistId) => {
-        // Define se é para adicionar uma única música (menu da música) ou a playlist inteira (menu da playlist)
         const songIdsToAdd = songOptionsSong ? [songOptionsSong.id] : localSongs.map(song => song.id);
 
         try {
@@ -348,7 +340,6 @@ function PlaylistDetalhe() {
     
     const availablePlaylists = userPlaylists.filter(p => p.id !== '0' && p.id !== id);
     
-    // --- Funções: Menu da Música ---
     const handleSongOptionsClick = (event, song) => {
         event.stopPropagation(); 
         setSongOptionsAnchorEl(event.currentTarget);
@@ -367,9 +358,7 @@ function PlaylistDetalhe() {
         if (window.confirm(`Tem certeza que deseja excluir "${songOptionsSong.title}" da playlist "${playlistDetails.name}"?`)) {
             try {
                 const songIdToRemove = songOptionsSong.id;
-                
-                // 1. Filtra a lista local para remover a primeira ocorrência da música
-                // Nota: Em playlists simples (não a fila de reprodução), uma simples filtragem é suficiente.
+               
                 const newLocalSongs = [];
                 let removed = false;
                 for (const song of localSongs) {
@@ -380,16 +369,13 @@ function PlaylistDetalhe() {
                     newLocalSongs.push(song);
                 }
                 
-                // Se a música não estava na lista local, algo está errado
                 if (!removed) return; 
 
                 setLocalSongs(newLocalSongs);
 
-                // 2. Atualiza a playlist no servidor
                 const newSongIds = newLocalSongs.map(song => song.id);
                 await api.patch(`/userPlaylists/${id}`, { songs: newSongIds });
                 
-                // 3. Atualiza o estado da playlist para recontar músicas e duração
                 fetchPlaylistData();
                 
                 alert(`Música "${songOptionsSong.title}" removida com sucesso!`);
@@ -416,10 +402,8 @@ function PlaylistDetalhe() {
     
     const handleOpenAddSongToPlaylistModal = () => {
         handleSongOptionsClose();
-        // songOptionsSong já está definido, a lógica de 'handleAddSongToPlaylist' saberá usá-lo
         setIsAddToPlaylistModalOpen(true);
     };
-    // --- FIM NOVAS FUNÇÕES ---
 
     if (isLoading) {
         return (
@@ -446,7 +430,6 @@ function PlaylistDetalhe() {
         if (isThisPlaylistPlaying) {
             dispatch(togglePlayPause());
         } else {
-            // Se a música atual está na playlist, começa dela, senão, começa do início.
             const currentSongIndex = localSongs.findIndex(s => s.id === currentSong?.id);
             dispatch(setQueue({ 
                 songs: localSongs, 
@@ -464,7 +447,6 @@ function PlaylistDetalhe() {
     }
 
     const onDragEnd = async (result) => {
-        // Só permite drag se for customizada E a ordenação for customizada
         if (!result.destination || !isCustomPlaylist || sortKey !== 'custom') return;
         
         const { source, destination } = result;
@@ -475,11 +457,10 @@ function PlaylistDetalhe() {
         
         setLocalSongs(newSongs); 
 
-        // Atualiza a fila de reprodução no Redux
         const currentSongIndex = newSongs.findIndex(s => s.id === currentSong?.id);
         dispatch(setQueue({ 
             songs: newSongs, 
-            startIndex: currentSongIndex >= 0 ? currentSongIndex : 0 // Reinicia do 0 se a atual saiu
+            startIndex: currentSongIndex >= 0 ? currentSongIndex : 0 
         }));
 
         try {
@@ -488,7 +469,6 @@ function PlaylistDetalhe() {
             
         } catch (error) {
             console.error("Erro ao salvar nova ordem da playlist:", error);
-            // Poderia reverter o estado local aqui em caso de falha
         }
     };
 
@@ -808,7 +788,6 @@ function PlaylistDetalhe() {
                 )}
             </Menu>
             
-            {/* Modal de Edição de Playlist */}
             {isCustomPlaylist && (
                 <Modal
                     open={isEditModalOpen}
@@ -882,7 +861,6 @@ function PlaylistDetalhe() {
                 </Modal>
             )}
             
-            {/* Modal Adicionar a Outra Playlist */}
             <Modal
                 open={isAddToPlaylistModalOpen}
                 onClose={handleCloseAddToPlaylistModal}

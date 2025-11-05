@@ -1,5 +1,3 @@
-// Song.jsx (CÓDIGO CORRIGIDO)
-
 import React, { useState } from 'react';
 import { Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, IconButton } from '@mui/material';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -35,7 +33,6 @@ export default function Song({ song }) {
 
     const { user, userPlaylistsDetail } = useSelector(state => state.auth);
 
-    // Agora só precisamos do user para checar se está logado e obter o ID
     const userLikedSongs = user?.likedSongs || [];
     const isLiked = userLikedSongs.includes(songId); 
 
@@ -70,14 +67,12 @@ export default function Song({ song }) {
                 await dispatch(toggleLikeSongAsync({
                     userId: user.id,
                     songId: songId,
-                    // REMOVIDO: currentLikedSongs não é mais necessário aqui
                 })).unwrap();
 
                 if (wasLiked) {
                     alert(`"${title}" foi removida das Músicas Curtidas.`);
                 } else {
                     alert(`"${title}" foi curtida com sucesso!`);
-                    // 👑 NOVO: Navega para a playlist de Músicas Curtidas
                     navigate(`/playlist/${LIKED_SONGS_ID}`);
                 }
 
@@ -172,7 +167,6 @@ export default function Song({ song }) {
         });
     };
     
-    // Corrigido: Aplicando a cor secundária a todos os ícones
     const menuOptions = [
         { 
             icon: <AddIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
@@ -248,7 +242,6 @@ export default function Song({ song }) {
                 </div>
             </div>
 
-            {/* MENU PRINCIPAL DE OPÇÕES */}
             <Menu
                 id="song-options-menu"
                 anchorEl={anchorEl}
@@ -285,7 +278,6 @@ export default function Song({ song }) {
                 ))}
             </Menu>
 
-            {/* MENU DE SELEÇÃO DE PLAYLISTS */}
             <Menu
                 id="playlist-selection-menu"
                 anchorEl={playlistAnchorEl}
@@ -335,7 +327,6 @@ export default function Song({ song }) {
                 </MenuItem>
             </Menu>
 
-            {/* DIALOG DE COMPARTILHAMENTO */}
             <Dialog open={shareModalOpen} onClose={handleCloseShareModal} 
                 PaperProps={{
                     sx: {
