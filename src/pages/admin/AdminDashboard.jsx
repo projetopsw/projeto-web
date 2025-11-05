@@ -14,12 +14,13 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [editingItem, setEditingItem] = useState(null); // Novo estado
+  const [editingItem, setEditingItem] = useState(null); 
 
   if (!isAdmin) return <Navigate to="/" replace />;
 
   const currentConfig = ADMIN_CONFIG[selectedTable];
-
+  console.log(currentConfig)
+  
   const handleAddItem = async (itemData) => {
     const method = editingItem ? 'PUT' : 'POST';
     const endpoint = currentConfig.endpoint;
@@ -83,6 +84,11 @@ const AdminDashboard = () => {
     setIsModalOpen(false);
   };
 
+  const handleTableChange = (newTable) => {
+    setSelectedTable(newTable);
+    setSearchTerm(''); 
+  };
+
     return (
         <div className="admin-dashboard">
             <h1 className="admin-header">
@@ -135,7 +141,7 @@ const AdminDashboard = () => {
                     config={currentConfig}
                     onClose={handleCloseModal}
                     onSubmit={handleAddItem}
-                    initialData={editingItem} // preenche se estiver editando
+                    initialData={editingItem} 
                     title={
                         editingItem
                         ? `Editar ${currentConfig.singular}`

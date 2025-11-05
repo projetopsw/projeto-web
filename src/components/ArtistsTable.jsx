@@ -17,7 +17,6 @@ const ArtistsTable = ({ searchTerm }) => {
             });
     }, []);
 
-    // LÓGICA DE FILTRAGEM
     const filteredArtists = useMemo(() => {
         if (!searchTerm) return artists;
         const lowerCaseSearch = searchTerm.toLowerCase();

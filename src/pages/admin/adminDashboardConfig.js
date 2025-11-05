@@ -25,9 +25,9 @@ export const ADMIN_CONFIG = {
         plural: 'Users',
         columns: [
             { header: 'ID', accessor: 'id' },
-            { header: 'Username', accessor: 'username' },
+            { header: 'Username', accessor: 'name' },
             { header: 'Email', accessor: 'email' },
-            { header: 'Admin?', accessor: 'isAdmin' },
+            { header: 'Admin?', accessor: 'role' },
         ],
         formFields: [
             { name: 'username', label: 'Username', type: 'text', required: true },
@@ -75,8 +75,9 @@ export const ADMIN_CONFIG = {
         columns: [
             { header: 'ID', accessor: 'id' },
             { header: 'Nome', accessor: 'name' },
-            { header: 'Criador/Tipo', accessor: 'creator' || 'type' || 'N/A' },
-            { header: 'Músicas', accessor: 'songs.length' },
+            { header: 'ID do Criador', accessor: 'creatorId' },
+            { header: 'Tipo', accessor: 'type' },
+            { header: 'Músicas', accessor: 'songs' },
         ],
     
         formFields: [

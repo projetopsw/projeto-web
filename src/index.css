@@ -458,6 +458,8 @@ body:not(.light-theme) #moon-icon {
     color: var(--text-color);
     border-bottom: 1px solid var(--border-color); 
     white-space: nowrap; 
+    max-width: 300px;
+    overflow-x: auto;
 }
 
 .admin-table-body tr:hover {
@@ -504,7 +506,6 @@ main {
     padding: 3rem 0.5rem 7.5rem 0;
     overflow-y: auto;
     overflow-x: hidden;
-    /* height: 100vh; */
 }
 
 footer {
@@ -696,23 +697,21 @@ footer {
     }
 }
 
-/* Fundo escuro semitransparente que cobre toda a tela */
 .modal-overlay {
-  position: fixed; /* Fica fixo na tela inteira */
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100vw; /* ocupa toda a largura */
-  height: 100vh; /* ocupa toda a altura */
-  background: rgba(0, 0, 0, 0.5); /* fundo escuro */
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999; /* garante que fique acima de tudo */
+  z-index: 999;
 }
 
-/* O conteúdo do modal em si */
 .modal-content {
-  background: #fff; /* fundo branco */
+  background: #fff;
   border-radius: 12px;
   padding: 2rem;
   width: 90%;
@@ -722,7 +721,6 @@ footer {
   animation: modalFadeIn 0.2s ease-in-out;
 }
 
-/* Botão de fechar (X) no canto superior direito */
 .modal-close-button {
   position: absolute;
   top: 10px;
@@ -744,7 +742,6 @@ footer {
     padding: 0.4rem 0.8rem;
 }
 
-/* Efeito suave de entrada */
 @keyframes modalFadeIn {
   from {
     opacity: 0;

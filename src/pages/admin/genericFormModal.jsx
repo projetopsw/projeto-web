@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 
 const createInitialState = (formFields) => {
     return formFields.reduce((acc, field) => {
-        // Define o valor inicial (ex: false para checkbox, '' para texto)
         acc[field.name] = field.type === 'checkbox' ? false : '';
         return acc;
     }, {});
 };
 
 const AdminGenericFormModal = ({ config, onClose, onSubmit, initialData = null, title }) => {
-    // Se tiver dados iniciais, usa eles; senão, cria o estado vazio
     const [formData, setFormData] = useState(
         initialData || createInitialState(config.formFields)
     );
