@@ -3,61 +3,68 @@ import Album from '../models/album.model.js';
 
 const router = express.Router();
 
+router.post('/', async (req, res) => {
+  try {
+    const newAlbum = new Album(req.body);
+    const savedAlbum = await newAlbum.save();
+
+    await savedAlbum.populate('artist');
+
+    res.status(201).json(savedAlbum);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
-    const albums = await Album.find().populate('songs'); 
+    const albums = await Album.find()
+      .populate('artist', 'name cover') 
+      .sort({ createdAt: -1 });
+
     res.json(albums);
-  } catch (err) {
-    res.status(500).json({ erro: err.message });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
 router.get('/:id', async (req, res) => {
   try {
-    const album = await Album.findById(req.params.id).populate('songs');
-    if (!album) return res.status(404).json({ erro: 'Álbum não encontrado' });
-    res.json(album);
-  } catch (err) {
-    res.status(500).json({ erro: err.message });
-  }
-});
+    const album = await Album.findById(req.params.id)
+      .populate('artist') 
+      .populate('songs'); 
 
-router.post('/', async (req, res) => {
-  try {
-    const novoAlbum = new Album(req.body);
-    await novoAlbum.save();
-    res.status(201).json(novoAlbum);
-  } catch (err) {
-    res.status(400).json({ erro: err.message });
+    if (!album) {
+      return res.status(404).json({ message: 'Álbum não encontrado' });
+    }
+    res.json(album);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
 router.put('/:id', async (req, res) => {
   try {
-    const albumAtualizado = await Album.findByIdAndUpdate(
+    const updatedAlbum = await Album.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true } 
-    ).populate('songs');
+      { new: true, runValidators: true }
+    ).populate('artist');
 
-    if (!albumAtualizado)
-      return res.status(404).json({ erro: 'Álbum não encontrado' });
-
-    res.json(albumAtualizado);
-  } catch (err) {
-    res.status(400).json({ erro: err.message });
+    if (!updatedAlbum) return res.status(404).json({ message: 'Álbum não encontrado' });
+    res.json(updatedAlbum);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 });
 
 router.delete('/:id', async (req, res) => {
   try {
-    const albumRemovido = await Album.findByIdAndDelete(req.params.id);
-    if (!albumRemovido)
-      return res.status(404).json({ erro: 'Álbum não encontrado' });
-
-    res.json({ mensagem: 'Álbum removido com sucesso' });
-  } catch (err) {
-    res.status(500).json({ erro: err.message });
+    const deletedAlbum = await Album.findByIdAndDelete(req.params.id);
+    if (!deletedAlbum) return res.status(404).json({ message: 'Álbum não encontrado' });
+    res.json({ message: 'Álbum deletado com sucesso' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

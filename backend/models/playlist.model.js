@@ -1,15 +1,16 @@
 import mongoose, { Schema } from 'mongoose';
 
 const playlistSchema = new Schema({
-  id: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
-  creatorId: { type: String, required: true },
-  description: { type: String, default: '' },
+  name: { type: String, required: true, trim: true },
+  description: { type: String, trim: true, default: '' },
   img: { type: String, default: '' },
-  songs: [{ type: String }],
-  duration: { type: String, default: '0:00' },
-  songCount: { type: Number, default: 0 },
-}, { timestamps: true });
-
+  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  songs: [{
+      song: { type: Schema.Types.ObjectId, ref: 'Song' },
+      addedAt: { type: Date, default: Date.now }
+  }],
+  durationSeconds: { type: Number, default: 0 },
+  songCount: { type: Number, default: 0 }
+}, {timestamps: true});
 
 export default mongoose.model('Playlist', playlistSchema);
