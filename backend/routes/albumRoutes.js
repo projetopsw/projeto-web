@@ -1,5 +1,6 @@
 import express from 'express';
 import Album from '../models/album.model.js';
+import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 

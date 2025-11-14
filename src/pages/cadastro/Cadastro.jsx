@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom'; 
+import api from '../../services/api'; // Importe sua instância do Axios
 import '../login/login.css'
 
 export default function Cadastro() {
@@ -8,53 +9,40 @@ export default function Cadastro() {
     const [password, setPassword] = useState('');
  
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false); // Para feedback visual
 
     const navigate = useNavigate();
 
     const handleCadastro = async (e) => {
         e.preventDefault();
         setError(''); 
+        setIsLoading(true);
 
         if (!username || !email || !password) {
             setError('Todos os campos são obrigatórios!');
+            setIsLoading(false);
             return;
         }
 
         try {
-            const checkEmailResponse = await fetch(`http://localhost:3001/users?email=${email}`);
-            const existingUsers = await checkEmailResponse.json();
-
-            if (existingUsers.length > 0) {
-                setError('Este email já está em uso. Tente outro.');
-                return; 
-            }
-
-            const newUser = {
-                username,
+            // Enviamos os dados para a rota de registro do Backend
+            // Nota: O Backend espera "name", mas seu state é "username"
+            await api.post('/users/register', {
+                name: username,
                 email,
                 password,
-                playlists: 0,
-                friends: 0,
-            };
-
-            const createUserResponse = await fetch('http://localhost:3001/users', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newUser),
+                // role: 'user' (O backend já define como padrão, não precisa mandar)
             });
-
-            if (!createUserResponse.ok) {
-                throw new Error('Não foi possível criar o usuário.');
-            }
 
             alert('Cadastro realizado com sucesso! Agora você pode entrar no pasto.');
             navigate('/login');
 
         } catch (err) {
-            setError('Ocorreu um erro ao conectar com o servidor. Tente novamente.');
-            console.error(err);
+            // O Axios joga o erro do backend dentro de err.response.data.message
+            const mensagemErro = err.response?.data?.message || 'Ocorreu um erro ao criar a conta.';
+            setError(mensagemErro);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -73,6 +61,7 @@ export default function Cadastro() {
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
+                        disabled={isLoading}
                     />
 
                     <label htmlFor="user-email">Email</label>
@@ -81,6 +70,7 @@ export default function Cadastro() {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        disabled={isLoading}
                     />
 
                     <label htmlFor="user-password">Senha</label>
@@ -89,11 +79,14 @@ export default function Cadastro() {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
                     />
 
                     {error && <p style={{ color: 'red' }}>{error}</p>}
                     
-                    <button type="submit" className="btn orange-btn">Entrar no pasto</button>
+                    <button type="submit" className="btn orange-btn" disabled={isLoading}>
+                        {isLoading ? 'Abrindo porteira...' : 'Entrar no pasto'}
+                    </button>
                 </form>            
             </div>
 

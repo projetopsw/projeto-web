@@ -1,15 +1,18 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api from '../services/api';
-import axios from 'axios';
+import api from '../services/api'; 
+import mongoApi from '../services/mongoApi'
 
 const LIKED_SONGS_ID = "0";
 
 const loadUserFromLocalStorage = () => {
     try {
         const serializedUser = localStorage.getItem('user');
-        if (serializedUser === null) {
+        const token = localStorage.getItem('token');
+        
+        if (!serializedUser || !token) {
             return null;
         }
+
         const user = JSON.parse(serializedUser);
         
         if (user) {
@@ -26,12 +29,21 @@ const loadUserFromLocalStorage = () => {
 
 const initialUser = loadUserFromLocalStorage();
 
-
+export const loginUserAsync = createAsyncThunk(
+    'auth/loginUser',
+    async ({ email, password }, { rejectWithValue }) => {
+        try {
+            const response = await mongoApi.post('/users/login', { email, password });
+            return response.data; 
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Erro ao fazer login');
+        }
+    }
+);
 
 export const toggleLikeSongAsync = createAsyncThunk(
     'auth/toggleLikeSong',
     async ({ userId, songId }, { rejectWithValue }) => {
-        
         try {
             const userResponse = await api.get(`/users/${userId}`);
             const currentLikedSongs = userResponse.data.likedSongs || [];
@@ -44,35 +56,31 @@ export const toggleLikeSongAsync = createAsyncThunk(
 
             await api.patch(`/users/${userId}`, { likedSongs: newLikedSongs });
 
-            await api.patch(`/userPlaylists/${LIKED_SONGS_ID}`, { songs: newLikedSongs });
-
             return newLikedSongs; 
 
         } catch (error) {
-            console.error("Erro na dupla atualização de curtir:", error);
-            return rejectWithValue(error.response?.data || error.message || 'Falha ao curtir/descurtir música na API.');
+            console.error("Erro ao curtir:", error);
+            return rejectWithValue(error.response?.data || 'Falha ao curtir música.');
         }
     }
 );
 
 export const addSongToPlaylistAsync = createAsyncThunk(
     'auth/addSongToPlaylist',
-    async ({ userId, playlistId, songId }, { rejectWithValue, dispatch, getState }) => {
-        
+    async ({ userId, playlistId, songId }, { rejectWithValue, dispatch }) => {
         try {
             if (playlistId === LIKED_SONGS_ID) {
-                
                 const result = await dispatch(toggleLikeSongAsync({ userId, songId })).unwrap();
-                
                 const isNowInList = result.includes(songId);
-                   
-                if (isNowInList) {
-                    return { songId, playlistId: LIKED_SONGS_ID, added: true, message: "Música curtida com sucesso!" };
-                } else {
-                    return { songId: null, playlistId: LIKED_SONGS_ID, added: false, message: "Música já curtida (ou removida inesperadamente)." };
-                }
-
-            } else {
+                
+                return { 
+                    songId, 
+                    playlistId: LIKED_SONGS_ID, 
+                    added: isNowInList, 
+                    message: isNowInList ? "Música curtida com sucesso!" : "Música descurtida." 
+                };
+            } 
+            else {
                 const playlistResponse = await api.get(`/userPlaylists/${playlistId}`);
                 const currentSongs = playlistResponse.data.songs || [];
 
@@ -86,8 +94,7 @@ export const addSongToPlaylistAsync = createAsyncThunk(
                 return { songId: null, playlistId, added: false, message: "Música já está nesta playlist." };
             }
         } catch (error) {
-            const errorMessage = error.message || 'Falha ao adicionar música à playlist.';
-            return rejectWithValue(errorMessage);
+            return rejectWithValue(error.message || 'Falha ao adicionar música à playlist.');
         }
     }
 );
@@ -122,32 +129,23 @@ export const toggleFollowArtistAsync = createAsyncThunk(
             await api.patch(`/users/${userId}`, { following: newFollowing });
             return newFollowing;
         } catch (error) {
-            return rejectWithValue(error.response?.data || 'Falha ao seguir/deixar de seguir artista.');
+            return rejectWithValue(error.response?.data || 'Falha ao seguir artista.');
         }
     }
 );
-
 
 export const fetchUsersByIds = createAsyncThunk(
     'auth/fetchUsersByIds',
     async (ids, { rejectWithValue }) => {
         try {
-            const userPromises = ids.map(id =>
-                axios.get(`http://localhost:3001/users/${id}`)
-            );
-
+            const userPromises = ids.map(id => api.get(`/users/${id}`));
             const responses = await Promise.all(userPromises);
-
-            const users = responses.map(response => response.data);
-            
-            return users;
-
+            return responses.map(response => response.data);
         } catch (error) {
             return rejectWithValue('Falha ao buscar os detalhes dos amigos.');
         }
     }
 );
-
 
 const initialState = {
     user: initialUser,
@@ -161,25 +159,13 @@ const initialState = {
         status: 'idle',
         error: null,
     },
+    loginError: null,
 };
 
 const authSlice = createSlice({
     name: 'auth',
     initialState,
     reducers: {
-        loginSuccess: (state, action) => {
-            const { user, token } = action.payload;
-            
-            const userWithRole = { ...user, role: user.role || 'user' }; 
-            
-            state.isAuthenticated = true;
-            state.user = userWithRole;
-            state.token = token;
-            state.isAdmin = userWithRole.role === 'admin'; 
-
-            localStorage.setItem('user', JSON.stringify(userWithRole));
-            localStorage.setItem('token', action.payload.token);
-        },
         logout: (state) => {
             state.isAuthenticated = false;
             state.user = null;
@@ -189,32 +175,45 @@ const authSlice = createSlice({
             
             localStorage.removeItem('user');
             localStorage.removeItem('token');
-            localStorage.removeItem('loggedUser');
         },
         setTestUser: (state, action) => {
             const { id, name, role = 'user' } = action.payload; 
-            
-            const newUser = state.user ? { ...state.user } : { 
-                id: id, 
-                username: name, 
+            const newUser = { 
+                ...state.user,
+                id, 
+                name: name, 
+                role,
                 likedSongs: [], 
                 following: [],
                 userPlaylists: [],
             };
             
-            newUser.id = id;
-            newUser.username = name;
-            newUser.role = role;
-            
             state.user = newUser;
             state.isAuthenticated = true;
             state.isAdmin = newUser.role === 'admin';
-
             localStorage.setItem('user', JSON.stringify(newUser));
         }
     },
     extraReducers: (builder) => {
         builder
+            .addCase(loginUserAsync.fulfilled, (state, action) => {
+                const { user, token } = action.payload;
+                const userWithRole = { ...user, role: user.role || 'user' };
+                
+                state.isAuthenticated = true;
+                state.user = userWithRole;
+                state.token = token;
+                state.isAdmin = userWithRole.role === 'admin';
+                state.loginError = null;
+
+                localStorage.setItem('user', JSON.stringify(userWithRole));
+                localStorage.setItem('token', token);
+            })
+            .addCase(loginUserAsync.rejected, (state, action) => {
+                state.loginError = action.payload;
+                state.isAuthenticated = false;
+            })
+
             .addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
                 if (state.user) {
                     state.user.likedSongs = action.payload;
@@ -225,9 +224,9 @@ const authSlice = createSlice({
                     likedPlaylist.songs = action.payload;
                 }
             })
+
             .addCase(addSongToPlaylistAsync.fulfilled, (state, action) => {
                 const { songId, playlistId, added, updatedSongs } = action.payload;
-                
                 if (added && songId && playlistId !== LIKED_SONGS_ID) {
                     const playlist = state.userPlaylistsDetail.find(p => p.id === playlistId);
                     if (playlist) {
@@ -235,12 +234,14 @@ const authSlice = createSlice({
                     }
                 }
             })
+
             .addCase(toggleFollowArtistAsync.fulfilled, (state, action) => {
                 if (state.user) {
                     state.user.following = action.payload;
                     localStorage.setItem('user', JSON.stringify(state.user));
                 }
             })
+
             .addCase(fetchUserPlaylistsDetail.pending, (state) => {
                 state.playlistsStatus = 'loading';
             })
@@ -252,6 +253,7 @@ const authSlice = createSlice({
                 state.playlistsStatus = 'failed';
                 state.userPlaylistsDetail = [];
             })
+
             .addCase(fetchUsersByIds.pending, (state) => {
                 state.friends.status = 'loading';
             })
@@ -263,8 +265,8 @@ const authSlice = createSlice({
                 state.friends.status = 'failed';
                 state.friends.error = action.error.message;
             });
-            },
+    },
 });
 
-export const { loginSuccess, logout, setTestUser } = authSlice.actions; 
+export const { logout, setTestUser } = authSlice.actions; 
 export default authSlice.reducer;

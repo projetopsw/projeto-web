@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { loginSuccess } from '../../redux/loginSlice';
+import { loginUserAsync } from '../../redux/loginSlice'; 
 import { useNavigate, Link } from 'react-router-dom';
 import './login.css';
 
@@ -8,35 +8,25 @@ export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
         try {
-            const response = await fetch(`http://localhost:3001/users?email=${email}&password=${password}`);
-            const data = await response.json();
-            console.log("DADOS DA RESPOSTA DA API:", data);
-
-            if (data.length > 0) {
-                const userFromDb = data[0];
-
-                dispatch(
-                    loginSuccess({
-                        user: userFromDb,
-                        token: 'fake-jwt-token-for-simulation',
-                    })
-                );
-
-                navigate('/');
-            } else {
-                setError('Email ou senha inválidos.');
-            }
+            const resultAction = await dispatch(loginUserAsync({ email, password })).unwrap()
+            console.log("Login Sucesso:", resultAction)
+            navigate('/')
         } catch (err) {
-            console.error(err);
-            setError('Ocorreu um erro ao tentar fazer login. Tente novamente.');
+            console.error("Erro no login:", err);
+            setError(err || 'Email ou senha inválidos.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -53,13 +43,14 @@ export default function Login() {
 
             <div className="login-container">
                 <form className="login-form" onSubmit={handleLogin}>
-                    <label htmlFor="user-email">Email ou nome de boiadeiro</label>
+                    <label htmlFor="user-email">Email</label>
                     <input
                         id="user-email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
+                        disabled={isLoading}
                     />
 
                     <label htmlFor="user-password">Senha</label>
@@ -69,12 +60,13 @@ export default function Login() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
+                        disabled={isLoading}
                     />
 
-                    {error && <p className="error-text">{error}</p>}
+                    {error && <p className="error-text" style={{color: 'red'}}>{error}</p>}
 
-                    <button type="submit" className="btn orange-btn">
-                        Entrar no pasto
+                    <button type="submit" className="btn orange-btn" disabled={isLoading}>
+                        {isLoading ? 'Verificando...' : 'Entrar no pasto'}
                     </button>
                 </form>
             </div>

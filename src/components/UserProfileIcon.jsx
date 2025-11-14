@@ -1,23 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IconButton, Menu, MenuItem, Avatar } from '@mui/material';
-import { logout } from '../redux/loginSlice';
+// Certifique-se que o caminho do arquivo está correto (se você renomeou para authSlice ou manteve loginSlice)
+import { logout } from '../redux/loginSlice'; 
 import { useSelector, useDispatch } from 'react-redux';
 
 function UserProfileIcon() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const authState = useSelector((state) => state.auth);
-  const isAdmin = authState.isAdmin;
-  const authUser = authState.user;
-  const updatedUser = useSelector((state) => state.user.user);
+  // 1. Mudança Principal: Pegamos tudo do state.auth
+  const { user, isAdmin } = useSelector((state) => state.auth);
 
-  const user = {
-    ...(updatedUser || authUser),
-    role: authUser?.role,
-  };
-
+  // 2. Simplificação: Não precisamos mais fazer merge de objetos
+  // O user do state.auth já é o objeto completo vindo do MongoDB
   const profileImageUrl = user?.image || user?.img || '/assets/img/default_profile.png';
   const displayName = user?.name || 'Visitante';
 
