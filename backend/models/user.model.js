@@ -10,7 +10,8 @@ const userSchema = new Schema({
   friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   friendshipRequests: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   likedSongs: [{ type: Schema.Types.ObjectId, ref: 'Song' }],
-  userPlaylists: [{ type: Schema.Types.ObjectId, ref: 'Playlist' }]
+  userPlaylists: [{ type: Schema.Types.ObjectId, ref: 'Playlist' }],
+  admin: [{ type: Boolean, default: false}]
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);
