@@ -35,7 +35,7 @@ export default function Login() {
             <div className="logo-container">
                 <img
                     className="logo"
-                    src="assets/img/vaca-logo.png"
+                    src="/assets/img/vaca-logo.png"
                     alt="Logo da Vaca"
                 />
                 <h1>Bem-vindo de volta ao rebanho!</h1>

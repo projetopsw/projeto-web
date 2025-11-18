@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom'; 
-import api from '../../services/api'; // Importe sua instância do Axios
+import api from '../../services/api'; 
 import '../login/login.css'
 
 export default function Cadastro() {
@@ -9,7 +9,7 @@ export default function Cadastro() {
     const [password, setPassword] = useState('');
  
     const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false); // Para feedback visual
+    const [isLoading, setIsLoading] = useState(false); 
 
     const navigate = useNavigate();
 
@@ -25,20 +25,16 @@ export default function Cadastro() {
         }
 
         try {
-            // Enviamos os dados para a rota de registro do Backend
-            // Nota: O Backend espera "name", mas seu state é "username"
             await api.post('/users/register', {
                 name: username,
                 email,
                 password,
-                // role: 'user' (O backend já define como padrão, não precisa mandar)
             });
 
             alert('Cadastro realizado com sucesso! Agora você pode entrar no pasto.');
             navigate('/login');
 
         } catch (err) {
-            // O Axios joga o erro do backend dentro de err.response.data.message
             const mensagemErro = err.response?.data?.message || 'Ocorreu um erro ao criar a conta.';
             setError(mensagemErro);
         } finally {

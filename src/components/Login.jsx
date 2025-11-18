@@ -2,7 +2,7 @@ export default function Login() {
     return (
         <div className="container">
             <div className="logo-container">
-                <img className="logo" src="assets/img/vaca-logo.png" alt="Logo da Vaca" />
+                <img className="logo" src="/assets/img/vaca-logo.png" alt="Logo da Vaca" />
                 <h1>Bem vindo de volta ao rebanho!</h1>
             </div>
 
