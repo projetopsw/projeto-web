@@ -1,3 +1,5 @@
+// backend/routes/spotifyRoutes.js
+
 import express from 'express';
 import axios from 'axios';
 import User from '../models/user.model.js';
@@ -7,9 +9,11 @@ const router = express.Router();
 
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+// CORREÇÃO: URLs reais do Spotify
 const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
-const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
+const SPOTIFY_API_BASE = 'https://api.spotify.com';
 
+// Função para renovar o token e obter um Access Token válido
 async function getValidSpotifyToken(userId) {
     const user = await User.findById(userId).select('+refresh_token_spotify +access_token_spotify');
     
@@ -41,11 +45,20 @@ async function getValidSpotifyToken(userId) {
         return newAccessToken;
 
     } catch (error) {
-        console.error("Erro ao renovar token no proxy:", error.response?.data || error.message);
-        throw new Error('Falha na renovação do token Spotify.');
+        const spotifyError = error.response?.data || error.message;
+        console.error("ERRO SPOTIFY REFRESH (Backend):", spotifyError); 
+        
+        // Se a renovação falhar por token expirado/inválido (400), forçamos o cliente a logar de novo
+        if (error.response?.status === 400 && spotifyError.error === 'invalid_grant') {
+             throw new Error('Refresh Token inválido. Favor logar novamente.');
+        }
+        throw new Error('Falha na renovação do token Spotify. Detalhes no log do servidor.');
     }
 }
 
+/**
+ * Rota Proxy Genérica para buscar dados do catálogo do Spotify
+ */
 router.get('/data', verifyToken, async (req, res) => {
     const { endpoint } = req.query;
     
@@ -54,8 +67,10 @@ router.get('/data', verifyToken, async (req, res) => {
     }
     
     try {
+        // Tenta obter um Access Token válido
         const accessToken = await getValidSpotifyToken(req.user.id);
         
+        // Requisição real à API do Spotify (Endpoint: /v1/me/top/tracks?limit=30)
         const spotifyResponse = await axios.get(`${SPOTIFY_API_BASE}${endpoint}`, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`
@@ -65,7 +80,8 @@ router.get('/data', verifyToken, async (req, res) => {
         res.json(spotifyResponse.data);
 
     } catch (error) {
-        const statusCode = error.message.includes('não autenticado') ? 401 : 500;
+        // Retorna o erro 500 ou 401 se a autenticação falhar
+        const statusCode = error.message.includes('autenticado') || error.message.includes('Refresh Token inválido') ? 401 : 500;
         res.status(statusCode).json({ message: error.message });
     }
 });
