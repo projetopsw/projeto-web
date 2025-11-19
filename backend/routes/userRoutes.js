@@ -1,22 +1,22 @@
-import express from 'express'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-import User from '../models/user.model.js'
-import Artist from '../models/artist.model.js'
-import { verifyToken } from '../middleware/authMiddleware.js'
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import User from '../models/user.model.js';
+import Artist from '../models/artist.model.js';
+import { verifyToken } from '../middleware/authMiddleware.js';
 
-const router = express.Router()
+const router = express.Router();
 
 router.post('/register', async (req, res) => {
     try {
-        const { name, email, password, img, role } = req.body
+        const { name, email, password, img, role } = req.body;
 
-        const existingUser = await User.findOne({ email })
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({ message: 'Este email já está em uso.' })
+            return res.status(400).json({ message: 'Este email já está em uso.' });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10)
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = new User({
             name,
@@ -24,29 +24,27 @@ router.post('/register', async (req, res) => {
             password: hashedPassword,
             img,
             role,
-        })
+        });
 
         const savedUser = await newUser.save();
         res.status(201).json({
             message: 'Usuário criado com sucesso!',
             user: { id: savedUser._id, name: savedUser.name, email: savedUser.email },
-        })
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message })
+        res.status(500).json({ message: error.message });
     }
-})
+});
 
 router.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body
+        const { email, password } = req.body;
 
-        const user = await User.findOne({ email })
-        if (!user) return res.status(404).json({ message: 'Usuário não encontrado' })
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
 
-        // É necessário selecionar o campo 'password' explicitamente se ele for 'select: false' no model
-        // No entanto, se o findOne acima já retornar o hash, esta linha funciona:
-        const validPassword = await bcrypt.compare(password, user.password) 
-        if (!validPassword) return res.status(401).json({ message: 'Senha incorreta' })
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) return res.status(401).json({ message: 'Senha incorreta' });
 
         const token = jwt.sign(
             { id: user._id, email: user.email },
@@ -64,20 +62,13 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// NOVA ROTA: Rota protegida para buscar os dados do usuário logado usando o JWT
 router.get('/me', verifyToken, async (req, res) => {
     try {
-        // req.user foi preenchido pelo verifyToken com o payload do JWT (id, email, spotifyId)
-        // Buscamos o usuário no DB, excluindo a senha e o refresh_token do Spotify
         const user = await User.findById(req.user.id).select('-password -refresh_token_spotify');
-
         if (!user) {
             return res.status(404).json({ message: 'Usuário não encontrado' });
         }
-
-        // Retorna os dados do usuário (incluindo spotifyId, se existir) para o Redux
         res.json(user);
-
     } catch (error) {
         res.status(500).json({ message: 'Erro ao buscar dados do usuário.', error: error.message });
     }
@@ -94,16 +85,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
     try {
-        const user = await User.findById(req.params.id)
-        // .populate({
-        //   path: 'likedSongs',
-        //   select: 'title cover artist',
-        //   populate: { path: 'artist', select: 'name' }
-        // })
-        // .populate('userPlaylists', 'name img songCount')
-        // .populate('friends', 'name img')
-        // .populate('following', 'name img');
-
+        const user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
         res.json(user);
     } catch (error) {
@@ -111,26 +93,20 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-
 router.put('/:id', verifyToken, async (req, res) => {
     try {
         const userId = req.params.id;
-
         const updateData = { ...req.body };
         if (updateData.role) delete updateData.role;
         const updatedUser = await User.findByIdAndUpdate(
             userId, 
             { $set: updateData }, 
-            {
-                new: true,
-                runValidators: true,
-            }
+            { new: true, runValidators: true }
         );
 
         if (!updatedUser) return res.status(404).json({ message: 'Usuário não encontrado' });
         res.json(updatedUser);
     } catch (error) {
-        console.error("PUT Error:", error.message);
         res.status(400).json({ message: "Dados inválidos ou ID mal formatado. Detalhe: " + error.message });
     }
 });

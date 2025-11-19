@@ -3,7 +3,7 @@ import api from '../services/api';
 import mongoApi from '../services/mongoApi';
 
 const LIKED_SONGS_ID = "0";
-const API_URL = 'http://127.0.0.1:3000'; // URL base do seu Backend Express
+const API_URL = 'http://127.0.0.1:3000';
 
 const loadUserFromLocalStorage = () => {
     try {
@@ -29,8 +29,6 @@ const loadUserFromLocalStorage = () => {
 };
 
 const initialUser = loadUserFromLocalStorage();
-
-// THUNKS EXISTENTES (loginUserAsync, etc.)
 
 export const loginUserAsync = createAsyncThunk(
     'auth/loginUser',
