@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { fetchPlaylistsByUserId } from '../../redux/playlistsSlice.js';
 import { fetchArtistsByIds, fetchSongsByIds } from '../../redux/catalogoSlice.js';
+import { updateProfile } from '../../redux/userSlice.js';
 
 import { 
     toggleFriendRequest, 
@@ -79,41 +80,47 @@ export default function Perfil() {
             
             let userToDisplay = await fetchTargetUser(targetId);
             
-            if (isOwner && userLogado) {
-                userToDisplay = { ...userLogado, ...userToDisplay };
-            }
+            const finalUserData = userToDisplay || userLogado; 
             
-            if (userToDisplay) {
-                setTargetUser(userToDisplay);
+            if (finalUserData) {
+                if (userToDisplay && isOwner) { 
+                    dispatch(updateProfile(userToDisplay)); 
+                }
+
+                setTargetUser(finalUserData); 
+                
+                const userIdToUse = finalUserData._id || finalUserData.id; 
 
                 if (isOwner) {
-                    dispatch(fetchPlaylistsByUserId(userToDisplay.id));
-                    dispatch(fetchArtistsByIds(userToDisplay.following || []));
-                    dispatch(fetchSongsByIds(userToDisplay.likedSongs || []));
-                    dispatch(fetchConnectionsData(userToDisplay.id));
+                    dispatch(fetchPlaylistsByUserId(userIdToUse));
+                    dispatch(fetchArtistsByIds(finalUserData.following || []));
+                    dispatch(fetchSongsByIds(finalUserData.likedSongs || []));
+                    dispatch(fetchConnectionsData(userIdToUse));
                 } else {
                     const fetchDetailsForFriend = async (user) => {
-                        const [playlists, friendsDetails, songsDetails, artistsDetails] = await Promise.all([
+                    const [playlists, friendsDetails, songsDetails, artistsDetails] = await Promise.all([
 
-                            fetch(`${DATA_API_URL}/userPlaylists?creatorId=${user.id}`).then(res => res.ok ? res.json() : []), 
-                            
-                            user.friends?.length ? fetch(`${USER_API_URL}/users?${user.friends.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [],
-                
-                            user.likedSongs?.length ? fetch(`${DATA_API_URL}/songs?${user.likedSongs.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [], 
-                            
-                            user.following?.length ? fetch(`${DATA_API_URL}/artists?${user.following.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : []
-                        ]);
-                        setTargetPlaylists(playlists.filter(p => p)); 
-                        setTargetFriendsDetails(friendsDetails.filter(f => f));
-                        setTargetLikedSongsDetails(songsDetails.filter(s => s));
-                        setTargetFollowedArtistsDetails(artistsDetails.filter(a => a));
-                    }
-                    fetchDetailsForFriend(userToDisplay);
+                        fetch(`${DATA_API_URL}/userPlaylists?creatorId=${user.id}`).then(res => res.ok ? res.json() : []), 
+                        
+                        user.friends?.length ? fetch(`${USER_API_URL}/users?${user.friends.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [],
+            
+                        user.likedSongs?.length ? fetch(`${DATA_API_URL}/songs?${user.likedSongs.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [], 
+                        
+                        user.following?.length ? fetch(`${DATA_API_URL}/artists?${user.following.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : []
+                    ]);
+                    setTargetPlaylists(playlists.filter(p => p)); 
+                    setTargetFriendsDetails(friendsDetails.filter(f => f));
+                    setTargetLikedSongsDetails(songsDetails.filter(s => s));
+                    setTargetFollowedArtistsDetails(artistsDetails.filter(a => a));
                 }
+                fetchDetailsForFriend(finalUserData);
             }
-            setIsLoading(false);
+        }else {
+            setTargetUser(null);
+        }
+        
+        setIsLoading(false);
         };
-
         loadProfileData();
     }, [targetId, isOwner, dispatch, 
         userLogado, 
