@@ -9,6 +9,7 @@ import groupRoutes from './routes/groupRoutes.js';
 // import playlistRoutes from './routes/playlistRoutes.js';
 import songRoutes from './routes/songRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import spotifyAuthRoutes from './routes/spotifyAuthRoutes.js';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use('/artists', artistRoutes);
 // app.use('/groups', groupRoutes);
 // app.use('/playlists', playlistRoutes);
 // app.use('/songs', songRoutes);
+app.use('/api/auth/spotify', spotifyAuthRoutes);
 app.use('/users', userRoutes);
 
 export default app

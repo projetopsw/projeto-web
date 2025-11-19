@@ -20,10 +20,8 @@ export default function Login() {
 
         try {
             const resultAction = await dispatch(loginUserAsync({ email, password })).unwrap()
-            console.log("Login Sucesso:", resultAction)
             navigate('/')
         } catch (err) {
-            console.error("Erro no login:", err);
             setError(err || 'Email ou senha inválidos.');
         } finally {
             setIsLoading(false);
@@ -69,6 +67,24 @@ export default function Login() {
                         {isLoading ? 'Verificando...' : 'Entrar no pasto'}
                     </button>
                 </form>
+
+                {/* BOTÃO DE LOGIN COM SPOTIFY */}
+                <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                    <a 
+                        href="http://127.0.0.1:3000/api/auth/spotify" 
+                        className="btn spotify-btn" 
+                        style={{ 
+                            backgroundColor: '#1DB954', 
+                            color: 'white', 
+                            padding: '10px 20px',
+                            borderRadius: '25px',
+                            textDecoration: 'none',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        Logar com Spotify (logo spotify)
+                    </a>
+                </div>
             </div>
 
             <div className="footer">
