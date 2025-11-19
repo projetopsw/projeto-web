@@ -22,7 +22,7 @@ import ProfileEdition from './components/ProfileEdition.jsx';
 import Conexoes from './components/Conexoes';
 import AdminDashboard from './pages/admin/AdminDashboard.jsx';
 import Upload from './pages/musicas/UploadMusica';
-import SpotifyCallback from './pages/SpotifyCallback.jsx'; // NOVO IMPORT
+import SpotifyCallback from './pages/SpotifyCallback.jsx'; 
 
 const theme = createTheme({
     typography: {

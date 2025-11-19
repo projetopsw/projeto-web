@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loginUserAsync } from '../../redux/loginSlice'; 
 import { useNavigate, Link } from 'react-router-dom';
+import { FaSpotify } from "react-icons/fa";
 import './login.css';
 
 export default function Login() {
@@ -79,10 +80,14 @@ export default function Login() {
                             padding: '10px 20px',
                             borderRadius: '25px',
                             textDecoration: 'none',
-                            fontWeight: 'bold'
+                            fontWeight: 'bold',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px'
                         }}
                     >
-                        Logar com Spotify (logo spotify)
+                        <FaSpotify size={20} />
+                        Logar com Spotify
                     </a>
                 </div>
             </div>

@@ -21,8 +21,8 @@ export default function SpotifyCallback() {
 
     return (
         <div style={{ padding: '50px', textAlign: 'center' }}>
-            <h1>🎶 Carregando Moosica...</h1>
-            <p>Por favor, aguarde enquanto iniciamos sua sessão com Spotify.</p>
+            <h1>Carregando sua conta...</h1>
+            <p>Aguarde enquanto iniciamos sua sessão com Spotify.</p>
         </div>
     );
 }
