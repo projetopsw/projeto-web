@@ -7,8 +7,17 @@ const userSchema = new Schema({
   role: { type: String, enum: ['admin', 'user'], default: 'user' },
   img: { type: String, default: '' },
   following: [{ type: Schema.Types.ObjectId, ref: 'Artist' }],
-  friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
-  friendshipRequests: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  friends: [{ 
+      type: String, 
+      ref: 'User',
+      default: [] 
+  }],
+
+  friendshipRequests: [{ 
+      type: String, 
+      ref: 'User',
+      default: [] 
+  }],
   likedSongs: [{ type: Schema.Types.ObjectId, ref: 'Song' }],
   userPlaylists: [{ type: Schema.Types.ObjectId, ref: 'Playlist' }],
   admin: [{ type: Boolean, default: false}]

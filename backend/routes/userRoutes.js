@@ -73,14 +73,14 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .populate({
-        path: 'likedSongs',
-        select: 'title cover artist',
-        populate: { path: 'artist', select: 'name' }
-      })
-      .populate('userPlaylists', 'name img songCount')
-      .populate('friends', 'name img')
-      .populate('following', 'name img');
+      // .populate({
+      //   path: 'likedSongs',
+      //   select: 'title cover artist',
+      //   populate: { path: 'artist', select: 'name' }
+      // })
+      // .populate('userPlaylists', 'name img songCount')
+      // .populate('friends', 'name img')
+      // .populate('following', 'name img');
 
     if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
     res.json(user);
@@ -89,19 +89,27 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
 router.put('/:id', verifyToken, async (req, res) => {
   try {
-    if (req.body.role) delete req.body.role;
+    const userId = req.params.id;
 
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const updateData = { ...req.body };
+    if (updateData.role) delete updateData.role;
+    const updatedUser = await User.findByIdAndUpdate(
+      userId, 
+      { $set: updateData }, 
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
     if (!updatedUser) return res.status(404).json({ message: 'Usuário não encontrado' });
     res.json(updatedUser);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error("PUT Error:", error.message);
+    res.status(400).json({ message: "Dados inválidos ou ID mal formatado. Detalhe: " + error.message });
   }
 });
 

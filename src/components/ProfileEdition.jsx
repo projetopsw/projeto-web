@@ -9,9 +9,10 @@ import { useSelector, useDispatch } from 'react-redux';
 import { updateProfile } from '../redux/userSlice'; 
 import ProfileHeader from './ProfileHeader'; 
 
-const API_URL = 'http://localhost:3001'; 
+const API_URL = 'http://localhost:3000'; 
 const SESSION_STORAGE_KEY = (userId) => `tempProfileImage_${userId}`; 
 const DEFAULT_USER_IMAGE = 'https://placehold.co/400x400?text=User'; 
+const authToken = localStorage.getItem('token');
 
 const AVAILABLE_PROFILE_IMAGES = [
     '/assets/img/liked_cover_0.png',
@@ -25,7 +26,7 @@ export default function ProfileEdition() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     
-    const user = useSelector((state) => state.user.user); 
+    const user = useSelector((state) => state.auth.user); 
     const userId = user?.id; 
 
     const [isLoading, setIsLoading] = useState(true);
@@ -139,10 +140,14 @@ export default function ProfileEdition() {
         }
 
         try {
-            const response = await fetch(`${API_URL}/users/${userId}`, {
+            const response = await fetch(`${API_URL}/users/${userId}`, { 
                 method: 'PUT', 
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify(dataToSendToServer) 
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${authToken}`, 
+                    'Accept': 'application/json' 
+                },
+                body: JSON.stringify(dataToSendToServer)
             });
 
             if (response.ok) {
@@ -152,7 +157,7 @@ export default function ProfileEdition() {
                 dispatch(updateProfile(fullUserUpdate));
                 
                 setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
-                console.log("Perfil atualizado com sucesso! (Imagem salva no JSON-SERVER)");
+                console.log("Perfil atualizado com sucesso! (Imagem salva no mongodb)");
                 navigate('/perfil'); 
             } else {
                 console.error("Erro ao salvar perfil. Status:", response.status);
@@ -406,10 +411,6 @@ export default function ProfileEdition() {
                             
                             return (
                                 <Grid 
-                                    item 
-                                    xs={6} 
-                                    sm={4} 
-                                    md={3} 
                                     key={index}
                                     sx={{ display: 'flex', justifyContent: 'center' }}
                                 >

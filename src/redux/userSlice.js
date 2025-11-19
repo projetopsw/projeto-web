@@ -48,13 +48,15 @@ const userSlice = createSlice({
       saveUserToStorage(finalUser);
     },
 
-    updateProfile: (state, action) => {
-      if (state.user) {
-        const authUser = JSON.parse(localStorage.getItem('user'));
-        const updatedUser = { ...state.user, ...action.payload, role: authUser?.role };
-        state.user = updatedUser;
-        saveUserToStorage(state.user);
+   updateProfile: (state, action) => {
+      state.user = { ...state.user, ...action.payload };
+      if (action.payload.img) {
+          state.user.image = action.payload.img;
       }
+      if (action.payload.image) {
+          state.user.img = action.payload.image;
+      }
+      localStorage.setItem('user', JSON.stringify(state.user));
     },
 
     logoutUser: (state) => {

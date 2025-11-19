@@ -1,21 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import { IconButton, Menu, MenuItem, Avatar } from '@mui/material';
-// Certifique-se que o caminho do arquivo está correto (se você renomeou para authSlice ou manteve loginSlice)
 import { logout } from '../redux/loginSlice'; 
+import { updateProfile } from '../redux/userSlice'; 
 import { useSelector, useDispatch } from 'react-redux';
+
+const API_URL = 'http://localhost:3000'; 
 
 function UserProfileIcon() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // 1. Mudança Principal: Pegamos tudo do state.auth
   const { user, isAdmin } = useSelector((state) => state.auth);
+  const userId = user?.id; 
 
-  // 2. Simplificação: Não precisamos mais fazer merge de objetos
-  // O user do state.auth já é o objeto completo vindo do MongoDB
-  const profileImageUrl = user?.image || user?.img || '/assets/img/default_profile.png';
-  const displayName = user?.name || 'Visitante';
+  useEffect(() => {
+    const fetchFreshUserData = async () => {
+      if (userId) {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`${API_URL}/users/${userId}`, {
+             headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (response.ok) {
+            const serverData = await response.json();
+         
+            if (serverData.img !== user.img || serverData.image !== user.image || serverData.name !== user.name) {
+                 const updatedUser = { ...user, ...serverData };
+                 dispatch(updateProfile(updatedUser));
+                 console.log("UserProfileIcon: Dados atualizados com o servidor!");
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao validar usuário no ícone:", error);
+        }
+      }
+    };
+
+    fetchFreshUserData();
+  }, [dispatch, userId]); 
+
+  const profileImageUrl = user?.img || user?.image || '/assets/img/default_profile.png';
+  const displayName = user?.name || user?.username || 'Visitante';
 
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -69,11 +96,12 @@ function UserProfileIcon() {
             height: 35,
             backgroundColor: 'var(--darker-orange)',
             color: 'white',
+            border: '2px solid var(--border-color)', 
             transition: 'opacity 0.2s',
             '&:hover': { opacity: 0.9 },
           }}
         >
-          {displayName.charAt(0)}
+          {displayName && displayName.charAt(0).toUpperCase()}
         </Avatar>
       </IconButton>
 
@@ -97,20 +125,31 @@ function UserProfileIcon() {
           sx: {
             backgroundColor: 'var(--sidebar-bg)',
             color: 'var(--text-color)',
+            border: '1px solid var(--border-color)',
+            marginTop: 1,
             '& .MuiMenuItem-root': {
               '&:hover': { backgroundColor: 'var(--input-bg)' },
             },
           },
         }}
       >
-        <MenuItem sx={{ fontWeight: 'bold' }}>Olá, {displayName}!</MenuItem>
+        <MenuItem sx={{ fontWeight: 'bold', cursor: 'default', '&:hover': { backgroundColor: 'transparent !important' } }}>
+          Olá, {displayName}!
+        </MenuItem>
+     
+        <div style={{ borderBottom: '1px solid var(--border-color)', margin: '5px 0' }}></div>
+
         <MenuItem onClick={handleProfileClick}>Ver Perfil</MenuItem>
+        
         {isAdmin && (
           <MenuItem onClick={handleAdminClick} sx={{ fontWeight: 'bold', color: 'var(--orange)' }}>
             Admin Dashboard 👑
           </MenuItem>
         )}
-        <MenuItem onClick={handleLogout}>Sair</MenuItem>
+        
+        <MenuItem onClick={handleLogout} sx={{ color: '#f44336' }}>
+            Sair
+        </MenuItem>
       </Menu>
     </div>
   );
