@@ -20,6 +20,7 @@
     "@mui/material": "^7.3.2",
     "@reduxjs/toolkit": "^2.9.0",
     "axios": "^1.12.2",
+    "bcryptjs": "^3.0.3",
     "express": "^5.1.0",
     "lucide-react": "^0.544.0",
     "mongoose": "^8.19.3",
