@@ -22,56 +22,60 @@ import ProfileEdition from './components/ProfileEdition.jsx';
 import Conexoes from './components/Conexoes';
 import AdminDashboard from './pages/admin/AdminDashboard.jsx';
 import Upload from './pages/musicas/UploadMusica';
+import SpotifyCallback from './pages/SpotifyCallback.jsx'; 
 
 const theme = createTheme({
-  typography: {
-    fontFamily: [
-      'Poppins',
-      'Roboto',
-      '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-    ].join(','),
-  },
+    typography: {
+        fontFamily: [
+            'Poppins',
+            'Roboto',
+            '"Helvetica Neue"',
+            'Arial',
+            'sans-serif',
+        ].join(','),
+    },
 });
 
 function App() {
-  return (
-    <ThemeProvider theme={theme}>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/cadastro" element={<Cadastro />} />
+    return (
+        <ThemeProvider theme={theme}>
+            <Router>
+                <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/cadastro" element={<Cadastro />} />
+                    
+                    {/* ROTA PARA INTERCEPTAR O CALLBACK DO SPOTIFY */}
+                    <Route path="/callback" element={<SpotifyCallback />} />
 
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-            <Route path="/playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
-            <Route path="/playlists/:id" element={<ProtectedRoute><PlaylistDetalhe /></ProtectedRoute>} />
-            <Route path="/pesquisa" element={<ProtectedRoute><Pesquisa /></ProtectedRoute>} />
-            <Route path="/musica/:id" element={<ProtectedRoute><TelaMusica /></ProtectedRoute>} />
-            <Route path="/grupos" element={<ProtectedRoute><Grupos /></ProtectedRoute>} />
-            <Route path="/grupos/:id" element={<ProtectedRoute><GrupoDetalhe /></ProtectedRoute>} />
-            <Route path="/artista/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
-            <Route path="/song/:id" element={<ProtectedRoute><SongDetail /></ProtectedRoute>} />
-            <Route path="/albumDetail/:id" element={<ProtectedRoute><AlbumDetail /></ProtectedRoute>} />
-            <Route path="/album/:id" element={<ProtectedRoute><AlbumDetail /></ProtectedRoute>} />
-            <Route path="/playlist/:id" element={<ProtectedRoute><PlaylistDetalhe /></ProtectedRoute>} />
-            <Route path="/artistDetail/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
-            <Route path="/artist/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
-            <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
-            <Route path="/fila" element={<ProtectedRoute><FilaPage /></ProtectedRoute>} />
-            <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
-            <Route path="/perfil/editar" element={<ProtectedRoute><ProfileEdition /></ProtectedRoute>} />
-            <Route path="/perfil/:id" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
-            <Route path="/conexoes" element={<ProtectedRoute><Conexoes /></ProtectedRoute>} />
-          </Route>
+                    <Route element={<MainLayout />}>
+                        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                        <Route path="/playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
+                        <Route path="/playlists/:id" element={<ProtectedRoute><PlaylistDetalhe /></ProtectedRoute>} />
+                        <Route path="/pesquisa" element={<ProtectedRoute><Pesquisa /></ProtectedRoute>} />
+                        <Route path="/musica/:id" element={<ProtectedRoute><TelaMusica /></ProtectedRoute>} />
+                        <Route path="/grupos" element={<ProtectedRoute><Grupos /></ProtectedRoute>} />
+                        <Route path="/grupos/:id" element={<ProtectedRoute><GrupoDetalhe /></ProtectedRoute>} />
+                        <Route path="/artista/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
+                        <Route path="/song/:id" element={<ProtectedRoute><SongDetail /></ProtectedRoute>} />
+                        <Route path="/albumDetail/:id" element={<ProtectedRoute><AlbumDetail /></ProtectedRoute>} />
+                        <Route path="/album/:id" element={<ProtectedRoute><AlbumDetail /></ProtectedRoute>} />
+                        <Route path="/playlist/:id" element={<ProtectedRoute><PlaylistDetalhe /></ProtectedRoute>} />
+                        <Route path="/artistDetail/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
+                        <Route path="/artist/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
+                        <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+                        <Route path="/fila" element={<ProtectedRoute><FilaPage /></ProtectedRoute>} />
+                        <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+                        <Route path="/perfil/editar" element={<ProtectedRoute><ProfileEdition /></ProtectedRoute>} />
+                        <Route path="/perfil/:id" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+                        <Route path="/conexoes" element={<ProtectedRoute><Conexoes /></ProtectedRoute>} />
+                    </Route>
 
-          <Route path="*" element={<main><h1>Página Não Encontrada (404)</h1></main>} />
-        </Routes>
-      </Router>
-    </ThemeProvider>
-  );
+                    <Route path="*" element={<main><h1>Página Não Encontrada (404)</h1></main>} />
+                </Routes>
+            </Router>
+        </ThemeProvider>
+    );
 }
 
 export default App;

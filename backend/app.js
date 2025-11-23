@@ -6,9 +6,10 @@ import cors from 'cors';
 import albumRoutes from './routes/albumRoutes.js';
 import artistRoutes from './routes/artistRoutes.js';
 import groupRoutes from './routes/groupRoutes.js';
-// import playlistRoutes from './routes/playlistRoutes.js';
 import songRoutes from './routes/songRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import spotifyAuthRoutes from './routes/spotifyAuthRoutes.js';
+import spotifyRoutes from './routes/spotifyRoutes.js'; 
 
 dotenv.config();
 
@@ -19,8 +20,7 @@ app.use(express.json());
 
 app.use('/albums', albumRoutes);
 app.use('/artists', artistRoutes);
-// app.use('/groups', groupRoutes);
-// app.use('/playlists', playlistRoutes);
-// app.use('/songs', songRoutes);
+app.use('/groups', groupRoutes);
+app.use('/songs', songRoutes);
 app.use('/users', userRoutes);
 export default app

@@ -14,7 +14,6 @@ const QueueOverlayContainer = styled(Box)(({ theme }) => ({
     top: '70px',
     left: '100px',
     height: 'calc(100vh - 150px)',
-    width: '350px',
     backgroundColor: 'var(--sidebar-bg)',
     borderRadius: '8px',
     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',

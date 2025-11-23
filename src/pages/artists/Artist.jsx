@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchArtistById, fetchAlbums, fetchArtists } from '../../redux/catalogoSlice';
 
+
 import ArtistHeader from '../../components/ArtistHeader.jsx';
 import SongList from '../../components/SongList.jsx';
 import Section from '../../components/Section.jsx';

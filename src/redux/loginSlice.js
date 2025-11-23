@@ -1,8 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../services/api'; 
-import mongoApi from '../services/mongoApi'
+import mongoApi from '../services/mongoApi';
 
 const LIKED_SONGS_ID = "0";
+const API_URL = 'http://127.0.0.1:3000';
 
 const loadUserFromLocalStorage = () => {
     try {
@@ -37,6 +38,43 @@ export const loginUserAsync = createAsyncThunk(
             return response.data; 
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Erro ao fazer login');
+        }
+    }
+);
+
+export const handleSpotifyCallback = createAsyncThunk(
+    'auth/spotifyCallback',
+    async (_, { rejectWithValue }) => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const moosicaToken = urlParams.get('token');
+
+        if (!moosicaToken) {
+            return rejectWithValue('Token não encontrado na URL.');
+        }
+
+        try {
+            localStorage.setItem('token', moosicaToken);
+            
+            const response = await mongoApi.get('/users/me', {
+                baseURL: API_URL,
+                headers: {
+                    Authorization: `Bearer ${moosicaToken}`,
+                },
+            });
+
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+            const user = response.data;
+            const userWithRole = { ...user, role: user.role || 'user' };
+
+            localStorage.setItem('user', JSON.stringify(userWithRole));
+            
+            return { user: userWithRole, token: moosicaToken };
+
+        } catch (error) {
+            console.error("Erro ao processar callback do Spotify:", error.response?.data || error.message);
+            localStorage.removeItem('token');
+            return rejectWithValue('Falha ao validar token Moosica.');
         }
     }
 );
@@ -214,6 +252,20 @@ const authSlice = createSlice({
                 state.isAuthenticated = false;
             })
 
+            .addCase(handleSpotifyCallback.fulfilled, (state, action) => {
+                const { user, token } = action.payload;
+                
+                state.isAuthenticated = true;
+                state.user = user;
+                state.token = token;
+                state.isAdmin = user.role === 'admin';
+                state.loginError = null;
+            })
+            .addCase(handleSpotifyCallback.rejected, (state, action) => {
+                state.loginError = action.payload;
+                state.isAuthenticated = false;
+            })
+            
             .addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
                 if (state.user) {
                     state.user.likedSongs = action.payload;

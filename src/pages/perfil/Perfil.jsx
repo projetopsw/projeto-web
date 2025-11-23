@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { fetchPlaylistsByUserId } from '../../redux/playlistsSlice.js';
 import { fetchArtistsByIds, fetchSongsByIds } from '../../redux/catalogoSlice.js';
+import { updateProfile } from '../../redux/userSlice.js';
 
 import { 
     toggleFriendRequest, 
@@ -19,12 +20,13 @@ import ArtistCircle from '../../components/ArtistCircle.jsx';
 import ProfileHeader from '../../components/ProfileHeader.jsx'; 
 import SongList from '../../components/SongList.jsx';
 
-const API_URL = 'http://localhost:3001';
+const DATA_API_URL = 'http://localhost:3001'; 
+const USER_API_URL = 'http://localhost:3000'; 
 const DEFAULT_USER_IMAGE = 'https://placehold.co/400x400?text=User'; 
 
 const fetchTargetUser = async (targetId) => {
     try {
-        const response = await fetch(`${API_URL}/users/${targetId}`);
+        const response = await fetch(`${USER_API_URL}/users/${targetId}`);
         if (!response.ok) throw new Error('Falha ao carregar dados do usuário alvo.');
         return await response.json();
     } catch (error) {
@@ -38,7 +40,7 @@ export default function Perfil() {
     const navigate = useNavigate();
     const { id } = useParams(); 
 
-    const userLogado = useSelector(state => state.user.user); 
+    const userLogado = useSelector(state => state.auth.user); 
     
     const { 
         friends: loggedInFriends, 
@@ -54,14 +56,14 @@ export default function Perfil() {
     const [targetFollowedArtistsDetails, setTargetFollowedArtistsDetails] = useState([]);
 
     const targetId = id || (userLogado ? String(userLogado.id) : null);
-    const isOwner = userLogado && targetId && String(userLogado.id) === targetId;
+    const isOwner = userLogado && targetId && String(userLogado.id) === String(targetId);
 
     const friendDetailsRedux = loggedInFriends; 
     const { items: userPlaylistsRedux } = useSelector(state => state.playlists?.userPlaylists || { items: [] });
     const { items: followedArtistsRedux } = useSelector(state => state.catalog?.followedArtists || { items: [] });
     const { items: likedSongsDetailsRedux } = useSelector(state => state.catalog?.likedSongsDetails || { items: [] });
 
-    const targetUserIdStr = String(targetUser?.id);
+    const targetUserIdStr = String(targetUser?._id || targetUser?.id);
     
     const currentIsFriend = loggedInFriends.some(f => String(f.id) === targetUserIdStr);
     const currentHasRequested = loggedInSentRequests.some(req => String(req.id) === targetUserIdStr);
@@ -78,37 +80,47 @@ export default function Perfil() {
             
             let userToDisplay = await fetchTargetUser(targetId);
             
-            if (isOwner && userLogado) {
-                 userToDisplay = {...userToDisplay, ...userLogado, ...userToDisplay};
-            }
+            const finalUserData = userToDisplay || userLogado; 
             
-            if (userToDisplay) {
-                setTargetUser(userToDisplay);
+            if (finalUserData) {
+                if (userToDisplay && isOwner) { 
+                    dispatch(updateProfile(userToDisplay)); 
+                }
+
+                setTargetUser(finalUserData); 
+                
+                const userIdToUse = finalUserData._id || finalUserData.id; 
 
                 if (isOwner) {
-                    dispatch(fetchPlaylistsByUserId(userToDisplay.id));
-                    dispatch(fetchArtistsByIds(userToDisplay.following || []));
-                    dispatch(fetchSongsByIds(userToDisplay.likedSongs || []));
-                    dispatch(fetchConnectionsData(userToDisplay.id));
+                    dispatch(fetchPlaylistsByUserId(userIdToUse));
+                    dispatch(fetchArtistsByIds(finalUserData.following || []));
+                    dispatch(fetchSongsByIds(finalUserData.likedSongs || []));
+                    dispatch(fetchConnectionsData(userIdToUse));
                 } else {
                     const fetchDetailsForFriend = async (user) => {
-                        const [playlists, friendsDetails, songsDetails, artistsDetails] = await Promise.all([
-                            fetch(`${API_URL}/userPlaylists?creatorId=${user.id}`).then(res => res.ok ? res.json() : []), 
-                            user.friends?.length ? fetch(`${API_URL}/users?${user.friends.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [],
-                            user.likedSongs?.length ? fetch(`${API_URL}/songs?${user.likedSongs.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [], 
-                            user.following?.length ? fetch(`${API_URL}/artists?${user.following.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : []
-                        ]);
-                        setTargetPlaylists(playlists.filter(p => p)); 
-                        setTargetFriendsDetails(friendsDetails.filter(f => f));
-                        setTargetLikedSongsDetails(songsDetails.filter(s => s));
-                        setTargetFollowedArtistsDetails(artistsDetails.filter(a => a));
-                    }
-                    fetchDetailsForFriend(userToDisplay);
-                }
-            }
-            setIsLoading(false);
-        };
+                    const [playlists, friendsDetails, songsDetails, artistsDetails] = await Promise.all([
 
+                        fetch(`${DATA_API_URL}/userPlaylists?creatorId=${user.id}`).then(res => res.ok ? res.json() : []), 
+                        
+                        user.friends?.length ? fetch(`${USER_API_URL}/users?${user.friends.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [],
+            
+                        user.likedSongs?.length ? fetch(`${DATA_API_URL}/songs?${user.likedSongs.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [], 
+                        
+                        user.following?.length ? fetch(`${DATA_API_URL}/artists?${user.following.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : []
+                    ]);
+                    setTargetPlaylists(playlists.filter(p => p)); 
+                    setTargetFriendsDetails(friendsDetails.filter(f => f));
+                    setTargetLikedSongsDetails(songsDetails.filter(s => s));
+                    setTargetFollowedArtistsDetails(artistsDetails.filter(a => a));
+                }
+                fetchDetailsForFriend(finalUserData);
+            }
+        }else {
+            setTargetUser(null);
+        }
+        
+        setIsLoading(false);
+        };
         loadProfileData();
     }, [targetId, isOwner, dispatch, 
         userLogado, 
@@ -121,8 +133,10 @@ export default function Perfil() {
     const handleToggleAction = async () => {
         if (!userLogado || !targetUser) return;
         
+        const targetIdCorrect = targetUser._id || targetUser.id;
+
         if (currentIsFriend) {
-            dispatch(removeFriend({ currentUserId: userLogado.id, targetUserId: targetUser.id }));
+            dispatch(removeFriend({ currentUserId: userLogado.id, targetUserId: targetIdCorrect }));
             alert(`Você removeu ${targetUser.name || targetUser.username} de seus amigos.`);
         } else if (currentHasReceivedRequest) {
             dispatch(acceptFriendRequest({ accepterId: userLogado.id, requester: targetUser }));
@@ -145,7 +159,7 @@ export default function Perfil() {
     }
 
     if (!targetUser) {
-        return <main><Box sx={{ p: 4 }}><Typography color="error">Perfil do usuário **{targetId}** não encontrado. 😢</Typography></Box></main>;
+        return <main><Box sx={{ p: 4 }}><Typography color="error">Perfil do usuário não encontrado. 😢</Typography></Box></main>;
     }
 
     const displayedPlaylists = isOwner ? userPlaylistsRedux : targetPlaylists;
@@ -295,4 +309,4 @@ export default function Perfil() {
             </Box>
         </main>
     );
-}   
+}
