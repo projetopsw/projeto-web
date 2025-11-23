@@ -23,5 +23,4 @@ app.use('/artists', artistRoutes);
 // app.use('/playlists', playlistRoutes);
 // app.use('/songs', songRoutes);
 app.use('/users', userRoutes);
-
 export default app
