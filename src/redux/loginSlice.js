@@ -1,41 +1,35 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../services/api'; 
 import mongoApi from '../services/mongoApi';
+import { setUserData } from './userSlice'; 
 
 const LIKED_SONGS_ID = "0";
 const API_URL = 'http://127.0.0.1:3000';
 
-const loadUserFromLocalStorage = () => {
+const loadAuthDataFromLocalStorage = () => {
     try {
-        const serializedUser = localStorage.getItem('user');
         const token = localStorage.getItem('token');
-        
-        if (!serializedUser || !token) {
-            return null;
-        }
-
-        const user = JSON.parse(serializedUser);
-        
-        if (user) {
-            user.likedSongs = user.likedSongs || [];
-            user.userPlaylists = user.userPlaylists || [];
-            user.role = user.role || 'user'; 
-        }
-        return user;
+        return { isAuthenticated: !!token, token: token || null };
     } catch (e) {
-        console.error("Erro ao carregar usuário do localStorage:", e);
-        return null;
+        return { isAuthenticated: false, token: null };
     }
 };
 
-const initialUser = loadUserFromLocalStorage();
+const initialAuth = loadAuthDataFromLocalStorage();
 
 export const loginUserAsync = createAsyncThunk(
     'auth/loginUser',
-    async ({ email, password }, { rejectWithValue }) => {
+    async ({ email, password }, { rejectWithValue, dispatch }) => {
         try {
             const response = await mongoApi.post('/users/login', { email, password });
-            return response.data; 
+            
+            const { user, token } = response.data;
+            const userWithRole = { ...user, role: user.role || 'user' };
+            
+            dispatch(setUserData(userWithRole)); 
+            localStorage.setItem('token', token); 
+            
+            return { token }; 
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Erro ao fazer login');
         }
@@ -44,7 +38,7 @@ export const loginUserAsync = createAsyncThunk(
 
 export const handleSpotifyCallback = createAsyncThunk(
     'auth/spotifyCallback',
-    async (_, { rejectWithValue }) => {
+    async (_, { rejectWithValue, dispatch }) => {
         const urlParams = new URLSearchParams(window.location.search);
         const moosicaToken = urlParams.get('token');
 
@@ -66,13 +60,12 @@ export const handleSpotifyCallback = createAsyncThunk(
 
             const user = response.data;
             const userWithRole = { ...user, role: user.role || 'user' };
-
-            localStorage.setItem('user', JSON.stringify(userWithRole));
             
-            return { user: userWithRole, token: moosicaToken };
+            dispatch(setUserData(userWithRole));
+            
+            return { token: moosicaToken };
 
         } catch (error) {
-            console.error("Erro ao processar callback do Spotify:", error.response?.data || error.message);
             localStorage.removeItem('token');
             return rejectWithValue('Falha ao validar token Moosica.');
         }
@@ -97,7 +90,6 @@ export const toggleLikeSongAsync = createAsyncThunk(
             return newLikedSongs; 
 
         } catch (error) {
-            console.error("Erro ao curtir:", error);
             return rejectWithValue(error.response?.data || 'Falha ao curtir música.');
         }
     }
@@ -186,10 +178,9 @@ export const fetchUsersByIds = createAsyncThunk(
 );
 
 const initialState = {
-    user: initialUser,
-    isAuthenticated: !!initialUser, 
-    token: localStorage.getItem('token') || null,
-    isAdmin: initialUser ? initialUser.role === 'admin' : false, 
+    isAuthenticated: initialAuth.isAuthenticated, 
+    token: initialAuth.token,
+    isAdmin: false, 
     userPlaylistsDetail: [], 
     playlistsStatus: 'idle',
     friends: {
@@ -206,45 +197,23 @@ const authSlice = createSlice({
     reducers: {
         logout: (state) => {
             state.isAuthenticated = false;
-            state.user = null;
             state.token = null;
             state.userPlaylistsDetail = [];
             state.isAdmin = false;
-            
-            localStorage.removeItem('user');
             localStorage.removeItem('token');
         },
         setTestUser: (state, action) => {
-            const { id, name, role = 'user' } = action.payload; 
-            const newUser = { 
-                ...state.user,
-                id, 
-                name: name, 
-                role,
-                likedSongs: [], 
-                following: [],
-                userPlaylists: [],
-            };
-            
-            state.user = newUser;
             state.isAuthenticated = true;
-            state.isAdmin = newUser.role === 'admin';
-            localStorage.setItem('user', JSON.stringify(newUser));
         }
     },
     extraReducers: (builder) => {
         builder
             .addCase(loginUserAsync.fulfilled, (state, action) => {
-                const { user, token } = action.payload;
-                const userWithRole = { ...user, role: user.role || 'user' };
+                const { token } = action.payload;
                 
                 state.isAuthenticated = true;
-                state.user = userWithRole;
                 state.token = token;
-                state.isAdmin = userWithRole.role === 'admin';
                 state.loginError = null;
-
-                localStorage.setItem('user', JSON.stringify(userWithRole));
                 localStorage.setItem('token', token);
             })
             .addCase(loginUserAsync.rejected, (state, action) => {
@@ -253,12 +222,10 @@ const authSlice = createSlice({
             })
 
             .addCase(handleSpotifyCallback.fulfilled, (state, action) => {
-                const { user, token } = action.payload;
+                const { token } = action.payload;
                 
                 state.isAuthenticated = true;
-                state.user = user;
                 state.token = token;
-                state.isAdmin = user.role === 'admin';
                 state.loginError = null;
             })
             .addCase(handleSpotifyCallback.rejected, (state, action) => {
@@ -266,17 +233,6 @@ const authSlice = createSlice({
                 state.isAuthenticated = false;
             })
             
-            .addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
-                if (state.user) {
-                    state.user.likedSongs = action.payload;
-                    localStorage.setItem('user', JSON.stringify(state.user));
-                }
-                const likedPlaylist = state.userPlaylistsDetail.find(p => p.id === LIKED_SONGS_ID);
-                if (likedPlaylist) {
-                    likedPlaylist.songs = action.payload;
-                }
-            })
-
             .addCase(addSongToPlaylistAsync.fulfilled, (state, action) => {
                 const { songId, playlistId, added, updatedSongs } = action.payload;
                 if (added && songId && playlistId !== LIKED_SONGS_ID) {
@@ -284,13 +240,6 @@ const authSlice = createSlice({
                     if (playlist) {
                         playlist.songs = updatedSongs;
                     }
-                }
-            })
-
-            .addCase(toggleFollowArtistAsync.fulfilled, (state, action) => {
-                if (state.user) {
-                    state.user.following = action.payload;
-                    localStorage.setItem('user', JSON.stringify(state.user));
                 }
             })
 

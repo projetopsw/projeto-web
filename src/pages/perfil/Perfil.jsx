@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Divider, Typography, CircularProgress, Button } from '@mui/material'; 
+import { Box, Divider, Typography, CircularProgress } from '@mui/material'; 
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -40,8 +40,11 @@ export default function Perfil() {
     const navigate = useNavigate();
     const { id } = useParams(); 
 
-    const userLogado = useSelector(state => state.auth.user); 
+    const userLogado = useSelector(state => state.user.user); 
     
+    // 🔍 LOG 1: O que o Redux está fornecendo em CADA renderização
+    console.log("🔄 RENDER (Perfil.jsx): userLogado (Redux) atual:", userLogado);
+
     const { 
         friends: loggedInFriends, 
         sentRequests: loggedInSentRequests,
@@ -70,6 +73,11 @@ export default function Perfil() {
     const currentHasReceivedRequest = loggedInPendingRequests.some(req => String(req.id) === targetUserIdStr);
     
     useEffect(() => {
+        // 🔍 LOG 2: O useEffect foi acionado
+        console.log("🔥 USE_EFFECT (Perfil.jsx): Disparou a lógica de carregamento.");
+        console.log("   isOwner:", isOwner, " | userLogado.name:", userLogado?.name);
+
+
         if (!targetId) {
             setIsLoading(false);
             return;
@@ -78,16 +86,28 @@ export default function Perfil() {
         const loadProfileData = async () => {
             setIsLoading(true);
             
-            let userToDisplay = await fetchTargetUser(targetId);
-            
-            const finalUserData = userToDisplay || userLogado; 
+            let finalUserData;
+
+            if (isOwner) {
+                // Se dono, usa o objeto atualizado do Redux
+                console.log("   MODO DONO: Usando dados do Redux (userLogado).");
+                finalUserData = userLogado;
+            } else {
+                // Se terceiro, busca da API
+                console.log("   MODO TERCEIRO: Buscando da API.");
+                finalUserData = await fetchTargetUser(targetId);
+            }
             
             if (finalUserData) {
-                if (userToDisplay && isOwner) { 
-                    dispatch(updateProfile(userToDisplay)); 
-                }
+                
+                // 🔍 LOG 3: Dados que serão usados para setar o estado local
+                console.log("   DADOS FINAIS para setTargetUser:", { 
+                    id: finalUserData.id, 
+                    name: finalUserData.name || finalUserData.username, 
+                    img: finalUserData.img || finalUserData.image 
+                });
 
-                setTargetUser(finalUserData); 
+                setTargetUser(finalUserData);
                 
                 const userIdToUse = finalUserData._id || finalUserData.id; 
 
@@ -122,8 +142,13 @@ export default function Perfil() {
         setIsLoading(false);
         };
         loadProfileData();
-    }, [targetId, isOwner, dispatch, 
-        userLogado, 
+    }, [
+        targetId, 
+        isOwner, 
+        dispatch, 
+        userLogado?.id,
+        userLogado?.name, 
+        userLogado?.img,
         loggedInFriends.length, 
         loggedInSentRequests.length, 
         loggedInPendingRequests.length
@@ -157,6 +182,9 @@ export default function Perfil() {
     if (isLoading) {
         return <main><Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box></main>;
     }
+    
+    // 🔍 LOG 4: Valor do targetUser no momento da renderização (após load)
+    console.log("🔄 RENDER (Perfil.jsx): targetUser (Estado Local) atual:", targetUser ? { name: targetUser.name, img: targetUser.img } : "Ainda não definido");
 
     if (!targetUser) {
         return <main><Box sx={{ p: 4 }}><Typography color="error">Perfil do usuário não encontrado. 😢</Typography></Box></main>;

@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { setUserData } from './userSlice'; 
 
-const API_URL = 'http://localhost:3001/users';
+const API_URL = 'http://localhost:3000/users';
 
 
 const fetchConnectionsData = createAsyncThunk( 

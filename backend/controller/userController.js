@@ -92,30 +92,6 @@ export const getUserById = async (req, res) => {
     }
 };
 
-export const updateUserController = async (req, res) => {
-    try {
-        const userId = req.params.id;
-        const updateData = { ...req.body };
-        
-        delete updateData.role; 
-        if (updateData.password) {
-             const hashedPassword = await bcrypt.hash(updateData.password, 10);
-             updateData.password = hashedPassword;
-        }
-
-        const updatedUser = await User.findByIdAndUpdate(
-            userId, 
-            { $set: updateData }, 
-            { new: true, runValidators: true }
-        ).select('-password -refresh_token_spotify -access_token_spotify'); 
-
-        if (!updatedUser) return res.status(404).json({ message: 'Usuário não encontrado' });
-        res.json(updatedUser);
-    } catch (error) {
-        res.status(400).json({ message: "Dados inválidos ou ID mal formatado. Detalhe: " + error.message });
-    }
-};
-
 export const deleteUserController = async (req, res) => {
     try {
         const deletedUser = await User.findByIdAndDelete(req.params.id);
@@ -123,5 +99,55 @@ export const deleteUserController = async (req, res) => {
         res.json({ message: 'Conta de usuário removida com sucesso' });
     } catch (error) {
         res.status(500).json({ message: 'Erro ao deletar usuário.', error: error.message });
+    }
+};
+
+export const updateUserController = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const { currentPassword, newPassword, ...otherUpdateData } = req.body;
+
+        delete otherUpdateData.role; 
+        delete otherUpdateData.spotifyId;
+        delete otherUpdateData.refresh_token_spotify;
+        delete otherUpdateData.access_token_spotify;
+        
+        const updateData = { ...otherUpdateData };
+
+        if (newPassword) {
+            if (!currentPassword) {
+                return res.status(400).json({ message: 'A senha atual é obrigatória para alterar a senha.' });
+            }
+
+            const user = await User.findById(userId).select('+password');
+            if (!user) {
+                return res.status(404).json({ message: 'Usuário não encontrado' });
+            }
+
+            const validCurrentPassword = await bcrypt.compare(currentPassword, user.password);
+            if (!validCurrentPassword) {
+                return res.status(401).json({ message: 'Senha atual incorreta.' });
+            }
+            
+            updateData.password = await bcrypt.hash(newPassword, 10);
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId, 
+            { $set: updateData }, 
+            { new: true, runValidators: true }
+        ).select('-password -refresh_token_spotify -access_token_spotify');
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'Usuário não encontrado' });
+        }
+        
+        res.json({
+            message: 'Perfil atualizado com sucesso.',
+            user: updatedUser
+        });
+        
+    } catch (error) {
+        res.status(400).json({ message: "Falha na atualização. Detalhe: " + error.message });
     }
 };

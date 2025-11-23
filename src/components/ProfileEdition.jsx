@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
     Box, TextField, Button, Divider, Typography, CircularProgress,
-    Dialog, DialogTitle, DialogContent, Grid, IconButton 
-} from '@mui/material'; 
-import CloseIcon from '@mui/icons-material/Close'; 
+    Dialog, DialogTitle, DialogContent, Grid, IconButton
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateProfile } from '../redux/userSlice'; 
-import ProfileHeader from './ProfileHeader'; 
+import { updateProfile } from '../redux/userSlice';
+import ProfileHeader from './ProfileHeader';
 
-const API_URL = 'http://localhost:3000'; 
-const SESSION_STORAGE_KEY = (userId) => `tempProfileImage_${userId}`; 
-const DEFAULT_USER_IMAGE = 'https://placehold.co/400x400?text=User'; 
+const API_URL = 'http://localhost:3000';
+const SESSION_STORAGE_KEY = (userId) => `tempProfileImage_${userId}`;
+const DEFAULT_USER_IMAGE = 'https://placehold.co/400x400?text=User';
 const authToken = localStorage.getItem('token');
 
 const AVAILABLE_PROFILE_IMAGES = [
@@ -22,70 +22,72 @@ const AVAILABLE_PROFILE_IMAGES = [
     DEFAULT_USER_IMAGE
 ];
 
-export default function ProfileEdition() { 
+export default function ProfileEdition() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    
-    const user = useSelector((state) => state.auth.user); 
-    const userId = user?.id; 
+
+    const user = useSelector((state) => state.user.user);
+    const userId = user?.id;
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [isImageModalOpen, setIsImageModalOpen] = useState(false); 
-    
-    const [formData, setFormData] = useState({ 
-        name: '', 
-        email: '', 
-        currentPassword: '', 
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        currentPassword: '',
         newPassword: ''
     });
-    
+
+    const [errors, setErrors] = useState({});
+
     const [newProfileImage, setNewProfileImage] = useState(null);
-    const [linkImage, setLinkImage] = useState(''); 
-    
+    const [linkImage, setLinkImage] = useState('');
+
     useEffect(() => {
         if (user && userId) {
             const key = SESSION_STORAGE_KEY(userId);
-            
+
             const tempImage = sessionStorage.getItem(key);
             setNewProfileImage(tempImage);
-            
+
             setFormData(prev => ({
                 ...prev,
-                name: user.name || user.username || '', 
+                name: user.name || user.username || '',
                 email: user.email || '',
             }));
-            
+
             setIsLoading(false);
         } else {
             setIsLoading(false);
-            console.warn("Usuário não encontrado no estado do Redux. Verifique o fluxo de Login.");
         }
     }, [user, userId]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        setErrors(prev => ({ ...prev, [name]: undefined }));
     };
 
     const handleImageUploadClick = () => {
-        setLinkImage(''); 
+        setLinkImage('');
         setIsImageModalOpen(true);
     };
 
     const handleImageSelect = (imageUrl) => {
         setNewProfileImage(imageUrl);
         sessionStorage.setItem(SESSION_STORAGE_KEY(userId), imageUrl);
-        setIsImageModalOpen(false); 
+        setIsImageModalOpen(false);
     };
-    
-    const handleLinkImageSelect = () => { 
+
+    const handleLinkImageSelect = () => {
         const trimmedLink = linkImage.trim();
         if (trimmedLink) {
             handleImageSelect(trimmedLink);
         }
     };
-    
+
     const handleRemoveSelectedImage = () => {
         setNewProfileImage(null);
         sessionStorage.removeItem(SESSION_STORAGE_KEY(userId));
@@ -94,78 +96,87 @@ export default function ProfileEdition() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSaving(true);
-        
+        setErrors({});
+
         if (!userId) {
-            console.error("ID do usuário não encontrado. Não é possível salvar. Por favor, faça login novamente.");
             setIsSaving(false);
             return;
         }
 
-        const currentUserData = user; 
         const { name, email, currentPassword, newPassword } = formData;
-        
-        const newPasswordTrimmed = newPassword.trim();
-        const isChangingPassword = newPasswordTrimmed !== '';
+        const nameTrimmed = name.trim();
 
-        if (isChangingPassword) {
-            if (currentPassword === '') {
-                console.error("Você deve fornecer a Senha Atual para alterar a senha.");
-                setIsSaving(false);
-                return;
-            }
-            if (currentPassword !== currentUserData.password) {
-                console.error("A Senha Atual inserida está incorreta. Não é possível salvar a nova senha.");
-                setIsSaving(false);
-                return;
-            }
+        if (nameTrimmed === '') {
+            setErrors({ name: "O Username não pode estar vazio." });
+            alert("Erro: O campo Username não pode estar vazio.");
+            setIsSaving(false);
+            return;
         }
 
-        let fullUserUpdate = {
-            ...currentUserData, 
-            name: name,
-            email: email,
-            img: newProfileImage || currentUserData.img || DEFAULT_USER_IMAGE, 
-        };
-        
-        if (isChangingPassword) {
-            fullUserUpdate.password = newPasswordTrimmed;
+        const newPasswordTrimmed = newPassword.trim();
+        const currentPasswordTrimmed = currentPassword.trim();
+        const isChangingPassword = newPasswordTrimmed !== '';
+
+        if (isChangingPassword && currentPasswordTrimmed === '') {
+            setErrors({ currentPassword: "É obrigatório fornecer a Senha Atual para alterar a senha." });
+            alert("Erro: Você deve fornecer a Senha Atual para alterar a senha.");
+            setIsSaving(false);
+            return;
         }
 
         const dataToSendToServer = {
-            ...fullUserUpdate
+            username: nameTrimmed,
+            email: email,
+            img: newProfileImage || user.img || DEFAULT_USER_IMAGE,
         };
-        
-        if (dataToSendToServer.username && dataToSendToServer.name) {
-            dataToSendToServer.username = dataToSendToServer.name; 
+
+        if (isChangingPassword) {
+            dataToSendToServer.currentPassword = currentPasswordTrimmed;
+            dataToSendToServer.newPassword = newPasswordTrimmed;
         }
 
         try {
-            const response = await fetch(`${API_URL}/users/${userId}`, { 
-                method: 'PUT', 
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'Authorization': `Bearer ${authToken}`, 
-                    'Accept': 'application/json' 
+            const response = await fetch(`${API_URL}/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`,
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(dataToSendToServer)
             });
 
             if (response.ok) {
+                const responseData = await response.json();
+                const responseUser = responseData.user || responseData;
+                
+                const nameFromForm = nameTrimmed; 
+                const imageFromForm = newProfileImage || responseUser.img || user.img || DEFAULT_USER_IMAGE;
+
+                const finalUserPayload = {
+                    ...responseUser,
+                    id: responseUser._id || responseUser.id || user.id,
+                    // Garante que o nome do formulário seja a fonte da verdade se a API falhar
+                    name: responseUser.name || responseUser.username || nameFromForm,
+                    username: responseUser.username || responseUser.name || nameFromForm,
+                    img: imageFromForm,
+                    image: imageFromForm,
+                };
+
                 sessionStorage.removeItem(SESSION_STORAGE_KEY(userId));
-                setNewProfileImage(null); 
-                
-                dispatch(updateProfile(fullUserUpdate));
-                
+                setNewProfileImage(null);
+
+                dispatch(updateProfile(finalUserPayload));
+
                 setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
-                console.log("Perfil atualizado com sucesso! (Imagem salva no mongodb)");
-                navigate('/perfil'); 
+                alert("Perfil atualizado com sucesso!");
+                navigate('/perfil');
             } else {
-                console.error("Erro ao salvar perfil. Status:", response.status);
-                console.error(`Falha ao atualizar. O servidor não aceitou os dados. Verifique se o payload da imagem (Data URL) é muito grande.`);
+                const errorData = await response.json();
+                alert(`Erro: ${errorData.message || response.statusText}. Por favor, verifique seus dados.`);
             }
         } catch (error) {
-            console.error("Erro de rede ao salvar perfil:", error);
-            console.error("Erro de conexão. Verifique se o json-server está online.");
+            alert("Erro de conexão. Verifique se o servidor está online e na porta 3000.");
         } finally {
             setIsSaving(false);
         }
@@ -173,16 +184,16 @@ export default function ProfileEdition() {
 
     const handleCancel = () => {
         sessionStorage.removeItem(SESSION_STORAGE_KEY(userId));
-        setNewProfileImage(null); 
-        navigate('/perfil'); 
-    }; 
+        setNewProfileImage(null);
+        navigate('/perfil');
+    };
 
     if (isLoading) return <main><Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box></main>;
-    
+
     if (!user || !userId) return <main><Typography color="error" sx={{ color: 'red', p: 4 }}>Não foi possível carregar os dados do perfil. (Usuário não autenticado ou ID ausente no Redux)</Typography></main>;
-    
-    const ORANGE_COLOR = 'var(--orange)'; 
-    const RED_COLOR_BORDER = '#f44336'; 
+
+    const ORANGE_COLOR = 'var(--orange)';
+    const RED_COLOR_BORDER = '#f44336';
     const INPUT_BG = 'var(--input-bg)';
     const INPUT_TEXT_COLOR = 'var(--input-text-color)';
 
@@ -209,16 +220,16 @@ export default function ProfileEdition() {
         '& .Mui-disabled .MuiFilledInput-input': { WebkitTextFillColor: INPUT_TEXT_COLOR, opacity: 1 },
         '& .MuiInputLabel-filled': { color: INPUT_TEXT_COLOR }
     };
-    
-    const userDataToDisplay = user; 
-    
+
+    const userDataToDisplay = user;
+
     const finalImage = newProfileImage || userDataToDisplay.img || DEFAULT_USER_IMAGE;
-    
+
     const profileHeaderProps = {
-        username: userDataToDisplay.name || userDataToDisplay.username, 
-        playlists: userDataToDisplay.playlists ? userDataToDisplay.playlists.length : 0, 
-        friends: userDataToDisplay.friends ? userDataToDisplay.friends.length : 0,     
-        following: userDataToDisplay.following || [],          
+        username: formData.name,
+        playlists: userDataToDisplay.playlists ? userDataToDisplay.playlists.length : 0,
+        friends: userDataToDisplay.friends ? userDataToDisplay.friends.length : 0,
+        following: userDataToDisplay.following || [],
         img: finalImage,
         image: finalImage
     };
@@ -226,17 +237,17 @@ export default function ProfileEdition() {
     return (
         <main>
             <Box sx={{ p: { xs: 2, md: 4, lg: 6 }, pb: 15 }}>
-                <ProfileHeader 
-                    user={profileHeaderProps} 
-                    onEditClick={null} 
-                    onImageEditClick={handleImageUploadClick} 
+                <ProfileHeader
+                    user={profileHeaderProps}
+                    onEditClick={null}
+                    onImageEditClick={handleImageUploadClick}
                 />
 
                 {newProfileImage && newProfileImage !== user.img && (
                     <Box sx={{ mt: -2, mb: 2 }}>
-                        <Button 
-                            variant="text" 
-                            onClick={handleRemoveSelectedImage} 
+                        <Button
+                            variant="text"
+                            onClick={handleRemoveSelectedImage}
                             sx={{ color: RED_COLOR_BORDER, textTransform: 'none' }}
                             disabled={isSaving}
                         >
@@ -246,22 +257,24 @@ export default function ProfileEdition() {
                 )}
 
                 <Divider sx={{ my: 4 }} />
-                <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 600 }}> 
-                    
+                <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 600 }}>
+
                     <Typography variant="h6" component="p" sx={{ color: 'var(--texto-color)', mb: 2, fontWeight: 'bold' }}>
                         Dados do Perfil
                     </Typography>
                     <TextField
                         fullWidth
-                        label="Username" 
+                        label="Username"
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
                         margin="normal"
                         variant="filled"
                         sx={inputFieldStyle}
-                        InputLabelProps={{ shrink: true }} 
+                        InputLabelProps={{ shrink: true }}
                         disabled={isSaving}
+                        error={!!errors.name}
+                        helperText={errors.name}
                     />
                     <TextField
                         fullWidth
@@ -273,19 +286,19 @@ export default function ProfileEdition() {
                         variant="filled"
                         type="email"
                         sx={inputFieldStyle}
-                        InputLabelProps={{ shrink: true }} 
+                        InputLabelProps={{ shrink: true }}
                         disabled={isSaving}
                     />
-                    
+
                     <Divider sx={{ my: 4 }} />
-                    
+
                     <Typography variant="h6" component="p" sx={{ color: 'var(--text-color)', mb: 2, fontWeight: 'bold' }}>
                         Alterar Senha
                     </Typography>
-                    
+
                     <TextField
                         fullWidth
-                        label="Senha Atual *" 
+                        label="Senha Atual *"
                         name="currentPassword"
                         value={formData.currentPassword}
                         onChange={handleChange}
@@ -293,13 +306,15 @@ export default function ProfileEdition() {
                         variant="filled"
                         type="password"
                         sx={inputFieldStyle}
-                        InputLabelProps={{ shrink: true }} 
+                        InputLabelProps={{ shrink: true }}
                         disabled={isSaving}
+                        error={!!errors.currentPassword}
+                        helperText={errors.currentPassword}
                     />
 
                     <TextField
                         fullWidth
-                        label="Nova Senha" 
+                        label="Nova Senha"
                         name="newPassword"
                         value={formData.newPassword}
                         onChange={handleChange}
@@ -307,7 +322,7 @@ export default function ProfileEdition() {
                         variant="filled"
                         type="password"
                         sx={inputFieldStyle}
-                        InputLabelProps={{ shrink: true }} 
+                        InputLabelProps={{ shrink: true }}
                         disabled={isSaving}
                     />
                     <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'flex-start' }}>
@@ -331,10 +346,10 @@ export default function ProfileEdition() {
                 </Box>
             </Box>
 
-            <Dialog 
-                open={isImageModalOpen} 
-                onClose={() => setIsImageModalOpen(false)} 
-                maxWidth="md" 
+            <Dialog
+                open={isImageModalOpen}
+                onClose={() => setIsImageModalOpen(false)}
+                maxWidth="md"
                 fullWidth
                 PaperProps={{ sx: { bgcolor: 'var(--header-bg)', color: 'var(--text-color)' } }}
             >
@@ -354,7 +369,7 @@ export default function ProfileEdition() {
                     </IconButton>
                 </DialogTitle>
                 <DialogContent dividers sx={{ borderBottom: '1px solid var(--border-color)' }}>
-                    
+
                     <Typography variant="subtitle1" sx={{ color: 'var(--text-color)', mb: 1, mt: 1, fontWeight: 'bold' }}>
                         Adicionar por URL:
                     </Typography>
@@ -382,35 +397,35 @@ export default function ProfileEdition() {
                         </Button>
                     </Box>
                     <Divider sx={{ my: 3, bgcolor: 'var(--border-color)' }} />
-                    
+
                     <Typography variant="subtitle1" sx={{ color: 'var(--text-color)', mb: 3, fontWeight: 'bold' }}>
                         Ou selecione uma imagem padrão:
                     </Typography>
 
-                    <Grid 
-                        container 
-                        spacing={6} 
+                    <Grid
+                        container
+                        spacing={6}
                         justifyContent="center"
-                    > 
+                    >
                         {AVAILABLE_PROFILE_IMAGES.map((url, index) => {
-                            
+
                             const isPngIcon = url.toLowerCase().endsWith('.png');
-                            
+
                             const imageStyles = isPngIcon
-                                ? { 
-                                        objectFit: 'contain', 
-                                        transform: 'scale(1.2)', 
-                                        transition: 'transform 0.2s, border 0.2s',
-                                        backgroundColor: 'transparent' 
-                                    } 
-                                : { 
-                                        objectFit: 'cover', 
-                                        transform: 'scale(1)', 
-                                        transition: 'transform 0.2s, border 0.2s'
-                                    }; 
-                            
+                                ? {
+                                    objectFit: 'contain',
+                                    transform: 'scale(1.2)',
+                                    transition: 'transform 0.2s, border 0.2s',
+                                    backgroundColor: 'transparent'
+                                }
+                                : {
+                                    objectFit: 'cover',
+                                    transform: 'scale(1)',
+                                    transition: 'transform 0.2s, border 0.2s'
+                                };
+
                             return (
-                                <Grid 
+                                <Grid
                                     key={index}
                                     sx={{ display: 'flex', justifyContent: 'center' }}
                                 >
@@ -418,23 +433,23 @@ export default function ProfileEdition() {
                                         onClick={() => handleImageSelect(url)}
                                         sx={{
                                             cursor: 'pointer',
-                                            p: 0.5, 
-                                            borderRadius: '50%', 
-                                            border: (newProfileImage === url) 
-                                                ? `4px solid ${ORANGE_COLOR}` 
+                                            p: 0.5,
+                                            borderRadius: '50%',
+                                            border: (newProfileImage === url)
+                                                ? `4px solid ${ORANGE_COLOR}`
                                                 : '4px solid transparent',
                                             transition: 'border 0.2s',
                                             '&:hover': { opacity: 0.8 },
-                                            
-                                            width: 120, 
-                                            height: 120, 
-                                            position: 'relative', 
-                                            flexShrink: 0 
+
+                                            width: 120,
+                                            height: 120,
+                                            position: 'relative',
+                                            flexShrink: 0
                                         }}
                                     >
                                         <Box
                                             component="img"
-                                            src={url} 
+                                            src={url}
                                             alt={`Opção de perfil ${index + 1}`}
                                             sx={{
                                                 position: 'absolute',
@@ -443,9 +458,9 @@ export default function ProfileEdition() {
                                                 width: '100%',
                                                 height: '100%',
                                                 borderRadius: '50%',
-                                                objectFit: imageStyles.objectFit, 
+                                                objectFit: imageStyles.objectFit,
                                                 transform: imageStyles.transform,
-                                                backgroundColor: imageStyles.backgroundColor 
+                                                backgroundColor: imageStyles.backgroundColor
                                             }}
                                         />
                                     </Box>
