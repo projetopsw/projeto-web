@@ -14,84 +14,62 @@ import api from '../../services/api.js';
 
 const navItemsData = ["Tudo", "Usuários", "Playlists", "Músicas", "Álbuns", "Artistas"];
 
-const normalizeName = (str) => {
-    if (!str) return '';
-    return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-};
-
-const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
-    if (!query || !data || data.length === 0) return [];
-    
-    const lowerQuery = normalizeName(query);
-
-    const filtered = data.filter(item => {
-        const fieldValue = item[field];
-        if (!fieldValue) {
-            return false;
-        }
-
-        const lowerFieldValue = normalizeName(String(fieldValue));
-        
-        if (mode === 'exact') {
-            return lowerFieldValue === lowerQuery;
-        } else if (mode === 'includes') {
-            return lowerFieldValue.includes(lowerQuery);
-        } else { 
-            return lowerFieldValue.startsWith(lowerQuery);
-        }
-    });
-    
-
-    return filtered;
-};
-
-/**
- * FUNÇÃO AUXILIAR PARA PEGAR ITENS ALEATÓRIOS
- * @param {Array} data - Array de dados brutos
- * @param {number} count - Quantidade de itens a retornar
- * @returns {Array} - Array de itens aleatórios
- */
+// Função para pegar itens aleatórios (para o caso de busca vazia)
+// Sugestão: No futuro, crie uma rota backend /api/recommendations para isso não pesar
 const getRandomItems = (data, count = 5) => {
     if (!data || data.length === 0) return [];
-    
     const shuffled = [...data].sort(() => 0.5 - Math.random());
-    
     return shuffled.slice(0, count);
 };
 
-
 function Pesquisa() {
     const [selectedFilter, setSelectedFilter] = useState('Tudo');
-    
-    const [mainSongs, setMainSongs] = useState([]); 
-    const [mainArtists, setMainArtists] = useState([]); 
-    const [mainAlbums, setMainAlbums] = useState([]); 
-    const [mainPlaylists, setMainPlaylists] = useState([]); 
-    const [mainUsers, setMainUsers] = useState([]); 
-    
-    const [relatedSongs, setRelatedSongs] = useState([]); 
-    const [relatedArtists, setRelatedArtists] = useState([]); 
-    const [relatedAlbums, setRelatedAlbums] = useState([]); 
-    const [relatedPlaylists, setRelatedPlaylists] = useState([]); 
-    const [relatedUsers, setRelatedUsers] = useState([]); 
+    const [searchParams] = useSearchParams();
+    const query = searchParams.get('q'); 
 
-    const [randomSongs, setRandomSongs] = useState([]);
-    const [randomArtists, setRandomArtists] = useState([]);
-    const [randomAlbums, setRandomAlbums] = useState([]);
-    const [randomPlaylists, setRandomPlaylists] = useState([]);
-    const [randomUsers, setRandomUsers] = useState([]); 
+    // Estados para Resultados Principais (Vindo do Backend)
+    const [results, setResults] = useState({
+        artists: [],
+        albums: [],
+        tracks: [],
+        playlists: [], // O Spotify search básico não retorna usuários/playlists no seu código atual,
+        users: []      // mas mantive os estados caso implemente depois.
+    });
+
+    // Estados para sugestões (Random) caso não ache nada
+    const [randomSuggestions, setRandomSuggestions] = useState({
+        artists: [], albums: [], tracks: [], playlists: [], users: []
+    });
     
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const [searchParams] = useSearchParams();
-    const query = searchParams.get('q'); 
+    // --- ADAPTADOR DE DADOS ---
+    // Transforma o dado do Mongo/Spotify para o que seus Cards esperam
+    const adaptResults = (data) => {
+        return {
+            artists: data.artists || [],
+            albums: (data.albums || []).map(album => ({
+                ...album,
+                id: album._id, // Mongo usa _id, seus cards devem usar id
+                // Pega o nome do primeiro artista se for array
+                artist: album.artists?.[0]?.name || 'Vários Artistas' 
+            })),
+            tracks: (data.tracks || []).map(track => ({
+                ...track,
+                id: track._id,
+                // Junta nomes dos artistas (Ex: Anitta, Caetano Veloso)
+                artist: track.artists?.map(a => a.name).join(', ') || 'Desconhecido',
+                image: track.cover // Garante que a imagem use a chave certa
+            })),
+            playlists: [], // Backend atual não busca playlists
+            users: []      // Backend atual não busca usuários
+        };
+    };
 
     useEffect(() => {
         if (!query || query.trim() === "") {
-            setMainSongs([]); setMainArtists([]); setMainAlbums([]); setMainPlaylists([]); setMainUsers([]); 
-            setRelatedSongs([]); setRelatedArtists([]); setRelatedAlbums([]); setRelatedPlaylists([]); setRelatedUsers([]); 
-             setRandomSongs([]); setRandomArtists([]); setRandomAlbums([]); setRandomPlaylists([]); setRandomUsers([]); 
+            setResults({ artists: [], albums: [], tracks: [], playlists: [], users: [] });
             return;
         }
 
@@ -100,83 +78,43 @@ function Pesquisa() {
             setError(null);
             
             try {
-                const artistsPromise = api.get(`/artists`); 
-                const songsPromise = api.get(`/songs`);
-                const albumsPromise = api.get(`/albums`);
-                const playlistsPromise = api.get(`/playlists`); 
-                const usersPromise = api.get(`/users`); 
+                // 1. CHAMA SUA NOVA ROTA INTELIGENTE
+                const response = await api.get(`/api/search`, {
+                    params: { q: query, type: 'artist,album,track' }
+                });
 
+                const adaptedData = adaptResults(response.data);
+
+                // Se o backend retornou vazio, buscamos sugestões aleatórias (Fallback)
+                const totalFound = adaptedData.artists.length + adaptedData.albums.length + adaptedData.tracks.length;
                 
-                const [songsRes, artistsRes, albumsRes, playlistsRes, usersRes] = await Promise.all([ 
-                    songsPromise,
-                    artistsPromise,
-                    albumsPromise,
-                    playlistsPromise,
-                    usersPromise, 
-                ]);
-                
-                const allArtists = artistsRes.data;
-                const allSongs = songsRes.data;
-                const allAlbums = albumsRes.data;
-                const allPlaylists = playlistsRes.data;
-                const allUsers = usersRes.data; 
-
-                let mainSongsFiltered = filterDataByQuery(allSongs, query, 'title', 'starts_with');
-                const mainArtistsFiltered = filterDataByQuery(allArtists, query, 'name', 'starts_with');
-                const mainAlbumsFiltered = filterDataByQuery(allAlbums, query, 'title', 'starts_with');
-                const mainPlaylistsFiltered = filterDataByQuery(allPlaylists, query, 'title', 'starts_with');
-                const mainUsersFiltered = filterDataByQuery(allUsers, query, 'name', 'starts_with'); 
-
-                const exactArtistMatch = filterDataByQuery(allArtists, query, 'name', 'exact');
-
-                if (exactArtistMatch.length > 0) {
-                    const artistId = exactArtistMatch[0].id;
-                    const songsByExactArtist = allSongs.filter(song => song.artistId === artistId);
-                    const songIds = new Set(mainSongsFiltered.map(song => song.id));
-                    const newSongs = songsByExactArtist.filter(song => !songIds.has(song.id));
-                    mainSongsFiltered = [...newSongs, ...mainSongsFiltered];
-                    console.log(`Correspondência exata encontrada para Artista: ${exactArtistMatch[0].name}. Adicionadas ${newSongs.length} músicas.`);
+                if (totalFound === 0) {
+                    // Nota: Aqui ainda estamos buscando localmente para random, 
+                    // idealmente isso seria outra rota do backend tipo /api/random
+                    try {
+                        const [songsRes, artistsRes, albumsRes] = await Promise.all([
+                            api.get('/songs?limit=10'), // Assumindo rota simples
+                            api.get('/artists?limit=10'),
+                            api.get('/albums?limit=10')
+                        ]);
+                        
+                        setRandomSuggestions({
+                            tracks: getRandomItems(songsRes.data),
+                            artists: getRandomItems(artistsRes.data),
+                            albums: getRandomItems(albumsRes.data),
+                            playlists: [],
+                            users: []
+                        });
+                    } catch (e) {
+                        console.warn("Erro ao buscar sugestões aleatórias", e);
+                    }
                 }
 
-                const removeDuplicates = (mainList, relatedList) => {
-                    const mainIds = new Set(mainList.map(item => item.id));
-                    return relatedList.filter(item => !mainIds.has(item.id));
-                };
-
-                const relatedArtistsRaw = filterDataByQuery(allArtists, query, 'name', 'includes');
-                const relatedSongsRaw = filterDataByQuery(allSongs, query, 'title', 'includes');
-                const relatedAlbumsRaw = filterDataByQuery(allAlbums, query, 'title', 'includes');
-                const relatedPlaylistsRaw = filterDataByQuery(allPlaylists, query, 'title', 'includes');
-                const relatedUsersRaw = filterDataByQuery(allUsers, query, 'name', 'includes'); 
-
-                const relatedArtistsClean = removeDuplicates(mainArtistsFiltered, relatedArtistsRaw);
-                const relatedSongsClean = removeDuplicates(mainSongsFiltered, relatedSongsRaw);
-                const relatedAlbumsClean = removeDuplicates(mainAlbumsFiltered, relatedAlbumsRaw);
-                const relatedPlaylistsClean = removeDuplicates(mainPlaylistsFiltered, relatedPlaylistsRaw);
-                const relatedUsersClean = removeDuplicates(mainUsersFiltered, relatedUsersRaw);
-
-                setRandomSongs(getRandomItems(allSongs));
-                setRandomArtists(getRandomItems(allArtists));
-                setRandomAlbums(getRandomItems(allAlbums));
-                setRandomPlaylists(getRandomItems(allPlaylists));
-                setRandomUsers(getRandomItems(allUsers)); 
-
-                setMainSongs(mainSongsFiltered); 
-                setMainArtists(mainArtistsFiltered);
-                setMainAlbums(mainAlbumsFiltered);
-                setMainPlaylists(mainPlaylistsFiltered);
-                setMainUsers(mainUsersFiltered); 
-                
-                setRelatedSongs(relatedSongsClean);
-                setRelatedArtists(relatedArtistsClean);
-                setRelatedAlbums(relatedAlbumsClean);
-                setRelatedPlaylists(relatedPlaylistsClean);
-                setRelatedUsers(relatedUsersClean); 
+                setResults(adaptedData);
 
             } catch (err) {
-                console.error("Erro fatal na chamada da API:", err);
-                setError(`Erro crítico na comunicação. Verifique se o JSON Server está ligado e acessível.`);
-                
+                console.error("Erro na busca:", err);
+                setError("Não foi possível realizar a busca. Tente novamente.");
             } finally {
                 setIsLoading(false);
             }
@@ -186,40 +124,27 @@ function Pesquisa() {
 
     }, [query]);
 
-
     const handleSetFilter = (item) => {
         setSelectedFilter(item);
     };
     
-    const totalMainResults = mainSongs.length + mainArtists.length + mainAlbums.length + mainPlaylists.length + mainUsers.length;
+    // Contagem de resultados
+    const totalMainResults = results.tracks.length + results.artists.length + results.albums.length + results.playlists.length + results.users.length;
     
-    const mainResults = [
-        { title: "Usuários", type: "user", data: mainUsers, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
-        { title: "Músicas", type: "song", data: mainSongs, renderCard: (item) => <SongCard key={item.id} {...item} /> },
-        { title: "Playlists", type: "playlist", data: mainPlaylists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
-        { title: "Álbuns", type: "album", data: mainAlbums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
-        { title: "Artistas", type: "artist", data: mainArtists, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
+    // Configuração das Seções para Renderização
+    const mainSections = [
+        // { title: "Usuários", type: "user", data: results.users, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
+        { title: "Músicas", type: "song", data: results.tracks, renderCard: (item) => <SongCard key={item.id} {...item} /> },
+        { title: "Álbuns", type: "album", data: results.albums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
+        { title: "Artistas", type: "artist", data: results.artists, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
+        // { title: "Playlists", type: "playlist", data: results.playlists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
     ];
 
-    const relatedResults = [
-        { title: "Usuários", type: "user", data: relatedUsers, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
-        { title: "Músicas", type: "song", data: relatedSongs, renderCard: (item) => <SongCard key={item.id} {...item} /> },
-        { title: "Playlists", type: "playlist", data: relatedPlaylists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
-        { title: "Álbuns", type: "album", data: relatedAlbums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
-        { title: "Artistas", type: "artist", data: relatedArtists, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
+    const randomSections = [
+        { title: "Músicas", type: "song", data: randomSuggestions.tracks, renderCard: (item) => <SongCard key={item.id} {...item} /> },
+        { title: "Álbuns", type: "album", data: randomSuggestions.albums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
+        { title: "Artistas", type: "artist", data: randomSuggestions.artists, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
     ];
-    
-    const randomSuggestions = [
-        { title: "Usuários", type: "user", data: randomUsers, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
-        { title: "Músicas", type: "song", data: randomSongs, renderCard: (item) => <SongCard key={item.id} {...item} /> },
-        { title: "Playlists", type: "playlist", data: randomPlaylists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
-        { title: "Álbuns", type: "album", data: randomAlbums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
-        { title: "Artistas", type: "artist", data: randomArtists, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
-    ];
-
-    const totalRelatedResults = relatedSongs.length + relatedArtists.length + relatedAlbums.length + relatedPlaylists.length + relatedUsers.length; 
-    const totalResults = totalMainResults + totalRelatedResults;
-
 
     return (
         <>
@@ -234,19 +159,21 @@ function Pesquisa() {
                     />
                 </div>
 
-                {isLoading && <p>Carregando resultados...</p>}
-                {error && <p style={{ color: 'red' }}>Erro: {error}</p>}
+                {isLoading && <div className="loading-spinner">Carregando resultados do Spotify...</div>}
                 
+                {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
+                
+                {/* --- RESULTADOS PRINCIPAIS --- */}
                 {!isLoading && !error && totalMainResults > 0 && (
                     <>
-                        <h1 className='search-subtitle'>Principais resultados envolvendo "{query}"</h1>
-                        {mainResults.map((section) => {
+                        <h1 className='search-subtitle'>Resultados para "{query}"</h1>
+                        {mainSections.map((section) => {
                             const isFiltered = selectedFilter === 'Tudo' || selectedFilter === section.title;
 
-                            if (section.data.length > 0 && isFiltered) {
+                            if (section.data && section.data.length > 0 && isFiltered) {
                                 return (
                                     <Section key={section.title + '-main'} title={section.title}>
-                                        <div className={section.type === 'user' ? "vertical-results-container" : "section-scroll-container"}>
+                                        <div className="section-scroll-container">
                                             {section.data.map(section.renderCard)}
                                         </div>
                                     </Section>
@@ -257,41 +184,20 @@ function Pesquisa() {
                     </>
                 )}
 
-                {!isLoading && !error && totalRelatedResults > 0 && (
-                    <>
-                        <h1 className='search-subtitle' style={{ marginTop: totalMainResults > 0 ? '40px' : '0px' }}>Relacionados</h1>
-                        {relatedResults.map((section) => {
-                            const isFiltered = selectedFilter === 'Tudo' || selectedFilter === section.title;
-
-                            if (section.data.length > 0 && isFiltered) {
-                                return (
-                                    <Section key={section.title + '-related'} title={section.title}>
-                                        <div className={section.type === 'user' ? "vertical-results-container" : "section-scroll-container"}>
-                                            {section.data.map(section.renderCard)}
-                                        </div>
-                                    </Section>
-                                );
-                            }
-                            return null;
-                        })}
-                    </>
-                )}
-
-                {!isLoading && !error && query && totalResults === 0 && (
+                {/* --- SEM RESULTADOS (SUGESTÕES) --- */}
+                {!isLoading && !error && query && totalMainResults === 0 && (
                     <div style={{ marginTop: '20px' }}>
-                        <p style={{ marginBottom: '40px', fontSize: '1.2rem', color: 'var(--text-color)' }}>
-                            Eita ferro! Nenhum resultado foi encontrado para "{query}"!
+                        <p style={{ marginBottom: '40px', fontSize: '1.2rem', color: 'var(--text-color)', textAlign:'center' }}>
+                            Nenhum resultado encontrado para "{query}" no nosso banco ou no Spotify.
                         </p>
 
-                        <h1 className='search-subtitle' style={{ marginTop: '0px' }}>... Mas talvez você goste:</h1>
+                        <h1 className='search-subtitle'>Talvez você goste:</h1>
 
-                        {randomSuggestions.map((section) => {
-                            const isFiltered = selectedFilter === 'Tudo' || selectedFilter === section.title;
-
-                            if (section.data.length > 0 && isFiltered) {
+                        {randomSections.map((section) => {
+                            if (section.data && section.data.length > 0) {
                                 return (
                                     <Section key={section.title + '-random'} title={section.title}>
-                                        <div className={section.type === 'user' ? "vertical-results-container" : "section-scroll-container"}>
+                                        <div className="section-scroll-container">
                                             {section.data.map(section.renderCard)}
                                         </div>
                                     </Section>

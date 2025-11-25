@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { InputBase, Box, styled, IconButton } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
+import useDebounce from '../../backend/hooks/useDebounce';
+import { formatDuration } from '../../backend/utils/formatTime';
 
 const SearchContainer = styled('div')(({ theme }) => ({
     position: 'relative',
