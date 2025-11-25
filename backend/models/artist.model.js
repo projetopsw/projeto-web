@@ -12,9 +12,9 @@ const artistSchema = new Schema({
     unique: true 
   },
   genres: [String],
-  image: String,
-  popularity: Number,
-  externalUrl: String,
+  image: { type: String },
+  popularity: {type: Number},
+  externalUrl: {type: String},
   createdAt: { 
     type: Date, 
     default: Date.now 
