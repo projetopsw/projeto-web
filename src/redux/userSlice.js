@@ -1,15 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// 💡 IMPORTAÇÃO NECESSÁRIA: Importa os thunks do authSlice para escutar a conclusão deles
 import { 
     toggleLikeSongAsync, 
     toggleFollowArtistAsync
 } from './loginSlice'; 
-// OBS: Certifique-se de que o caminho './loginSlice' está correto em seu projeto.
 
 const LOCAL_STORAGE_KEY = 'loggedUser';
 
-// --- Funções de Persistência (Sem Alteração) ---
 const loadUserFromStorage = () => {
     try {
         const serializedUser = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -34,8 +31,6 @@ const initialState = {
     user: loadUserFromStorage(), 
 };
 
-// ----------------------------------------------------------------------
-
 const userSlice = createSlice({
     name: 'user',
     initialState,
@@ -56,13 +51,13 @@ const userSlice = createSlice({
         updateProfile: (state, action) => {
             const payload = action.payload;
             const payloadId = payload._id || payload.id;
-            const finalUsername = payload.username || payload.name || state.user.username;
+            const finalUsername = payload.username || payload.name || (state.user ? state.user.username : undefined);
             
             let updatedUser = { 
                 ...state.user, 
                 ...payload, 
                 name: finalUsername,
-                id: payloadId || state.user.id,
+                id: payloadId || (state.user ? state.user.id : undefined),
                 username: finalUsername,
             };
 
@@ -71,7 +66,7 @@ const userSlice = createSlice({
             if (newImage) {
                 updatedUser.img = newImage;
                 updatedUser.image = newImage;
-            } else if (updatedUser.img === undefined && state.user.img !== undefined) {
+            } else if (updatedUser.img === undefined && state.user && state.user.img !== undefined) {
                  updatedUser.img = state.user.img;
             }
             
@@ -85,21 +80,16 @@ const userSlice = createSlice({
             localStorage.removeItem(LOCAL_STORAGE_KEY);
         },
     },
-    // 🚀 NOVO: extraReducers transferidos do authSlice
     extraReducers: (builder) => {
-        // --- 1. Atualiza Músicas Curtidas ---
         builder.addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
             if (state.user) {
-                // action.payload contém o array 'newLikedSongs'
                 state.user.likedSongs = action.payload; 
                 saveUserToStorage(state.user); 
             }
         });
 
-        // --- 2. Atualiza Artistas Seguindo ---
         builder.addCase(toggleFollowArtistAsync.fulfilled, (state, action) => {
             if (state.user) {
-                // action.payload contém o array 'newFollowing'
                 state.user.following = action.payload; 
                 saveUserToStorage(state.user); 
             }

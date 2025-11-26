@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Box, TextField, Button, Divider, Typography, CircularProgress,
     Dialog, DialogTitle, DialogContent, Grid, IconButton
@@ -12,11 +12,10 @@ import ProfileHeader from './ProfileHeader';
 const API_URL = 'http://localhost:3000';
 const SESSION_STORAGE_KEY = (userId) => `tempProfileImage_${userId}`;
 const DEFAULT_USER_IMAGE = 'https://placehold.co/400x400?text=User';
-const authToken = localStorage.getItem('token');
 
 const AVAILABLE_PROFILE_IMAGES = [
     '/assets/img/liked_cover_0.png',
-    '/assets/img/piano_cover_3.png',
+    '/assets/inizia/img/piano_cover_3.png',
     '/assets/img/rock_cover_1.png',
     '/assets/img/vibe_cover_2.png',
     DEFAULT_USER_IMAGE
@@ -27,7 +26,8 @@ export default function ProfileEdition() {
     const dispatch = useDispatch();
 
     const user = useSelector((state) => state.user.user);
-    const userId = user?.id;
+    const userId = user?.id || user?._id; // CORREÇÃO 1: Adiciona suporte a _id
+    const authToken = user?.token; // CORREÇÃO 2: Pega o token do Redux/UserState, não do localStorage
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -46,23 +46,28 @@ export default function ProfileEdition() {
     const [linkImage, setLinkImage] = useState('');
 
     useEffect(() => {
-        if (user && userId) {
-            const key = SESSION_STORAGE_KEY(userId);
-
-            const tempImage = sessionStorage.getItem(key);
-            setNewProfileImage(tempImage);
+        if (user) {
+            // CORREÇÃO 3: user.id pode estar ausente, verifica apenas a existência de user
+            const currentUserId = user.id || user._id; 
+            if (currentUserId) {
+                const key = SESSION_STORAGE_KEY(currentUserId);
+                const tempImage = sessionStorage.getItem(key);
+                setNewProfileImage(tempImage);
+            }
 
             setFormData(prev => ({
                 ...prev,
-                name: user.name || user.username || '',
+                // CORREÇÃO 4: Suporta name ou username para o campo de edição
+                name: user.name || user.username || '', 
                 email: user.email || '',
             }));
 
             setIsLoading(false);
         } else {
-            setIsLoading(false);
+            // Se o usuário não estiver carregado, ainda precisa parar de carregar
+            setIsLoading(false); 
         }
-    }, [user, userId]);
+    }, [user]); // userId pode ser derivado de user, simplificando a dependência
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -77,7 +82,11 @@ export default function ProfileEdition() {
 
     const handleImageSelect = (imageUrl) => {
         setNewProfileImage(imageUrl);
-        sessionStorage.setItem(SESSION_STORAGE_KEY(userId), imageUrl);
+        // Usa user.id ou user._id para a chave do sessionStorage
+        const currentUserId = user?.id || user?._id;
+        if (currentUserId) {
+            sessionStorage.setItem(SESSION_STORAGE_KEY(currentUserId), imageUrl);
+        }
         setIsImageModalOpen(false);
     };
 
@@ -90,7 +99,10 @@ export default function ProfileEdition() {
 
     const handleRemoveSelectedImage = () => {
         setNewProfileImage(null);
-        sessionStorage.removeItem(SESSION_STORAGE_KEY(userId));
+        const currentUserId = user?.id || user?._id;
+        if (currentUserId) {
+            sessionStorage.removeItem(SESSION_STORAGE_KEY(currentUserId));
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -98,7 +110,9 @@ export default function ProfileEdition() {
         setIsSaving(true);
         setErrors({});
 
-        if (!userId) {
+        // CORREÇÃO 5: Verifica se o token existe antes de prosseguir
+        if (!userId || !authToken) {
+            alert("Erro: Usuário não autenticado ou token ausente. Por favor, faça login novamente.");
             setIsSaving(false);
             return;
         }
@@ -127,6 +141,7 @@ export default function ProfileEdition() {
         const dataToSendToServer = {
             username: nameTrimmed,
             email: email,
+            // CORREÇÃO 6: Garante que a imagem enviada seja a nova temporária, a atual do usuário, ou a padrão.
             img: newProfileImage || user.img || DEFAULT_USER_IMAGE,
         };
 
@@ -140,7 +155,7 @@ export default function ProfileEdition() {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`,
+                    'Authorization': `Bearer ${authToken}`, // Usa o token do Redux (CORREÇÃO 2)
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify(dataToSendToServer)
@@ -149,22 +164,27 @@ export default function ProfileEdition() {
             if (response.ok) {
                 const responseData = await response.json();
                 const responseUser = responseData.user || responseData;
-                
-                const nameFromForm = nameTrimmed; 
+
+                const nameFromForm = nameTrimmed;
                 const imageFromForm = newProfileImage || responseUser.img || user.img || DEFAULT_USER_IMAGE;
 
+                // CORREÇÃO 7: Mantém o token atual no payload se o backend não o retornar.
                 const finalUserPayload = {
-                    ...responseUser,
-                    id: responseUser._id || responseUser.id || user.id,
-                    // Garante que o nome do formulário seja a fonte da verdade se a API falhar
-                    name: responseUser.name || responseUser.username || nameFromForm,
+                    ...user, // Mantém todos os dados antigos (incluindo token)
+                    ...responseUser, // Sobrescreve com dados novos do servidor
+                    id: responseUser._id || responseUser.id || user.id || user._id,
                     username: responseUser.username || responseUser.name || nameFromForm,
+                    name: responseUser.name || responseUser.username || nameFromForm,
                     img: imageFromForm,
                     image: imageFromForm,
+                    token: user.token, // Garante que o token original seja mantido (essencial)
                 };
 
-                sessionStorage.removeItem(SESSION_STORAGE_KEY(userId));
-                setNewProfileImage(null);
+                const currentUserId = user?.id || user?._id;
+                if (currentUserId) {
+                    sessionStorage.removeItem(SESSION_STORAGE_KEY(currentUserId));
+                    setNewProfileImage(null);
+                }
 
                 dispatch(updateProfile(finalUserPayload));
 
@@ -172,7 +192,7 @@ export default function ProfileEdition() {
                 alert("Perfil atualizado com sucesso!");
                 navigate('/perfil');
             } else {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(() => ({ message: response.statusText }));
                 alert(`Erro: ${errorData.message || response.statusText}. Por favor, verifique seus dados.`);
             }
         } catch (error) {
@@ -183,46 +203,56 @@ export default function ProfileEdition() {
     };
 
     const handleCancel = () => {
-        sessionStorage.removeItem(SESSION_STORAGE_KEY(userId));
-        setNewProfileImage(null);
+        const currentUserId = user?.id || user?._id;
+        if (currentUserId) {
+            sessionStorage.removeItem(SESSION_STORAGE_KEY(currentUserId));
+            setNewProfileImage(null);
+        }
         navigate('/perfil');
     };
+    
+    // CORREÇÃO 8: Memoiza o estilo para melhor performance
+    const inputStyleProps = useMemo(() => {
+        const ORANGE_COLOR = 'var(--orange)';
+        const RED_COLOR_BORDER = '#f44336';
+        const INPUT_BG = 'var(--input-bg)';
+        const INPUT_TEXT_COLOR = 'var(--input-text-color)';
+
+        return {
+            ORANGE_COLOR,
+            RED_COLOR_BORDER,
+            saveButtonStyle: {
+                backgroundColor: ORANGE_COLOR,
+                color: 'white',
+                borderRadius: 20,
+                '&:hover': { backgroundColor: ORANGE_COLOR, opacity: 0.9 }
+            },
+            cancelButtonPrimaryStyle: {
+                color: RED_COLOR_BORDER,
+                borderColor: RED_COLOR_BORDER,
+                borderRadius: 20,
+                '&:hover': { backgroundColor: 'rgba(244, 67, 54, 0.1)', borderColor: RED_COLOR_BORDER }
+            },
+            inputFieldStyle: {
+                '& .MuiFilledInput-root': {
+                    backgroundColor: INPUT_BG,
+                    color: INPUT_TEXT_COLOR,
+                    '&.Mui-focused': { backgroundColor: INPUT_BG }
+                },
+                '& .Mui-disabled .MuiFilledInput-input': { WebkitTextFillColor: INPUT_TEXT_COLOR, opacity: 1 },
+                '& .MuiInputLabel-filled': { color: INPUT_TEXT_COLOR }
+            },
+            INPUT_TEXT_COLOR,
+        };
+    }, []);
+
+    const { ORANGE_COLOR, RED_COLOR_BORDER, saveButtonStyle, cancelButtonPrimaryStyle, inputFieldStyle } = inputStyleProps;
 
     if (isLoading) return <main><Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box></main>;
 
     if (!user || !userId) return <main><Typography color="error" sx={{ color: 'red', p: 4 }}>Não foi possível carregar os dados do perfil. (Usuário não autenticado ou ID ausente no Redux)</Typography></main>;
 
-    const ORANGE_COLOR = 'var(--orange)';
-    const RED_COLOR_BORDER = '#f44336';
-    const INPUT_BG = 'var(--input-bg)';
-    const INPUT_TEXT_COLOR = 'var(--input-text-color)';
-
-    const saveButtonStyle = {
-        backgroundColor: ORANGE_COLOR,
-        color: 'white',
-        borderRadius: 20,
-        '&:hover': { backgroundColor: ORANGE_COLOR, opacity: 0.9 }
-    };
-
-    const cancelButtonPrimaryStyle = {
-        color: RED_COLOR_BORDER,
-        borderColor: RED_COLOR_BORDER,
-        borderRadius: 20,
-        '&:hover': { backgroundColor: 'rgba(244, 67, 54, 0.1)', borderColor: RED_COLOR_BORDER }
-    };
-
-    const inputFieldStyle = {
-        '& .MuiFilledInput-root': {
-            backgroundColor: INPUT_BG,
-            color: INPUT_TEXT_COLOR,
-            '&.Mui-focused': { backgroundColor: INPUT_BG }
-        },
-        '& .Mui-disabled .MuiFilledInput-input': { WebkitTextFillColor: INPUT_TEXT_COLOR, opacity: 1 },
-        '& .MuiInputLabel-filled': { color: INPUT_TEXT_COLOR }
-    };
-
     const userDataToDisplay = user;
-
     const finalImage = newProfileImage || userDataToDisplay.img || DEFAULT_USER_IMAGE;
 
     const profileHeaderProps = {

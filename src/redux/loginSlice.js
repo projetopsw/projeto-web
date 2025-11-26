@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api from '../services/api'; 
+import api from '../services/api';
 import mongoApi from '../services/mongoApi';
 import { setUserData } from './userSlice'; 
 
@@ -23,12 +23,15 @@ export const loginUserAsync = createAsyncThunk(
         try {
             const response = await mongoApi.post('/users/login', { email, password });
             
+            // CORREÇÃO: O token é necessário no userSlice para futuras requisições (ProfileEdition)
             const { user, token } = response.data;
-            const userWithRole = { ...user, role: user.role || 'user' };
+            const userWithToken = { ...user, role: user.role || 'user', token: token }; 
             
-            dispatch(setUserData(userWithRole)); 
+            // Dispatch para userSlice para salvar os dados do usuário E o token
+            dispatch(setUserData(userWithToken)); 
             localStorage.setItem('token', token); 
             
+            // Retorna o token para o extraReducer deste slice, que atualizará isAuthenticated/token.
             return { token }; 
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Erro ao fazer login');
@@ -59,9 +62,10 @@ export const handleSpotifyCallback = createAsyncThunk(
             window.history.replaceState({}, document.title, window.location.pathname);
 
             const user = response.data;
-            const userWithRole = { ...user, role: user.role || 'user' };
+            // CORREÇÃO: Adiciona o token no objeto do usuário antes de enviar para o userSlice
+            const userWithToken = { ...user, role: user.role || 'user', token: moosicaToken }; 
             
-            dispatch(setUserData(userWithRole));
+            dispatch(setUserData(userWithToken));
             
             return { token: moosicaToken };
 
@@ -201,6 +205,7 @@ const authSlice = createSlice({
             state.userPlaylistsDetail = [];
             state.isAdmin = false;
             localStorage.removeItem('token');
+            // CORREÇÃO: Remove o token do localStorage
         },
         setTestUser: (state, action) => {
             state.isAuthenticated = true;
@@ -214,11 +219,14 @@ const authSlice = createSlice({
                 state.isAuthenticated = true;
                 state.token = token;
                 state.loginError = null;
-                localStorage.setItem('token', token);
+                // Já está no loginUserAsync, mas manter aqui não é errado.
+                localStorage.setItem('token', token); 
             })
             .addCase(loginUserAsync.rejected, (state, action) => {
                 state.loginError = action.payload;
                 state.isAuthenticated = false;
+                state.token = null; // Garante que o token é limpo
+                localStorage.removeItem('token'); // Garante que o localStorage é limpo
             })
 
             .addCase(handleSpotifyCallback.fulfilled, (state, action) => {
@@ -231,6 +239,7 @@ const authSlice = createSlice({
             .addCase(handleSpotifyCallback.rejected, (state, action) => {
                 state.loginError = action.payload;
                 state.isAuthenticated = false;
+                state.token = null; // Garante que o token é limpo
             })
             
             .addCase(addSongToPlaylistAsync.fulfilled, (state, action) => {
