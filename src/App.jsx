@@ -65,9 +65,9 @@ function App() {
                         <Route path="/artist/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
                         <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
                         <Route path="/fila" element={<ProtectedRoute><FilaPage /></ProtectedRoute>} />
-                        <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
                         <Route path="/perfil/editar" element={<ProtectedRoute><ProfileEdition /></ProtectedRoute>} />
                         <Route path="/perfil/:id" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+                        <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
                         <Route path="/conexoes" element={<ProtectedRoute><Conexoes /></ProtectedRoute>} />
                     </Route>
 

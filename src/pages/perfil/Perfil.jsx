@@ -5,7 +5,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { fetchPlaylistsByUserId } from '../../redux/playlistsSlice.js';
 import { fetchArtistsByIds, fetchSongsByIds } from '../../redux/catalogoSlice.js';
-import { updateProfile } from '../../redux/userSlice.js';
 
 import { 
     toggleFriendRequest, 
@@ -25,13 +24,34 @@ const USER_API_URL = 'http://localhost:3000';
 const DEFAULT_USER_IMAGE = 'https://placehold.co/400x400?text=User'; 
 
 const fetchTargetUser = async (targetId) => {
+    if (!targetId || targetId === 'undefined') {
+        throw new Error('ID do usuário inválido ou ausente.');
+    }
     try {
         const response = await fetch(`${USER_API_URL}/users/${targetId}`);
-        if (!response.ok) throw new Error('Falha ao carregar dados do usuário alvo.');
+        if (!response.ok) {
+            throw new Error('Falha ao carregar dados do usuário alvo.');
+        }
         return await response.json();
     } catch (error) {
         console.error("Erro ao buscar usuário na Perfil Page:", error);
-        return null;
+        return null; 
+    }
+};
+
+// Nova função auxiliar para isolar erros em fetches secundários (evitar 500s de quebrarem o Promise.all)
+const fetchJsonOrEmptyArray = async (url) => {
+    if (!url) return [];
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            console.error(`Erro ao buscar dados secundários (Status ${res.status}): ${url}`);
+            return [];
+        }
+        return await res.json();
+    } catch (error) {
+        console.error(`Erro de rede/JSON ao buscar dados secundários (URL: ${url}):`, error);
+        return [];
     }
 };
 
@@ -42,9 +62,6 @@ export default function Perfil() {
 
     const userLogado = useSelector(state => state.user.user); 
     
-    // 🔍 LOG 1: O que o Redux está fornecendo em CADA renderização
-    console.log("🔄 RENDER (Perfil.jsx): userLogado (Redux) atual:", userLogado);
-
     const { 
         friends: loggedInFriends, 
         sentRequests: loggedInSentRequests,
@@ -59,6 +76,7 @@ export default function Perfil() {
     const [targetFollowedArtistsDetails, setTargetFollowedArtistsDetails] = useState([]);
 
     const targetId = id || (userLogado ? String(userLogado.id) : null);
+    
     const isOwner = userLogado && targetId && String(userLogado.id) === String(targetId);
 
     const friendDetailsRedux = loggedInFriends; 
@@ -73,11 +91,6 @@ export default function Perfil() {
     const currentHasReceivedRequest = loggedInPendingRequests.some(req => String(req.id) === targetUserIdStr);
     
     useEffect(() => {
-        // 🔍 LOG 2: O useEffect foi acionado
-        console.log("🔥 USE_EFFECT (Perfil.jsx): Disparou a lógica de carregamento.");
-        console.log("   isOwner:", isOwner, " | userLogado.name:", userLogado?.name);
-
-
         if (!targetId) {
             setIsLoading(false);
             return;
@@ -89,24 +102,12 @@ export default function Perfil() {
             let finalUserData;
 
             if (isOwner) {
-                // Se dono, usa o objeto atualizado do Redux
-                console.log("   MODO DONO: Usando dados do Redux (userLogado).");
                 finalUserData = userLogado;
             } else {
-                // Se terceiro, busca da API
-                console.log("   MODO TERCEIRO: Buscando da API.");
                 finalUserData = await fetchTargetUser(targetId);
             }
             
             if (finalUserData) {
-                
-                // 🔍 LOG 3: Dados que serão usados para setar o estado local
-                console.log("   DADOS FINAIS para setTargetUser:", { 
-                    id: finalUserData.id, 
-                    name: finalUserData.name || finalUserData.username, 
-                    img: finalUserData.img || finalUserData.image 
-                });
-
                 setTargetUser(finalUserData);
                 
                 const userIdToUse = finalUserData._id || finalUserData.id; 
@@ -120,13 +121,19 @@ export default function Perfil() {
                     const fetchDetailsForFriend = async (user) => {
                     const [playlists, friendsDetails, songsDetails, artistsDetails] = await Promise.all([
 
-                        fetch(`${DATA_API_URL}/userPlaylists?creatorId=${user.id}`).then(res => res.ok ? res.json() : []), 
+                        fetchJsonOrEmptyArray(`${DATA_API_URL}/userPlaylists?creatorId=${user.id}`), 
                         
-                        user.friends?.length ? fetch(`${USER_API_URL}/users?${user.friends.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [],
+                        user.friends?.length 
+                            ? fetchJsonOrEmptyArray(`${USER_API_URL}/users?${user.friends.map(id => `id=${id}`).join('&')}`)
+                            : [],
             
-                        user.likedSongs?.length ? fetch(`${DATA_API_URL}/songs?${user.likedSongs.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : [], 
+                        user.likedSongs?.length 
+                            ? fetchJsonOrEmptyArray(`${DATA_API_URL}/songs?${user.likedSongs.map(id => `id=${id}`).join('&')}`) 
+                            : [], 
                         
-                        user.following?.length ? fetch(`${DATA_API_URL}/artists?${user.following.map(id => `id=${id}`).join('&')}`).then(res => res.json()) : []
+                        user.following?.length 
+                            ? fetchJsonOrEmptyArray(`${DATA_API_URL}/artists?${user.following.map(id => `id=${id}`).join('&')}`) 
+                            : []
                     ]);
                     setTargetPlaylists(playlists.filter(p => p)); 
                     setTargetFriendsDetails(friendsDetails.filter(f => f));
@@ -135,23 +142,21 @@ export default function Perfil() {
                 }
                 fetchDetailsForFriend(finalUserData);
             }
-        }else {
-            setTargetUser(null);
-        }
-        
-        setIsLoading(false);
+            } else {
+                setTargetUser(null);
+            }
+            
+            setIsLoading(false);
         };
         loadProfileData();
     }, [
         targetId, 
         isOwner, 
         dispatch, 
-        userLogado?.id,
-        userLogado?.name, 
-        userLogado?.img,
+        userLogado, 
         loggedInFriends.length, 
         loggedInSentRequests.length, 
-        loggedInPendingRequests.length
+        loggedInPendingRequests.length,
     ]); 
 
 
@@ -182,9 +187,6 @@ export default function Perfil() {
     if (isLoading) {
         return <main><Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box></main>;
     }
-    
-    // 🔍 LOG 4: Valor do targetUser no momento da renderização (após load)
-    console.log("🔄 RENDER (Perfil.jsx): targetUser (Estado Local) atual:", targetUser ? { name: targetUser.name, img: targetUser.img } : "Ainda não definido");
 
     if (!targetUser) {
         return <main><Box sx={{ p: 4 }}><Typography color="error">Perfil do usuário não encontrado. 😢</Typography></Box></main>;
@@ -196,7 +198,6 @@ export default function Perfil() {
 
     const displayedLikedSongs = isOwner ? likedSongsDetailsRedux : targetLikedSongsDetails;
     const displayedFollowedArtists = isOwner ? followedArtistsRedux : targetFollowedArtistsDetails;
-
 
     const totalFriendCount = targetUser.friends?.length || 0;
     

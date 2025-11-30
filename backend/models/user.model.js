@@ -24,7 +24,4 @@ const userSchema = new Schema({
 
 }, { timestamps: true });
 
-// 💡 Dica: Para fácil consulta de permissões no lado do servidor (backend), 
-// você pode querer criar um índice nas chaves 'role' e 'email'.
-
 export default mongoose.model('User', userSchema);

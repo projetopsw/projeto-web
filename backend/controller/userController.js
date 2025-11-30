@@ -75,7 +75,14 @@ export const getMyProfile = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find({}, 'username email img role createdAt updatedAt'); 
+        const { id } = req.query;
+        let query = {};
+        
+        if (id) {
+            query._id = { $in: Array.isArray(id) ? id : [id] }; 
+        }
+
+        const users = await User.find(query, 'username email img role createdAt updatedAt'); 
         res.json(users);
     } catch (error) {
         res.status(500).json({ message: 'Erro ao buscar todos os usuários.', error: error.message });
@@ -84,8 +91,16 @@ export const getAllUsers = async (req, res) => {
 
 export const getUserById = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id).select('-password -refresh_token_spotify -access_token_spotify');
+        const userId = req.params.id;
+        
+        if (!userId || userId === 'undefined') {
+            return res.status(400).json({ message: 'ID de usuário inválido ou ausente.' });
+        }
+        
+        const user = await User.findById(userId).select('-password -refresh_token_spotify -access_token_spotify');
+        
         if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
+        
         res.json(user);
     } catch (error) {
         res.status(500).json({ message: 'Erro ao buscar usuário por ID.', error: error.message });

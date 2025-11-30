@@ -38,26 +38,36 @@ const userSlice = createSlice({
         setUserData: (state, action) => {
             const serverUser = action.payload;
 
-            let finalUser = serverUser;
-            
-            const finalName = finalUser.username || finalUser.name;
-            finalUser.name = finalName;
-            finalUser.username = finalName;
+            const finalId = serverUser._id || serverUser.id;
+            const tokenToUse = serverUser.token || (state.user ? state.user.token : null);
 
+            let finalUser = {
+                ...serverUser,
+                _id: finalId,
+                id: finalId,
+                username: serverUser.username || serverUser.name,
+                name: serverUser.username || serverUser.name,
+                token: tokenToUse,
+            };
+            
             state.user = finalUser;
             saveUserToStorage(finalUser);
         },
 
         updateProfile: (state, action) => {
             const payload = action.payload;
+            
+            const currentId = state.user?._id || state.user?.id;
             const payloadId = payload._id || payload.id;
+            
             const finalUsername = payload.username || payload.name || (state.user ? state.user.username : undefined);
             
             let updatedUser = { 
                 ...state.user, 
                 ...payload, 
+                _id: payloadId || currentId,
+                id: payloadId || currentId,
                 name: finalUsername,
-                id: payloadId || (state.user ? state.user.id : undefined),
                 username: finalUsername,
             };
 
@@ -71,7 +81,6 @@ const userSlice = createSlice({
             }
             
             state.user = updatedUser;
-            
             saveUserToStorage(state.user);
         },
 

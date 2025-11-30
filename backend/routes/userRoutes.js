@@ -18,11 +18,9 @@ const router = express.Router();
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
-
 router.get('/me', verifyToken, getMyProfile);
-
-router.get('/', getAllUsers);
 router.get('/:id', getUserById);
+router.get('/', getAllUsers);
 router.put('/:id', verifyToken, updateUserController);
 router.delete('/:id', verifyToken, deleteUserController);
 

@@ -1,5 +1,6 @@
 import express from 'express';
 import Song from '../models/song.model.js'; 
+import musicaController from '../controller/musicaController.js';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -91,5 +92,7 @@ router.delete('/:id', checkObjectId, async (req, res) => {
         res.status(500).json({ message: 'Erro ao excluir a música', error: error.message });
     }
 });
+
+router.post('/:musicaId/interacao', MusicaController.toggleLikeDislike);
 
 export default router;
