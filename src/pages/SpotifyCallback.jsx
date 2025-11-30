@@ -1,28 +1,35 @@
-import React, { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { handleSpotifyCallback } from '../redux/loginSlice'; 
+import { useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
-export default function SpotifyCallback() {
-    const dispatch = useDispatch();
+const SpotifyCallback = () => {
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
     useEffect(() => {
-        dispatch(handleSpotifyCallback())
-            .unwrap()
-            .then(() => {
-                navigate('/', { replace: true }); 
-            })
-            .catch((error) => {
-                console.error("Erro no callback do Spotify:", error);
-                navigate('/login', { state: { error: 'Falha na autenticação Spotify.' }, replace: true });
-            });
-    }, [dispatch, navigate]);
+        // 1. Pega o token que o Backend mandou via URL (?token=...)
+        const token = searchParams.get('token');
 
+        if (token) {
+            console.log("Token recebido:", token);
+            
+            // 2. Salva no LocalStorage para usar em outras requisições
+            localStorage.setItem('moosica_token', token);
+
+            // 3. Redireciona o usuário para a página principal (Home)
+            navigate('/'); 
+        } else {
+            // Se algo deu errado e não veio token, manda voltar pro login
+            console.error("Token não encontrado.");
+            navigate('/login');
+        }
+    }, [searchParams, navigate]);
+
+    // O que aparece na tela enquanto o redirecionamento acontece
     return (
-        <div style={{ padding: '50px', textAlign: 'center' }}>
-            <h1>Carregando sua conta...</h1>
-            <p>Aguarde enquanto iniciamos sua sessão com Spotify.</p>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '50px' }}>
+            <h2>Autenticando com Spotify... aguarde. 🎵</h2>
         </div>
     );
-}
+};
+
+export default SpotifyCallback;

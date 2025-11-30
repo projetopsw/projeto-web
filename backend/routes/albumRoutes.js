@@ -9,7 +9,7 @@ router.post('/', async (req, res) => {
     const newAlbum = new Album(req.body);
     const savedAlbum = await newAlbum.save();
 
-    await savedAlbum.populate('artist');
+    await savedAlbum.populate('artists');
 
     res.status(201).json(savedAlbum);
   } catch (error) {
@@ -20,7 +20,7 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const albums = await Album.find()
-      .populate('artist', 'name cover') 
+      .populate('artists', 'name cover') 
       .sort({ createdAt: -1 });
 
     res.json(albums);
@@ -32,8 +32,8 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const album = await Album.findById(req.params.id)
-      .populate('artist') 
-      .populate('songs'); 
+      .populate('artists', 'name') 
+      .populate('songs', 'title'); 
 
     if (!album) {
       return res.status(404).json({ message: 'Álbum não encontrado' });
@@ -50,7 +50,7 @@ router.put('/:id', async (req, res) => {
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    ).populate('artist');
+    ).populate('artists');
 
     if (!updatedAlbum) return res.status(404).json({ message: 'Álbum não encontrado' });
     res.json(updatedAlbum);

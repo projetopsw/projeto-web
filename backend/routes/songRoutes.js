@@ -15,7 +15,7 @@ router.post('/', async (req, res) => {
     try {
         const newSong = new Song(req.body);
         const savedSong = await newSong.save();
-        await savedSong.populate('artist', 'name').populate('album', 'title');
+        await savedSong.populate('artists', 'name').populate('album', 'title');
         res.status(201).json(savedSong);
     } catch (error) {
         if (error.name === 'ValidationError') {
@@ -29,12 +29,13 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
     try {
         const songs = await Song.find({})
-            .populate('artist', 'name')
+            .populate('artists', 'name') 
             .populate('album', 'title')
             .lean();
 
         res.status(200).json(songs);
     } catch (error) {
+        console.error("Erro no GET /songs:", error);
         res.status(500).json({ message: 'Erro ao buscar as músicas', error: error.message });
     }
 });
@@ -42,7 +43,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', checkObjectId, async (req, res) => {
     try {
         const song = await Song.findById(req.params.id)
-            .populate('artist', 'name')
+            .populate('artists', 'name')
             .populate('album', 'title')
             .lean();
 
@@ -62,7 +63,7 @@ router.put('/:id', checkObjectId, async (req, res) => {
             req.body,
             { new: true, runValidators: true }
         )
-        .populate('artist', 'name')
+        .populate('artists', 'name')
         .populate('album', 'title');
 
         if (!updatedSong) {

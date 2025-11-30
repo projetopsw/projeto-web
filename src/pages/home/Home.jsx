@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchTopTracks, fetchArtists, fetchAlbums, fetchPlaylists } from '../../redux/catalogoSlice';
+import {
+    fetchAlbums,
+} from '../../redux/catalogoSlice';
 import Section from '../../components/Section';
 import SongCard from '../../components/SongCard';
 import AlbumCard from '../../components/AlbumCard';
@@ -8,12 +10,12 @@ import PlaylistCard from '../../components/PlaylistCard';
 import ArtistCircle from '../../components/ArtistCircle';
 import Navigation from '../../components/Navigation';
 import './Home.css';
-import api from '../../services/api.js';
+import mongoApi from '../../services/mongoApi.js';
 
 const sectionsData = [
-    { "title": "Top Hits do Rebanho (Spotify)", "type": "song", "path":"/songDetail" },
-    { "title": "Artistas mais ouvidos (Spotify)", "type": "artist", "path":"/artistDetail" },
-    { "title": "Playlists em Destaque (Spotify)", "type": "playlist", "path":"/playlistDetail" },
+    { "title": "Top Hits do Rebanho", "type": "song", "path":"/songDetail" },
+    { "title": "Artistas mais ouvidos", "type": "artist", "path":"/artistDetail" },
+    { "title": "Playlists em Destaque", "type": "playlist", "path":"/playlistDetail" },
     { "title": "Acús-ticos do Campo", "type": "song", "path":"/songDetail" },
     { "title": "Pista de Dança Malhada", "type": "album", "path":"/albumDetail" },
     { "title": "Sofrência Bovina", "type": "playlist", "path":"/playlistDetail" },
@@ -27,20 +29,16 @@ const navItemsData = ["Tudo", "Playlists", "Músicas", "Álbuns", "Artistas"];
 function Home() {
     const [selectedFilter, setSelectedFilter] = useState('Tudo');
     const dispatch = useDispatch();
-    
-    // CORRIGIDO: Seleção de dados e status do Redux
-    const songsData = useSelector(state => state.catalog.songs.items);
-    const songsStatus = useSelector(state => state.catalog.songs.status);
-    
-    const artistsData = useSelector(state => state.catalog.artists.items);
-    const artistsStatus = useSelector(state => state.catalog.artists.status);
 
+    // Estados locais para dados do Mongo
+    const [songsData, setSongsData] = useState([]);
+    const [artistsData, setArtistsData] = useState([]);
+    const [playlistsData, setPlaylistsData] = useState([]);
     const albumsData = useSelector(state => state.catalog.albums.items);
     const albumsStatus = useSelector(state => state.catalog.albums.status);
-    
-    const playlistsData = useSelector(state => state.catalog.playlists.items);
-    const playlistsStatus = useSelector(state => state.catalog.playlists.status);
 
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const filterMap = {
         'Tudo': null,
@@ -51,63 +49,121 @@ function Home() {
     };
 
     const filteredSections = sectionsData.filter(section => {
-        if (selectedFilter === 'Tudo') {
-            return true;
-        }
+        if (selectedFilter === 'Tudo') return true;
         return section.type === filterMap[selectedFilter];
     });
 
-    // 1. Busca Músicas (Spotify Top Tracks)
+    // Busca dados do MongoDB
     useEffect(() => {
-        if (songsStatus === 'idle') {
-            dispatch(fetchTopTracks());
-        }
-    }, [songsStatus, dispatch]);
-    
-    // 2. Busca Artistas (Spotify Top Artists)
-    useEffect(() => {
-        if (artistsStatus === 'idle') {
-            dispatch(fetchArtists());
-        }
-    }, [artistsStatus, dispatch]);
+        let isMounted = true;
+        async function loadAll() {
+            try {
+                setLoading(true);
+                setError(null);
 
-    // 3. Busca Playlists (Spotify Featured Playlists)
-    useEffect(() => {
-        if (playlistsStatus === 'idle') {
-            dispatch(fetchPlaylists());
-        }
-    }, [playlistsStatus, dispatch]);
+                // Usamos allSettled para que se um falhar, os outros ainda carreguem
+                const results = await Promise.allSettled([
+                    mongoApi.get('/songs'),
+                    mongoApi.get('/artists'),
+                    mongoApi.get('/playlists')
+                ]);
 
-    // 4. Busca Álbuns (MANTENDO A CHAMADA ANTIGA POR ENQUANTO)
+                if (!isMounted) return;
+
+                const [songsResult, artistsResult, playlistsResult] = results;
+
+                // Tratamento de Músicas
+                if (songsResult.status === 'fulfilled') {
+                    const normSongs = songsResult.value.data.map(s => {
+                        // Lógica para pegar o nome do artista
+                        let artistName = 'Desconhecido';
+
+                        // Caso 1: O backend mandou populated (Array de objetos)
+                        if (Array.isArray(s.artists) && s.artists.length > 0) {
+                            // Pega o nome do primeiro artista ou junta todos com vírgula
+                            artistName = s.artists.map(a => a.name).join(', ');
+                        } 
+                        // Caso 2: O backend mandou antigo (Objeto único ou String) - fallback
+                        else if (s.artist) {
+                            artistName = typeof s.artist === 'string' ? s.artist : s.artist.name;
+                        }
+
+                        return {
+                            id: s._id,
+                            cover: s.cover || s.album?.cover || '/assets/img/vacateste.jpg',
+                            title: s.title,
+                            artist: artistName, 
+                        };
+                    });
+                    setSongsData(normSongs);
+                }
+
+                // Tratamento de Artistas
+                if (artistsResult.status === 'fulfilled') {
+                    const normArtists = artistsResult.value.data.map(a => ({
+                        id: a._id || a.spotifyId,
+                        image: a.cover || a.image || '/assets/img/vacateste.jpg',
+                        name: a.name,
+                    }));
+                    setArtistsData(normArtists);
+                } else {
+                    console.error("Erro ao carregar artistas:", artistsResult.reason);
+                }
+
+                // Tratamento de Playlists
+                if (playlistsResult.status === 'fulfilled') {
+                    const normPlaylists = playlistsResult.value.data.map(p => ({
+                        id: p._id,
+                        cover: p.img || '/assets/img/vacateste.jpg',
+                        title: p.name,
+                    }));
+                    setPlaylistsData(normPlaylists);
+                } else {
+                    // AQUI está o seu erro 404 atual. Com esse código, ele vai apenas logar no console
+                    // e não vai travar a tela inteira.
+                    console.warn("Erro ao carregar playlists (provável 404):", playlistsResult.reason);
+                }
+
+            } catch (e) {
+                console.error("Erro crítico:", e);
+                if (isMounted) setError('Falha ao carregar dados do MongoDB.');
+            } finally {
+                if (isMounted) setLoading(false);
+            }
+        }
+        loadAll();
+        return () => { isMounted = false; };
+    }, []);
+
+    // Busca álbuns via Redux (já usando Mongo)
     useEffect(() => {
         if (albumsStatus === 'idle') {
             dispatch(fetchAlbums());
         }
     }, [albumsStatus, dispatch]);
 
-
-    // Checagem de Carregamento (Mais robusta)
-    if (songsStatus === 'loading' || artistsStatus === 'loading' || albumsStatus === 'loading' || playlistsStatus === 'loading') {
-        return <main><h1 className='pagina-inicial'>Carregando Catálogo Spotify...</h1></main>;
+    if (loading) {
+        return <main><h1 className='pagina-inicial'>Carregando catálogo...</h1></main>;
     }
-    
+    if (error) {
+        return <main><h1 className='pagina-inicial'>{error}</h1></main>;
+    }
+
     return (
         <main>
             <h1 className='pagina-inicial'>Página Inicial</h1>
 
-            <Navigation 
+            <Navigation
                 navItemsData={navItemsData}
                 selectedItem={selectedFilter}
-                setSelectedItem={setSelectedFilter} 
+                setSelectedItem={setSelectedFilter}
             />
 
             {filteredSections.map((section) => (
                 <Section key={section.title} title={section.title} className="card-container">
-                    
-                    {/* Renderiza músicas (Spotify) */}
-                    {section.type === 'song' && songsData.map((song, index) => (
+                    {section.type === 'song' && songsData.map((song) => (
                         <SongCard
-                            key={song.id || index}
+                            key={song.id}
                             id={song.id}
                             cover={song.cover}
                             title={song.title}
@@ -115,37 +171,33 @@ function Home() {
                         />
                     ))}
 
-                    {/* Renderiza Artistas (Spotify) */}
-                    {section.type === 'artist' && artistsData.map((artist, index) => (
+                    {section.type === 'artist' && artistsData.map((artist) => (
                         <ArtistCircle
-                            key={artist.id || index}
+                            key={artist.id}
                             id={artist.id}
                             image={artist.image}
                             name={artist.name}
                         />
-                    ))}  
-                    
-                    {/* Renderiza Playlists (Spotify) */}
-                    {section.type === 'playlist' && playlistsData.map((playlist, index) => (
+                    ))}
+
+                    {section.type === 'playlist' && playlistsData.map((playlist) => (
                         <PlaylistCard
-                            key={playlist.id || index}
+                            key={playlist.id}
                             id={playlist.id}
                             cover={playlist.cover}
                             title={playlist.title}
                         />
                     ))}
 
-                    {/* Renderiza Álbuns (API Antiga / Mongo) */}
-                    {section.type === 'album' && albumsData.map((album, index) => (
+                    {section.type === 'album' && albumsData.map((album) => (
                         <AlbumCard
-                            key={album.id || index}
-                            id={album.id}
-                            cover={album.cover}
+                            key={album._id || album.id}
+                            id={album._id || album.id}
+                            cover={album.cover || album.image || '/assets/img/vacateste.jpg'}
                             title={album.title}
-                            artist={album.artist}
+                            artist={typeof album.artist === 'string' ? album.artist : (album.artist?.name || 'Desconhecido')}
                         />
                     ))}
-
                 </Section>
             ))}
         </main>

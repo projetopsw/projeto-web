@@ -27,16 +27,14 @@ function Pesquisa() {
     const [searchParams] = useSearchParams();
     const query = searchParams.get('q'); 
 
-    // Estados para Resultados Principais (Vindo do Backend)
     const [results, setResults] = useState({
         artists: [],
         albums: [],
         tracks: [],
-        playlists: [], // O Spotify search básico não retorna usuários/playlists no seu código atual,
-        users: []      // mas mantive os estados caso implemente depois.
+        playlists: [], 
+        users: []      
     });
 
-    // Estados para sugestões (Random) caso não ache nada
     const [randomSuggestions, setRandomSuggestions] = useState({
         artists: [], albums: [], tracks: [], playlists: [], users: []
     });
@@ -44,28 +42,46 @@ function Pesquisa() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // --- ADAPTADOR DE DADOS ---
-    // Transforma o dado do Mongo/Spotify para o que seus Cards esperam
     const adaptResults = (data) => {
-        return {
-            artists: data.artists || [],
-            albums: (data.albums || []).map(album => ({
+    return {
+        artists: (data.artists || []).map(artist => ({
+            id: artist._id, // Garante que o ID venha do Mongo
+            name: artist.name,
+            image: artist.image
+        })),
+
+        albums: (data.albums || []).map(album => {
+            // Lógica de segurança para montar nome dos artistas
+            const artistNames = Array.isArray(album.artists) 
+                ? album.artists.map(a => a.name).join(', ') // Backend novo (populado)
+                : (typeof album.artist === 'string' ? album.artist : 'Vários Artistas'); // Backend velho ou fallback
+
+            return {
                 ...album,
-                id: album._id, // Mongo usa _id, seus cards devem usar id
-                // Pega o nome do primeiro artista se for array
-                artist: album.artists?.[0]?.name || 'Vários Artistas' 
-            })),
-            tracks: (data.tracks || []).map(track => ({
+                id: album._id, 
+                artist: artistNames, 
+                cover: album.cover || (album.images && album.images[0]?.url)
+            };
+        }),
+
+        tracks: (data.tracks || []).map(track => {
+            // Lógica de segurança para músicas
+            const artistNames = Array.isArray(track.artists)
+                ? track.artists.map(a => a.name).join(', ')
+                : 'Desconhecido';
+
+            return {
                 ...track,
                 id: track._id,
-                // Junta nomes dos artistas (Ex: Anitta, Caetano Veloso)
-                artist: track.artists?.map(a => a.name).join(', ') || 'Desconhecido',
-                image: track.cover // Garante que a imagem use a chave certa
-            })),
-            playlists: [], // Backend atual não busca playlists
-            users: []      // Backend atual não busca usuários
-        };
+                artist: artistNames,
+                image: track.cover 
+            };
+        }),
+        
+        playlists: [],
+        users: []      
     };
+};
 
     useEffect(() => {
         if (!query || query.trim() === "") {
@@ -78,22 +94,18 @@ function Pesquisa() {
             setError(null);
             
             try {
-                // 1. CHAMA SUA NOVA ROTA INTELIGENTE
                 const response = await api.get(`/api/search`, {
                     params: { q: query, type: 'artist,album,track' }
                 });
 
                 const adaptedData = adaptResults(response.data);
 
-                // Se o backend retornou vazio, buscamos sugestões aleatórias (Fallback)
                 const totalFound = adaptedData.artists.length + adaptedData.albums.length + adaptedData.tracks.length;
                 
                 if (totalFound === 0) {
-                    // Nota: Aqui ainda estamos buscando localmente para random, 
-                    // idealmente isso seria outra rota do backend tipo /api/random
                     try {
                         const [songsRes, artistsRes, albumsRes] = await Promise.all([
-                            api.get('/songs?limit=10'), // Assumindo rota simples
+                            api.get('/songs?limit=10'), 
                             api.get('/artists?limit=10'),
                             api.get('/albums?limit=10')
                         ]);
@@ -128,15 +140,13 @@ function Pesquisa() {
         setSelectedFilter(item);
     };
     
-    // Contagem de resultados
     const totalMainResults = results.tracks.length + results.artists.length + results.albums.length + results.playlists.length + results.users.length;
     
-    // Configuração das Seções para Renderização
     const mainSections = [
-        // { title: "Usuários", type: "user", data: results.users, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
+        { title: "Usuários", type: "user", data: results.users, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
         { title: "Músicas", type: "song", data: results.tracks, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Álbuns", type: "album", data: results.albums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
-        { title: "Artistas", type: "artist", data: results.artists, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
+        { title: "Artistas", type: "artist", data: results.artists, renderCard: (item) => <ArtistCircle key={item.id} id={item.id} image={item.image} name={item.name} />},
         // { title: "Playlists", type: "playlist", data: results.playlists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
     ];
 
@@ -163,7 +173,6 @@ function Pesquisa() {
                 
                 {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
                 
-                {/* --- RESULTADOS PRINCIPAIS --- */}
                 {!isLoading && !error && totalMainResults > 0 && (
                     <>
                         <h1 className='search-subtitle'>Resultados para "{query}"</h1>
@@ -184,7 +193,6 @@ function Pesquisa() {
                     </>
                 )}
 
-                {/* --- SEM RESULTADOS (SUGESTÕES) --- */}
                 {!isLoading && !error && query && totalMainResults === 0 && (
                     <div style={{ marginTop: '20px' }}>
                         <p style={{ marginBottom: '40px', fontSize: '1.2rem', color: 'var(--text-color)', textAlign:'center' }}>

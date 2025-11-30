@@ -18,6 +18,8 @@ export default function SongDetail({ songID }) {
   const { details: song, status: songStatus } = useSelector((state) => state.catalog.selectedSong);
   const { items: artistAlbums, status: artistAlbumsStatus } = useSelector((state) => state.catalog.albumsByArtist);
 
+  const label = song.album?.recordLabel || 'Gravadora não informada';
+
   useEffect(() => {
     if (effectiveId) {
       dispatch(fetchSongById(effectiveId));
@@ -66,7 +68,7 @@ export default function SongDetail({ songID }) {
 
       <ReleaseInfo
       releaseDate={song.releaseDate} 
-      recordLabel={song.recordLabel} 
+      recordLabel={label} 
       />
 
       <Section title={`Mais de ${song.artist}`} className="section-mais-do-artista">

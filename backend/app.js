@@ -11,6 +11,7 @@ import userRoutes from './routes/userRoutes.js';
 import spotifyAuthRoutes from './routes/spotifyAuthRoutes.js';
 import spotifyRoutes from './routes/spotifyRoutes.js'; 
 import spotifyCacheRoutes from './routes/spotifyCacheRoutes.js'; 
+import playlistRoutes from "./routes/playlistRoutes.js";
 
 dotenv.config();
 
@@ -27,4 +28,5 @@ app.use('/users', userRoutes);
 app.use('/api/auth/spotify', spotifyAuthRoutes);
 app.use('/api/spotify', spotifyRoutes);
 app.use('/api/spotify-cache', spotifyCacheRoutes);
+app.use("/playlists", playlistRoutes);
 export default app

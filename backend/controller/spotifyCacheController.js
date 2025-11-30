@@ -6,9 +6,16 @@ import { mapArtist, mapAlbum, mapTrack } from '../services/spotifyMapper.js';
 
 async function upsertArtistBySpotify(spArtist) {
   const data = mapArtist(spArtist);
+  
+  const updateData = { ...data };
+  
+  if (!data.image) {
+      delete updateData.image;
+  }
+
   const artist = await Artist.findOneAndUpdate(
     { spotifyId: data.spotifyId },
-    { $set: data },
+    { $set: updateData },
     { new: true, upsert: true, setDefaultsOnInsert: true }
   );
   return artist;
@@ -191,84 +198,76 @@ export const search = async (req, res) => {
   if (!q) return res.status(400).json({ message: 'Parâmetro q é obrigatório' });
 
   try {
-    // 1. Busca única no Spotify
+    // 1. Busca no Spotify
     const data = await spotifyGet('/search', { q, type, limit });
 
-    // Objeto de resposta
     const results = { artists: [], albums: [], tracks: [] };
 
-    // --- PROCESSAMENTO DE ARTISTAS (Paralelo) ---
+    // --- PROCESSAMENTO DE ARTISTAS ---
     if (data.artists?.items) {
-      // Promise.all dispara todas as promessas ao mesmo tempo
       results.artists = await Promise.all(
         data.artists.items.map(async (item) => {
           try {
+            // Artistas não precisam de populate, pois o nome já está no objeto
             return await upsertArtistBySpotify(item);
-          } catch (e) {
-            console.error(`Erro ao salvar artista ${item.name}:`, e.message);
-            return null; // Retorna null para filtrar depois
-          }
+          } catch (e) { return null; }
         })
       );
     }
 
-    // --- PROCESSAMENTO DE ÁLBUMS (Paralelo) ---
+    // --- PROCESSAMENTO DE ÁLBUMS ---
     if (data.albums?.items) {
       results.albums = await Promise.all(
         data.albums.items.map(async (item) => {
           try {
-            // Resolvemos os artistas do álbum em paralelo
             const artistPromises = (item.artists || []).map(a => upsertArtistBySpotify(a));
             const artistsDocs = await Promise.all(artistPromises);
             const artistIds = artistsDocs.map(doc => doc._id);
 
-            // Salva o álbum
-            return await upsertAlbumBySpotify(item, artistIds);
-          } catch (e) {
-            console.error(`Erro ao salvar álbum ${item.name}:`, e.message);
-            return null;
-          }
+            const savedAlbum = await upsertAlbumBySpotify(item, artistIds);
+            
+            // CORREÇÃO AQUI: Popular os artistas antes de retornar
+            return await savedAlbum.populate('artists', 'name');
+          } catch (e) { return null; }
         })
       );
     }
 
-    // --- PROCESSAMENTO DE MÚSICAS (Paralelo & Complexo) ---
+    // --- PROCESSAMENTO DE MÚSICAS ---
     if (data.tracks?.items) {
       results.tracks = await Promise.all(
         data.tracks.items.map(async (item) => {
           try {
-            // 1. Resolver Artistas da Música (Track Artists)
-            // O Spotify Search já manda o objeto simplificado do artista dentro da track.
-            // Usamos ele direto para upsert, economizando chamadas de API.
+            // 1. Artistas
             const artistPromises = (item.artists || []).map(a => upsertArtistBySpotify(a));
             const artistsDocs = await Promise.all(artistPromises);
             const artistIds = artistsDocs.map(doc => doc._id);
 
-            // 2. Resolver Álbum da Música
-            // O objeto track contém um objeto 'album' simplificado.
+            // 2. Álbum
             let albumId = null;
             if (item.album) {
-              // Precisamos garantir que o artista do álbum exista
               const albumArtistPromises = (item.album.artists || []).map(a => upsertArtistBySpotify(a));
               const albumArtistsDocs = await Promise.all(albumArtistPromises);
               const albumArtistIds = albumArtistsDocs.map(doc => doc._id);
-
-              // Salva o álbum usando os dados que vieram na track
               const albumDoc = await upsertAlbumBySpotify(item.album, albumArtistIds);
               albumId = albumDoc._id;
             }
 
-            // 3. Salva a Música finalmente
-            return await upsertTrackBySpotify(item, artistIds, albumId);
-          } catch (e) {
-            console.error(`Erro ao salvar track ${item.name}:`, e.message);
-            return null;
-          }
+            // 3. Salva Música
+            const savedTrack = await upsertTrackBySpotify(item, artistIds, albumId);
+
+            // CORREÇÃO AQUI: Popular artistas e álbum antes de retornar
+            // Isso troca os IDs pelos objetos reais com 'name' e 'title'
+            return await savedTrack
+                .populate('artists', 'name')
+                .populate('album', 'title cover');
+
+          } catch (e) { return null; }
         })
       );
     }
 
-    // Limpeza: Remove itens que deram erro (null) dos arrays
+    // Limpeza de nulos
     results.artists = results.artists.filter(i => i !== null);
     results.albums = results.albums.filter(i => i !== null);
     results.tracks = results.tracks.filter(i => i !== null);
