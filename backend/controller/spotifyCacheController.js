@@ -32,7 +32,6 @@ async function upsertAlbumBySpotify(spAlbum, artistMongoId) {
 }
 
 async function upsertTrackBySpotify(spTrack, artistMongoIds, albumMongoId) {
-  // Nota: artistMongoIds agora deve ser um Array
   const data = mapTrack(spTrack, artistMongoIds, albumMongoId);
   
   const song = await Song.findOneAndUpdate(
@@ -41,10 +40,9 @@ async function upsertTrackBySpotify(spTrack, artistMongoIds, albumMongoId) {
     { new: true, upsert: true, setDefaultsOnInsert: true }
   );
 
-  // CRÍTICO: Adicionar essa música ao array de músicas do álbum
   if (albumMongoId) {
     await Album.findByIdAndUpdate(albumMongoId, {
-      $addToSet: { songs: song._id } // $addToSet evita duplicatas
+      $addToSet: { songs: song._id } 
     });
   }
 
@@ -52,9 +50,9 @@ async function upsertTrackBySpotify(spTrack, artistMongoIds, albumMongoId) {
 }
 
 export const getArtistById = async (req, res) => {
-  const { id } = req.params; // Spotify ID
+  const { id } = req.params;
   try {
-    let artist = await Artist.findOne({ spotifyId: id });
+    let artist = await Artist.findOne({ spotifyId: id, image: { $ne: '' }, popularity: { $gt: 15 }});
     if (artist) return res.json(artist);
 
     const spArtist = await spotifyGet(`/artists/${id}`);
@@ -66,7 +64,7 @@ export const getArtistById = async (req, res) => {
 };
 
 export const getArtistAlbums = async (req, res) => {
-  const { id } = req.params; // Spotify Artist ID
+  const { id } = req.params; 
   try {
     let artist = await Artist.findOne({ spotifyId: id });
     if (!artist) {
@@ -90,23 +88,15 @@ export const getArtistAlbums = async (req, res) => {
 export const getAlbumById = async (req, res) => {
   const { id } = req.params; 
   try {
-    // 1. Tenta buscar local populado
     let album = await Album.findOne({ spotifyId: id })
-      .populate('artists') // Mudado para plural (ajuste seu schema se necessário)
+      .populate('artists') 
       .populate('songs');
       
-    // Se achou e tem músicas, retorna (Cache Hit completo)
     if (album && album.songs.length > 0) return res.json(album);
 
-    // 2. Busca no Spotify
     console.log(`Buscando álbum ${id} no Spotify...`);
     const spAlbum = await spotifyGet(`/albums/${id}`);
-
-    // 3. Resolver Artistas do Álbum (Pode ser mais de um)
-    // Usamos Promise.all para buscar/salvar todos os artistas do álbum em paralelo
-    const artistPromises = spAlbum.artists.map(async (spArtistSimple) => {
-      // O objeto artist dentro do album é simplificado, as vezes precisamos buscar o full
-      // Mas para economizar API, podemos salvar o simplificado ou buscar o full se precisar de imagem
+    const artistPromises = spAlbum.artists.map(async (spArtistSimple) => { 
       const fullSpArtist = await spotifyGet(`/artists/${spArtistSimple.id}`); 
       return upsertArtistBySpotify(fullSpArtist);
     });
@@ -114,22 +104,12 @@ export const getAlbumById = async (req, res) => {
     const artistsDocs = await Promise.all(artistPromises);
     const artistIds = artistsDocs.map(a => a._id);
 
-    // 4. Salvar Álbum
-    album = await upsertAlbumBySpotify(spAlbum, artistIds); // Passando array de IDs
-
-    // 5. Salvar Músicas (PARALELO) - A maior otimização
-    // Mapeamos o array de tracks para um array de Promises
+    album = await upsertAlbumBySpotify(spAlbum, artistIds); 
     const trackPromises = spAlbum.tracks.items.map(async (spTrack) => {
-      // Tracks do álbum herdam os artistas da música + artistas do álbum? 
-      // Geralmente a track tem seu próprio array 'artists'.
-      
-      // Resolve artistas da música (Track Artists)
       const trackArtistPromises = spTrack.artists.map(async (tArtist) => {
-         // Otimização: Se o artista for o mesmo do álbum, não busque de novo
          const existing = artistsDocs.find(a => a.spotifyId === tArtist.id);
          if (existing) return existing;
          
-         // Se é um feat novo, busca e salva
          const featSpArtist = await spotifyGet(`/artists/${tArtist.id}`);
          return upsertArtistBySpotify(featSpArtist);
       });
@@ -142,7 +122,6 @@ export const getAlbumById = async (req, res) => {
 
     await Promise.all(trackPromises);
 
-    // 6. Retorna o dado populado final
     const fullAlbum = await Album.findById(album._id)
       .populate('artists')
       .populate('songs');
@@ -156,14 +135,13 @@ export const getAlbumById = async (req, res) => {
 };
 
 export const getTrackById = async (req, res) => {
-  const { id } = req.params; // Spotify Track ID
+  const { id } = req.params; 
   try {
-    let track = await Song.findOne({ spotifyId: id }).populate('artist').populate('album');
+    let track = await Song.findOne({ spotifyId: id, cover: { $ne: '' }, popularity: { $gt: 20 } }).populate('artist').populate('album');
     if (track) return res.json(track);
 
     const spTrack = await spotifyGet(`/tracks/${id}`);
 
-    // Garante artista principal
     const mainArtistSpotify = spTrack.artists?.[0];
     let artist = null;
     if (mainArtistSpotify) {
@@ -171,7 +149,6 @@ export const getTrackById = async (req, res) => {
       artist = await upsertArtistBySpotify(spArtist);
     }
 
-    // Garante álbum
     let album = null;
     if (spTrack.album?.id) {
       const spAlbum = await spotifyGet(`/albums/${spTrack.album.id}`);
@@ -198,24 +175,20 @@ export const search = async (req, res) => {
   if (!q) return res.status(400).json({ message: 'Parâmetro q é obrigatório' });
 
   try {
-    // 1. Busca no Spotify
     const data = await spotifyGet('/search', { q, type, limit });
 
     const results = { artists: [], albums: [], tracks: [] };
 
-    // --- PROCESSAMENTO DE ARTISTAS ---
     if (data.artists?.items) {
       results.artists = await Promise.all(
         data.artists.items.map(async (item) => {
           try {
-            // Artistas não precisam de populate, pois o nome já está no objeto
             return await upsertArtistBySpotify(item);
           } catch (e) { return null; }
         })
       );
     }
 
-    // --- PROCESSAMENTO DE ÁLBUMS ---
     if (data.albums?.items) {
       results.albums = await Promise.all(
         data.albums.items.map(async (item) => {
@@ -226,24 +199,20 @@ export const search = async (req, res) => {
 
             const savedAlbum = await upsertAlbumBySpotify(item, artistIds);
             
-            // CORREÇÃO AQUI: Popular os artistas antes de retornar
             return await savedAlbum.populate('artists', 'name');
           } catch (e) { return null; }
         })
       );
     }
 
-    // --- PROCESSAMENTO DE MÚSICAS ---
     if (data.tracks?.items) {
       results.tracks = await Promise.all(
         data.tracks.items.map(async (item) => {
           try {
-            // 1. Artistas
             const artistPromises = (item.artists || []).map(a => upsertArtistBySpotify(a));
             const artistsDocs = await Promise.all(artistPromises);
             const artistIds = artistsDocs.map(doc => doc._id);
 
-            // 2. Álbum
             let albumId = null;
             if (item.album) {
               const albumArtistPromises = (item.album.artists || []).map(a => upsertArtistBySpotify(a));
@@ -253,11 +222,8 @@ export const search = async (req, res) => {
               albumId = albumDoc._id;
             }
 
-            // 3. Salva Música
             const savedTrack = await upsertTrackBySpotify(item, artistIds, albumId);
 
-            // CORREÇÃO AQUI: Popular artistas e álbum antes de retornar
-            // Isso troca os IDs pelos objetos reais com 'name' e 'title'
             return await savedTrack
                 .populate('artists', 'name')
                 .populate('album', 'title cover');
@@ -267,10 +233,26 @@ export const search = async (req, res) => {
       );
     }
 
-    // Limpeza de nulos
-    results.artists = results.artists.filter(i => i !== null);
-    results.albums = results.albums.filter(i => i !== null);
-    results.tracks = results.tracks.filter(i => i !== null);
+    results.artists = results.artists.filter(item => {
+        if (!item) return false;
+        if (!item.image || item.image === '') return false;
+        if (item.popularity < 10) return false;
+        
+        return true;
+    });
+
+    results.albums = results.albums.filter(item => {
+        if (!item) return false;
+        if (!item.cover || item.cover === '') return false;
+        return true;
+    });
+
+    results.tracks = results.tracks.filter(item => {
+        if (!item) return false;
+        if (!item.cover || item.cover === '') return false;
+        if (item.popularity < 10) return false;
+        return true;
+    });
 
     res.json(results);
 

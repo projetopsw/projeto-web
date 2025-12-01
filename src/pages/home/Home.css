@@ -70,7 +70,8 @@ main {
   background-color: var(--card-bg);
   border-radius: 8px;
   padding: 1rem;
-  width: 180px;
+  width: 11.25em;
+  height: 16.25em;
   flex-shrink: 0;
   transition: background-color 0.3s ease;
   cursor: pointer;
@@ -87,6 +88,8 @@ main {
   border-radius: 4px;
   margin-bottom: 1rem;
   box-shadow: 0 8px 24px var(--shadow-color-dark);
+  aspect-ratio: 1/1; 
+  object-fit: cover; 
 }
 
 .card-info {

@@ -29,7 +29,7 @@ async function fetchAppToken() {
   const now = Math.floor(Date.now() / 1000);
   appToken = {
     access_token: res.data.access_token,
-    expires_at: now + (res.data.expires_in - 30), // margem de segurança
+    expires_at: now + (res.data.expires_in - 30), 
   };
   return appToken.access_token;
 }
@@ -51,7 +51,6 @@ export async function spotifyGet(path, params = {}) {
     });
     return res.data;
   } catch (err) {
-    // Retry básico em caso de 401 (token expirado) ou 429 (rate limit)
     if (err.response?.status === 401) {
       await fetchAppToken();
       const res = await axios.get(`${SPOTIFY_API_BASE}${path}`, {

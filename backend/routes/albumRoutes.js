@@ -1,6 +1,7 @@
 import express from 'express';
 import Album from '../models/album.model.js';
 import { verifyToken } from '../middleware/authMiddleware.js';
+import { getAlbumById } from '../controller/albumController.js';
 
 const router = express.Router();
 
@@ -29,20 +30,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
-  try {
-    const album = await Album.findById(req.params.id)
-      .populate('artists', 'name') 
-      .populate('songs', 'title'); 
-
-    if (!album) {
-      return res.status(404).json({ message: 'Álbum não encontrado' });
-    }
-    res.json(album);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+router.get('/:id', getAlbumById);
 
 router.put('/:id', async (req, res) => {
   try {

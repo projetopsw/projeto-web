@@ -5,7 +5,7 @@ import { FaPlay } from 'react-icons/fa';
 const ArtistCircle = ({ id, image, name, onClick, isArtist = true, isUser = false }) => {
     const navigate = useNavigate();
     
-    const pathPrefix = isUser ? '/perfil' : '/artist'; 
+    const pathPrefix = isUser ? '/perfil' : '/artist';  
     
     const handleClick = onClick || (() => navigate(`${pathPrefix}/${id}`));
 

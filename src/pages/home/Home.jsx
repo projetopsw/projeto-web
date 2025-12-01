@@ -30,7 +30,6 @@ function Home() {
     const [selectedFilter, setSelectedFilter] = useState('Tudo');
     const dispatch = useDispatch();
 
-    // Estados locais para dados do Mongo
     const [songsData, setSongsData] = useState([]);
     const [artistsData, setArtistsData] = useState([]);
     const [playlistsData, setPlaylistsData] = useState([]);
@@ -53,7 +52,11 @@ function Home() {
         return section.type === filterMap[selectedFilter];
     });
 
-    // Busca dados do MongoDB
+    const visibleAlbums = albumsData.filter(album => {
+        const hasCover = album.cover || album.image; 
+        return hasCover && hasCover !== '';
+    });
+
     useEffect(() => {
         let isMounted = true;
         async function loadAll() {
@@ -61,7 +64,6 @@ function Home() {
                 setLoading(true);
                 setError(null);
 
-                // Usamos allSettled para que se um falhar, os outros ainda carreguem
                 const results = await Promise.allSettled([
                     mongoApi.get('/songs'),
                     mongoApi.get('/artists'),
@@ -72,25 +74,29 @@ function Home() {
 
                 const [songsResult, artistsResult, playlistsResult] = results;
 
-                // Tratamento de Músicas
                 if (songsResult.status === 'fulfilled') {
-                    const normSongs = songsResult.value.data.map(s => {
-                        // Lógica para pegar o nome do artista
-                        let artistName = 'Desconhecido';
+                    const rawSongs = songsResult.value.data;
+                    
+                    const validSongs = rawSongs.filter(s => {
+                         const capa = s.cover || s.album?.cover;
+                         if (!capa || capa === '') return false;
+                         
+                         if (s.popularity !== undefined && s.popularity < 5) return false;
+                         
+                         return true;
+                    });
 
-                        // Caso 1: O backend mandou populated (Array de objetos)
+                    const normSongs = validSongs.map(s => {
+                        let artistName = 'Desconhecido';
                         if (Array.isArray(s.artists) && s.artists.length > 0) {
-                            // Pega o nome do primeiro artista ou junta todos com vírgula
                             artistName = s.artists.map(a => a.name).join(', ');
-                        } 
-                        // Caso 2: O backend mandou antigo (Objeto único ou String) - fallback
-                        else if (s.artist) {
+                        } else if (s.artist) {
                             artistName = typeof s.artist === 'string' ? s.artist : s.artist.name;
                         }
 
                         return {
                             id: s._id,
-                            cover: s.cover || s.album?.cover || '/assets/img/vacateste.jpg',
+                            cover: s.cover || s.album?.cover, 
                             title: s.title,
                             artist: artistName, 
                         };
@@ -98,19 +104,23 @@ function Home() {
                     setSongsData(normSongs);
                 }
 
-                // Tratamento de Artistas
                 if (artistsResult.status === 'fulfilled') {
-                    const normArtists = artistsResult.value.data.map(a => ({
+                    const rawArtists = artistsResult.value.data;
+
+                    const validArtists = rawArtists.filter(a => {
+                        const img = a.cover || a.image;
+                        return img && img !== '';
+                    });
+
+                    const normArtists = validArtists.map(a => ({
                         id: a._id || a.spotifyId,
-                        image: a.cover || a.image || '/assets/img/vacateste.jpg',
+                        image: a.cover || a.image,
                         name: a.name,
                     }));
+                    
                     setArtistsData(normArtists);
-                } else {
-                    console.error("Erro ao carregar artistas:", artistsResult.reason);
                 }
 
-                // Tratamento de Playlists
                 if (playlistsResult.status === 'fulfilled') {
                     const normPlaylists = playlistsResult.value.data.map(p => ({
                         id: p._id,
@@ -118,10 +128,6 @@ function Home() {
                         title: p.name,
                     }));
                     setPlaylistsData(normPlaylists);
-                } else {
-                    // AQUI está o seu erro 404 atual. Com esse código, ele vai apenas logar no console
-                    // e não vai travar a tela inteira.
-                    console.warn("Erro ao carregar playlists (provável 404):", playlistsResult.reason);
                 }
 
             } catch (e) {
@@ -135,19 +141,14 @@ function Home() {
         return () => { isMounted = false; };
     }, []);
 
-    // Busca álbuns via Redux (já usando Mongo)
     useEffect(() => {
         if (albumsStatus === 'idle') {
             dispatch(fetchAlbums());
         }
     }, [albumsStatus, dispatch]);
 
-    if (loading) {
-        return <main><h1 className='pagina-inicial'>Carregando catálogo...</h1></main>;
-    }
-    if (error) {
-        return <main><h1 className='pagina-inicial'>{error}</h1></main>;
-    }
+    if (loading) return <main><h1 className='pagina-inicial'>Carregando catálogo...</h1></main>;
+    if (error) return <main><h1 className='pagina-inicial'>{error}</h1></main>;
 
     return (
         <main>
@@ -161,6 +162,7 @@ function Home() {
 
             {filteredSections.map((section) => (
                 <Section key={section.title} title={section.title} className="card-container">
+                    
                     {section.type === 'song' && songsData.map((song) => (
                         <SongCard
                             key={song.id}
@@ -189,15 +191,26 @@ function Home() {
                         />
                     ))}
 
-                    {section.type === 'album' && albumsData.map((album) => (
-                        <AlbumCard
-                            key={album._id || album.id}
-                            id={album._id || album.id}
-                            cover={album.cover || album.image || '/assets/img/vacateste.jpg'}
-                            title={album.title}
-                            artist={typeof album.artist === 'string' ? album.artist : (album.artist?.name || 'Desconhecido')}
-                        />
-                    ))}
+                    {section.type === 'album' && visibleAlbums.map((album) => {
+                        let artistName = 'Desconhecido';
+                        if (album.artists && Array.isArray(album.artists) && album.artists.length > 0) {
+                            artistName = album.artists.map(a => a.name).join(', ');
+                        } else if (album.artist) {
+                            artistName = typeof album.artist === 'string' 
+                                ? album.artist 
+                                : album.artist.name || 'Desconhecido';
+                        }
+
+                        return (
+                            <AlbumCard
+                                key={album._id || album.id}
+                                id={album._id || album.id}
+                                cover={album.cover || album.image} 
+                                title={album.title}
+                                artist={artistName} 
+                            />
+                        );
+                    })}     
                 </Section>
             ))}
         </main>

@@ -71,10 +71,11 @@ export default function SongList( {tituloDaSecao = '', tracksArr = tracksData} )
             
             {tracksArr.map((song) => (
                 <div 
-                    key={song.id || song.rank}
+                    key={song._id || song.id}
                     className="song-wrapper"
                 >
                     <Song 
+                        key={song._id || song.id}
                         rank={song.rank}
                         song={song} 
                         coverUrl={song.coverUrl || song.cover}
