@@ -1,6 +1,6 @@
 import express from 'express';
 import Song from '../models/song.model.js'; 
-import musicaController from '../controller/musicaController.js';
+import { getSongLyrics } from '../controller/lyricsController.js';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -56,6 +56,8 @@ router.get('/:id', checkObjectId, async (req, res) => {
         res.status(500).json({ message: 'Erro ao buscar a música', error: error.message });
     }
 });
+
+router.get('/:id/lyrics', getSongLyrics);
 
 router.put('/:id', checkObjectId, async (req, res) => {
     try {

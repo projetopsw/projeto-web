@@ -23,7 +23,8 @@ const songSchema = new Schema({
     dislikes: [{
         type: Schema.Types.ObjectId,
         ref: 'User' 
-    }]
+    }],
+    lyrics: { type: String, default: '' },
 
 }, { timestamps: true });
 
