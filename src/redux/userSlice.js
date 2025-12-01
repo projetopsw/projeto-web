@@ -2,7 +2,9 @@ import { createSlice } from '@reduxjs/toolkit';
 
 import { 
     toggleLikeSongAsync, 
-    toggleFollowArtistAsync
+    toggleFollowArtistAsync,
+    loginUserAsync, 
+    handleSpotifyCallback 
 } from './loginSlice'; 
 
 const LOCAL_STORAGE_KEY = 'loggedUser';
@@ -90,6 +92,41 @@ const userSlice = createSlice({
         },
     },
     extraReducers: (builder) => {
+        
+        // CORREÇÃO: Lidar com o sucesso do Login (Email/Senha) e Spotify.
+        // Assumimos que o payload de loginUserAsync/handleSpotifyCallback
+        // foi modificado no loginSlice.js para retornar o objeto do usuário completo.
+        
+        builder.addCase(loginUserAsync.fulfilled, (state, action) => {
+            // Reutiliza o reducer setUserData para normalizar e salvar o usuário completo.
+            // Nota: O payload de loginUserAsync DEVE ser o objeto do usuário completo (com ID e Token).
+            if (action.payload && action.payload.user) {
+                userSlice.caseReducers.setUserData(state, { payload: action.payload.user });
+            } else if (action.payload && action.payload.token) {
+                // Caso o loginSlice retorne APENAS o token, forçamos o load de dados, mas é menos ideal.
+                // O melhor é que o loginSlice retorne o objeto completo do usuário.
+                // Aqui vamos assumir a estrutura que você tinha em loginSlice: { user, token }
+                const { user, token } = action.payload;
+                if (user && token) {
+                    userSlice.caseReducers.setUserData(state, { payload: { ...user, token } });
+                }
+            }
+        });
+
+        builder.addCase(handleSpotifyCallback.fulfilled, (state, action) => {
+            // Reutiliza o reducer setUserData para normalizar e salvar o usuário completo.
+            // Nota: O payload de handleSpotifyCallback DEVE ser o objeto do usuário completo (com ID e Token).
+            if (action.payload && action.payload.user) {
+                userSlice.caseReducers.setUserData(state, { payload: action.payload.user });
+            } else if (action.payload && action.payload.token) {
+                // Caso o loginSlice retorne APENAS o token, forçamos o load de dados, mas é menos ideal.
+                const { user, token } = action.payload;
+                if (user && token) {
+                    userSlice.caseReducers.setUserData(state, { payload: { ...user, token } });
+                }
+            }
+        });
+
         builder.addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
             if (state.user) {
                 state.user.likedSongs = action.payload; 

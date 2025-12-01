@@ -32,7 +32,7 @@ export const loginUserAsync = createAsyncThunk(
             localStorage.setItem('token', token); 
             
             // Retorna o token para o extraReducer deste slice, que atualizará isAuthenticated/token.
-            return { token }; 
+            return { userWithToken }; 
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Erro ao fazer login');
         }
@@ -78,16 +78,15 @@ export const handleSpotifyCallback = createAsyncThunk(
 
 export const toggleLikeSongAsync = createAsyncThunk(
     'auth/toggleLikeSong',
-    async ({ userId, songId }, { rejectWithValue }) => {
+    async ({ userId, songId, currentLikedSongs }, { rejectWithValue }) => { 
         try {
-            const userResponse = await api.get(`/users/${userId}`);
-            const currentLikedSongs = userResponse.data.likedSongs || [];
+            const songsToToggle = currentLikedSongs || (await api.get(`/users/${userId}`)).data.likedSongs || [];
             
-            const isLiked = currentLikedSongs.includes(songId);
+            const isLiked = songsToToggle.includes(songId);
     
             const newLikedSongs = isLiked
-                ? currentLikedSongs.filter(id => id !== songId)
-                : [...currentLikedSongs, songId];
+                ? songsToToggle.filter(id => id !== songId)
+                : [...songsToToggle, songId];
 
             await api.patch(`/users/${userId}`, { likedSongs: newLikedSongs });
 

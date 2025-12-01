@@ -1,5 +1,12 @@
 import mongoose, { Schema } from 'mongoose';
 
+const VALID_GENRES = [
+    "Pop", "Rock", "Hip Hop", "Eletrônica", "Jazz", 
+    "Blues", "Clássica", "Metal", "R&B", "Sertanejo", 
+    "Funk", "Reggae", "Gospel", "Indie", "Folk", 
+    "Country", "MPB", "Axé", "Forró", "Outro"
+];
+
 const songSchema = new Schema({
     spotifyId: { type: String, index: true, unique: true, sparse: true },
     isrc: { type: String, trim: true, index: true }, 
@@ -16,6 +23,14 @@ const songSchema = new Schema({
     popularity: { type: Number, default: 0 },
     releaseDate: { type: Date }, 
     spotifyUrl: { type: String, default: '' },
+    
+    genres: [{ 
+        type: String, 
+        enum: VALID_GENRES, 
+        required: true,
+        default: ['Outro']
+    }],
+
     likes: [{
         type: Schema.Types.ObjectId,
         ref: 'User' 
@@ -36,7 +51,7 @@ songSchema.statics.searchByTerm = async function(term) {
         const results = await this.find({
             $text: { $search: term }
         })
-        .select('title artists album cover duration explicit previewUrl')
+        .select('title artists album cover duration explicit previewUrl genres') 
         .populate('artists', 'name') 
         .populate('album', 'title') 
         .limit(20);
@@ -46,6 +61,21 @@ songSchema.statics.searchByTerm = async function(term) {
         console.error(`Erro ao buscar músicas com o termo "${term}":`, error);
         throw new Error('Falha no banco de dados ao buscar músicas.');
     }
+};
+
+songSchema.statics.getDetailsForPreference = async function(songId) {
+    const song = await this.findById(songId)
+        .select('artists genres') 
+        .populate('artists', 'name')
+        .lean(); 
+
+    if (!song) return null;
+
+    return {
+        id: song._id,
+        genres: song.genres || [],
+        artistNames: song.artists ? song.artists.map(a => a.name) : [],
+    };
 };
 
 export default mongoose.model('Song', songSchema);

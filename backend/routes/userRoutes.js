@@ -13,6 +13,7 @@ import {
     updateUserController,
     deleteUserController
 } from '../controller/userController.js';
+import LikeController from '../controller/likeController.js'
 
 const router = express.Router();
 
@@ -23,5 +24,6 @@ router.get('/:id', getUserById);
 router.get('/', getAllUsers);
 router.put('/:id', verifyToken, updateUserController);
 router.delete('/:id', verifyToken, deleteUserController);
+router.post('/like', LikeController.likeSong);
 
 export default router;

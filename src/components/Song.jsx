@@ -15,14 +15,13 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toggleLikeSongAsync, addSongToPlaylistAsync, fetchUserPlaylistsDetail } from '../redux/loginSlice';
 import { playSong, togglePlayPause, addSingleSongToQueue } from '../redux/playerSlice';
+import api from '../services/api'; 
 
 const COR_LARANJA = 'var(--orange)';
 const LIKED_SONGS_ID = "0";
 
-// Função auxiliar para formatar segundos em mm:ss
 const formatTime = (seconds) => {
     if (!seconds && seconds !== 0) return "0:00";
-    // Se já vier como string (ex: "3:20"), retorna direto
     if (typeof seconds === 'string' && seconds.includes(':')) return seconds;
     
     const minutes = Math.floor(seconds / 60);
@@ -33,36 +32,24 @@ const formatTime = (seconds) => {
 export default function Song({ song }) {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-
-    // --- 1. NORMALIZAÇÃO DOS DADOS (O FIX ESTÁ AQUI) ---
-    
-    // ID da Música: Mongo usa _id, Redux as vezes usa id
     const songId = song._id || song.id;
 
-    // Título
     const title = song.title || "Sem título";
 
-    // Artistas: Transforma o Array de objetos em uma String para exibição
     let artistDisplay = "Desconhecido";
     let mainArtistId = null;
 
     if (song.artists && Array.isArray(song.artists) && song.artists.length > 0) {
-        // Novo padrão: Array
         artistDisplay = song.artists.map(a => a.name).join(', ');
         mainArtistId = song.artists[0]._id || song.artists[0].id;
     } else if (song.artist) {
-        // Fallback antigo: String ou Objeto único
         artistDisplay = typeof song.artist === 'string' ? song.artist : song.artist.name;
         mainArtistId = song.artistId || (song.artist._id);
     }
 
-    // Álbum ID: Geralmente está dentro do objeto populado 'album'
-    const albumId = song.album?._id || song.album?.id || song.albumId || songId; // Fallback para songId se for single sem album
+    const albumId = song.album?._id || song.album?.id || song.albumId || songId; 
 
-    // Duração: Formata os segundos
     const durationDisplay = formatTime(song.duration);
-
-    // ----------------------------------------------------
 
     const { user, userPlaylistsDetail } = useSelector(state => state.auth);
 
@@ -89,33 +76,48 @@ export default function Song({ song }) {
         setPlaylistAnchorEl(null);
         handleMenuClose();
     };
-    
+
     const handleLikeClick = async (e) => {
         e.stopPropagation();
-        if (user && user.id) {
-            
-            const wasLiked = isLiked;
+        
+        if (!user || !user.id) {
+            navigate('/login');
+            return;
+        }
 
-            try {
-                await dispatch(toggleLikeSongAsync({
-                    userId: user.id,
-                    songId: songId,
-                })).unwrap();
+        const wasLiked = isLiked; 
 
-                if (wasLiked) {
-                    alert(`"${title}" foi removida das Músicas Curtidas.`);
-                } else {
+        try {
+            await dispatch(toggleLikeSongAsync({
+                userId: user.id,
+                songId: songId,
+                currentLikedSongs: userLikedSongs,
+            })).unwrap();
+
+            if (!wasLiked) {
+                
+                try {
+                    const prefResponse = await api.post('/users/like', { songId: songId });
+                    
+                    if (prefResponse.data.analyzed) {
+                        alert(`Parabéns! Suas preferências musicais foram analisadas e salvas!`);
+                    } else if (prefResponse.data.count) {
+                        alert(`Like registrado. Faltam ${5 - prefResponse.data.count} para a análise de preferências.`);
+                    } else {
+                         alert(`"${title}" foi curtida com sucesso!`);
+                    }
+                } catch (prefError) {
+                    console.warn("Aviso: Falha na análise de preferências. Continuando com o like padrão.");
                     alert(`"${title}" foi curtida com sucesso!`);
-                    // Opcional: navegar ou só avisar
                 }
-
-            } catch (error) {
-                console.error("Erro ao curtir/descurtir música:", error);
-                alert("Erro ao processar sua curtida. Tente novamente.");
+                
+            } else {
+                alert(`"${title}" foi removida das Músicas Curtidas.`);
             }
 
-        } else {
-            navigate('/login');
+        } catch (error) {
+            console.error("Erro ao curtir/descurtir música:", error);
+            alert("Erro ao processar sua curtida. Tente novamente.");
         }
     }
 
@@ -210,12 +212,11 @@ export default function Song({ song }) {
         { 
             icon: <PersonIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Ir para o artista', 
-            action: () => { handleMenuClose(); navigate(`/artista/${mainArtistId}`); } // USANDO mainArtistId
+            action: () => { handleMenuClose(); navigate(`/artista/${mainArtistId}`); } 
         },
         { 
             icon: <AlbumIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Ir para o álbum', 
-            // USANDO albumId CORRIGIDO
             action: () => { handleMenuClose(); navigate(`/album/${albumId}`) } 
         }, 
         { 
@@ -227,7 +228,7 @@ export default function Song({ song }) {
             icon: <ShareIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Compartilhar', 
             action: handleOpenShareModal 
-        },    
+        },     
     ];
 
     const corIcone = isLiked ? COR_LARANJA : 'var(--secondary-text-color)';
@@ -256,7 +257,6 @@ export default function Song({ song }) {
                             className="song-title"
                             style={{ color: isThisSongCurrentlySelected ? COR_LARANJA : 'white' }}
                             >{title}</span>
-                        {/* AQUI ESTAVA O ERRO PRINCIPAL, AGORA USAMOS artistDisplay */}
                         <span className="song-artist">{artistDisplay}</span>
                     </div>
                 </div>
@@ -268,7 +268,6 @@ export default function Song({ song }) {
                     >
                         {isLiked ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
                     </div>
-                    {/* USANDO DURAÇÃO FORMATADA */}
                     <span className="song-duration">{durationDisplay}</span>
                     <i
                         className="icon fa-solid fa-ellipsis"
@@ -277,8 +276,6 @@ export default function Song({ song }) {
                     ></i>
                 </div>
             </div>
-
-            {/* ... RESTO DO CÓDIGO (Menus e Modals) IGUAL AO ORIGINAL, APENAS MANTENDO A LÓGICA ... */}
             
             <Menu
                 id="song-options-menu"
@@ -316,7 +313,6 @@ export default function Song({ song }) {
                 ))}
             </Menu>
 
-            {/* MENU DE PLAYLISTS (Mantido igual, lógica já está ok) */}
             <Menu
                 id="playlist-selection-menu"
                 anchorEl={playlistAnchorEl}
@@ -338,7 +334,6 @@ export default function Song({ song }) {
                     }
                 }}
             >
-                {/* ... Itens do menu de playlist (Mantidos) ... */}
                 <MenuItem disabled style={{ opacity: 1 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'var(--secondary-text-color)' }}>Adicionar a:</Typography>
                 </MenuItem>
@@ -367,7 +362,6 @@ export default function Song({ song }) {
                 </MenuItem>
             </Menu>
 
-            {/* MODAL DE COMPARTILHAR (Mantido igual) */}
             <Dialog open={shareModalOpen} onClose={handleCloseShareModal} 
                 PaperProps={{
                     sx: {

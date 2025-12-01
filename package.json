@@ -21,6 +21,7 @@
     "@reduxjs/toolkit": "^2.9.0",
     "axios": "^1.12.2",
     "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "express": "^5.1.0",
     "genius-lyrics": "^4.4.7",
     "lucide-react": "^0.544.0",
