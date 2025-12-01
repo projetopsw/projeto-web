@@ -13,6 +13,7 @@ import spotifyRoutes from './routes/spotifyRoutes.js';
 import spotifyCacheRoutes from './routes/spotifyCacheRoutes.js'; 
 import playlistRoutes from "./routes/playlistRoutes.js";
 import comentariosRoutes from "./routes/comentarioRoutes.js"
+import searchRoutes from './routes/search.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use('/api/search', searchRoutes);
 app.use('/albums', albumRoutes);
 app.use('/artists', artistRoutes);
 app.use('/groups', groupRoutes);

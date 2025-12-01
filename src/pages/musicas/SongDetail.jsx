@@ -10,7 +10,6 @@ import AlbumCard from '../../components/AlbumCard.jsx';
 import ReleaseInfo from '../../components/ReleaseInfo.jsx';
 import './css/SongAlbumDetail.css';
 
-// Função auxiliar para formatar tempo (segundos -> mm:ss)
 const formatTime = (seconds) => {
   if (!seconds) return "0:00";
   const mins = Math.floor(seconds / 60);
@@ -33,12 +32,10 @@ export default function SongDetail({ songID }) {
   }, [effectiveId, dispatch]);
 
   useEffect(() => {
-    // CORREÇÃO: Pegar o ID do primeiro artista do array para buscar álbuns relacionados
     if (song && song.artists && song.artists.length > 0) {
       const mainArtistId = song.artists[0]._id || song.artists[0].id;
       dispatch(fetchAlbumsByArtist(mainArtistId));
     } else if (song && song.artist && typeof song.artist === 'string') {
-        // Fallback para legado
         dispatch(fetchAlbumsByArtist(song.artist));
     }
   }, [song, dispatch]); 
@@ -57,15 +54,12 @@ export default function SongDetail({ songID }) {
     return <main><h1>Música não encontrada</h1></main>;
   }
 
-  // Lógica para obter nome do artista (Array -> String)
   const artistName = Array.isArray(song.artists) && song.artists.length > 0
     ? song.artists.map(a => a.name).join(', ')
     : (song.artist || 'Desconhecido');
 
-  // Lógica para pegar o ID do artista principal (para links)
   const mainArtistId = song.artists?.[0]?._id || song.artists?.[0]?.id;
 
-  // Lógica para gravadora
   const label = song.album?.recordLabel || 'Gravadora não informada';
 
   return (
@@ -74,13 +68,13 @@ export default function SongDetail({ songID }) {
         cover={song.cover} 
         type={'Single'} 
         title={song.title} 
-        artist={artistName} // Passamos a string formatada
-        artistId={mainArtistId} // Passamos o ID correto
+        artist={artistName}
+        artistId={mainArtistId}
         year={song.releaseDate ? new Date(song.releaseDate).getFullYear() : ""}
-        duration={"1 música, " + formatTime(song.duration)} // Formatando tempo
+        duration={"1 música, " + formatTime(song.duration)}
         onPlay={handlePlaySong} 
       /> 
-   
+    
       <div className="song-list-container"> 
         <SongList 
           tracksArr={[song]} 
@@ -112,7 +106,7 @@ export default function SongDetail({ songID }) {
         })}
       </Section>
       
-      <div className="margin-bottom"></div>
+      <div className="margin-bottom-large"></div>
     </main>
   );
 }

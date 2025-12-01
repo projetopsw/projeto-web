@@ -14,12 +14,71 @@ import api from '../../services/api.js';
 
 const navItemsData = ["Tudo", "Usuários", "Playlists", "Músicas", "Álbuns", "Artistas"];
 
-// Função para pegar itens aleatórios (para o caso de busca vazia)
-// Sugestão: No futuro, crie uma rota backend /api/recommendations para isso não pesar
+const CATEGORY_MAP = {
+    "Tudo": "tudo",
+    "Músicas": "musica",
+    "Álbuns": "album",
+    "Artistas": "artista",
+    "Playlists": "playlist",
+    "Usuários": "usuario"
+};
+
 const getRandomItems = (data, count = 5) => {
     if (!data || data.length === 0) return [];
     const shuffled = [...data].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, count);
+};
+
+const adaptResults = (data) => {
+    const artistsData = data.artistas || data.artists || [];
+    const albumsData = data.albuns || data.albums || [];
+    const tracksData = data.musicas || data.tracks || [];
+    const playlistsData = data.playlists || [];
+    const usersData = data.usuarios || data.users || [];
+
+    return {
+        artists: artistsData.map(artist => ({
+            id: artist._id || artist.id, 
+            name: artist.name,
+            image: artist.image
+        })),
+
+        albums: albumsData.map(album => {
+            const artistNames = Array.isArray(album.artists) 
+                ? album.artists.map(a => a.name).join(', ') 
+                : (typeof album.artist === 'string' ? album.artist : 'Vários Artistas');
+
+            return {
+                ...album,
+                id: album._id || album.id, 
+                artist: artistNames, 
+                cover: album.cover || (album.images && album.images[0]?.url)
+            };
+        }),
+
+        tracks: tracksData.map(track => {
+            const artistNames = Array.isArray(track.artists)
+                ? track.artists.map(a => a.name).join(', ')
+                : 'Desconhecido';
+
+            return {
+                ...track,
+                id: track._id || track.id,
+                artist: artistNames,
+                image: track.cover || (track.album && track.album.cover)
+            };
+        }),
+        
+        playlists: playlistsData.map(playlist => ({
+            ...playlist,
+            id: playlist._id || playlist.id,
+        })),
+
+        users: usersData.map(user => ({
+            ...user,
+            id: user._id || user.id,
+        }))
+    };
 };
 
 function Pesquisa() {
@@ -28,11 +87,7 @@ function Pesquisa() {
     const query = searchParams.get('q'); 
 
     const [results, setResults] = useState({
-        artists: [],
-        albums: [],
-        tracks: [],
-        playlists: [], 
-        users: []      
+        artists: [], albums: [], tracks: [], playlists: [], users: []      
     });
 
     const [randomSuggestions, setRandomSuggestions] = useState({
@@ -42,46 +97,60 @@ function Pesquisa() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const adaptResults = (data) => {
-    return {
-        artists: (data.artists || []).map(artist => ({
-            id: artist._id, // Garante que o ID venha do Mongo
-            name: artist.name,
-            image: artist.image
-        })),
-
-        albums: (data.albums || []).map(album => {
-            // Lógica de segurança para montar nome dos artistas
-            const artistNames = Array.isArray(album.artists) 
-                ? album.artists.map(a => a.name).join(', ') // Backend novo (populado)
-                : (typeof album.artist === 'string' ? album.artist : 'Vários Artistas'); // Backend velho ou fallback
-
-            return {
-                ...album,
-                id: album._id, 
-                artist: artistNames, 
-                cover: album.cover || (album.images && album.images[0]?.url)
-            };
-        }),
-
-        tracks: (data.tracks || []).map(track => {
-            // Lógica de segurança para músicas
-            const artistNames = Array.isArray(track.artists)
-                ? track.artists.map(a => a.name).join(', ')
-                : 'Desconhecido';
-
-            return {
-                ...track,
-                id: track._id,
-                artist: artistNames,
-                image: track.cover 
-            };
-        }),
+    const fetchResults = async (currentQuery, currentFilter) => {
+        setIsLoading(true);
+        setError(null);
         
-        playlists: [],
-        users: []      
+        const backendCategory = CATEGORY_MAP[currentFilter] || 'tudo'; 
+
+        try {
+            const response = await api.get(`/api/search`, {
+                params: { 
+                    query: currentQuery, 
+                    category: backendCategory 
+                }
+            });
+
+            const rawData = response.data.results; 
+            let adaptedData = {
+                artists: [], albums: [], tracks: [], playlists: [], users: []
+            };
+
+            if (backendCategory === 'tudo') {
+                adaptedData = adaptResults(rawData);
+            } else {
+                const specificResults = adaptResults({ 
+                    artistas: backendCategory === 'artista' ? rawData : [],
+                    albuns: backendCategory === 'album' ? rawData : [],
+                    musicas: backendCategory === 'musica' ? rawData : [],
+                    playlists: backendCategory === 'playlist' ? rawData : [],
+                    usuarios: backendCategory === 'usuario' ? rawData : []
+                });
+                
+                // Mapeia o resultado específico para a chave correta
+                switch (backendCategory) {
+                    case 'musica':
+                        adaptedData.tracks = specificResults.tracks; break;
+                    case 'album':
+                        adaptedData.albums = specificResults.albums; break;
+                    case 'artista':
+                        adaptedData.artists = specificResults.artists; break;
+                    case 'playlist':
+                        adaptedData.playlists = specificResults.playlists; break;
+                    case 'usuario':
+                        adaptedData.users = specificResults.users; break;
+                }
+            }
+            
+            setResults(adaptedData);
+
+        } catch (err) {
+            console.error("Erro na busca:", err);
+            setError("Não foi possível realizar a busca. Verifique o servidor.");
+        } finally {
+            setIsLoading(false);
+        }
     };
-};
 
     useEffect(() => {
         if (!query || query.trim() === "") {
@@ -89,52 +158,37 @@ function Pesquisa() {
             return;
         }
 
-        const fetchResults = async () => {
-            setIsLoading(true);
-            setError(null);
-            
-            try {
-                const response = await api.get(`/api/search`, {
-                    params: { q: query, type: 'artist,album,track' }
-                });
+        fetchResults(query, selectedFilter);
 
-                const adaptedData = adaptResults(response.data);
+    }, [query, selectedFilter]);
 
-                const totalFound = adaptedData.artists.length + adaptedData.albums.length + adaptedData.tracks.length;
-                
-                if (totalFound === 0) {
-                    try {
-                        const [songsRes, artistsRes, albumsRes] = await Promise.all([
-                            api.get('/songs?limit=10'), 
-                            api.get('/artists?limit=10'),
-                            api.get('/albums?limit=10')
-                        ]);
-                        
-                        setRandomSuggestions({
-                            tracks: getRandomItems(songsRes.data),
-                            artists: getRandomItems(artistsRes.data),
-                            albums: getRandomItems(albumsRes.data),
-                            playlists: [],
-                            users: []
-                        });
-                    } catch (e) {
-                        console.warn("Erro ao buscar sugestões aleatórias", e);
-                    }
+    // Lógica para carregar sugestões aleatórias (mantida para o caso de 0 resultados)
+    useEffect(() => {
+        const totalMainResults = results.tracks.length + results.artists.length + results.albums.length + results.playlists.length + results.users.length;
+        
+        if (query && totalMainResults === 0 && !isLoading) {
+            const loadSuggestions = async () => {
+                try {
+                    const [songsRes, artistsRes, albumsRes] = await Promise.all([
+                        api.get('/songs?limit=10'), 
+                        api.get('/artists?limit=10'),
+                        api.get('/albums?limit=10')
+                    ]);
+                    
+                    setRandomSuggestions({
+                        tracks: getRandomItems(songsRes.data),
+                        artists: getRandomItems(artistsRes.data),
+                        albums: getRandomItems(albumsRes.data),
+                        playlists: [],
+                        users: []
+                    });
+                } catch (e) {
+                    console.warn("Erro ao buscar sugestões aleatórias", e);
                 }
-
-                setResults(adaptedData);
-
-            } catch (err) {
-                console.error("Erro na busca:", err);
-                setError("Não foi possível realizar a busca. Tente novamente.");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchResults();
-
-    }, [query]);
+            };
+            loadSuggestions();
+        }
+    }, [query, results, isLoading]);
 
     const handleSetFilter = (item) => {
         setSelectedFilter(item);
@@ -143,11 +197,11 @@ function Pesquisa() {
     const totalMainResults = results.tracks.length + results.artists.length + results.albums.length + results.playlists.length + results.users.length;
     
     const mainSections = [
-        { title: "Usuários", type: "user", data: results.users, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
         { title: "Músicas", type: "song", data: results.tracks, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Álbuns", type: "album", data: results.albums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
         { title: "Artistas", type: "artist", data: results.artists, renderCard: (item) => <ArtistCircle key={item.id} id={item.id} image={item.image} name={item.name} />},
-        // { title: "Playlists", type: "playlist", data: results.playlists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
+        { title: "Playlists", type: "playlist", data: results.playlists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
+        { title: "Usuários", type: "user", data: results.users, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
     ];
 
     const randomSections = [
@@ -169,7 +223,7 @@ function Pesquisa() {
                     />
                 </div>
 
-                {isLoading && <div className="loading-spinner">Carregando resultados do Spotify...</div>}
+                {isLoading && <div className="loading-spinner">Carregando resultados...</div>}
                 
                 {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
                 
@@ -196,7 +250,7 @@ function Pesquisa() {
                 {!isLoading && !error && query && totalMainResults === 0 && (
                     <div style={{ marginTop: '20px' }}>
                         <p style={{ marginBottom: '40px', fontSize: '1.2rem', color: 'var(--text-color)', textAlign:'center' }}>
-                            Nenhum resultado encontrado para "{query}" no nosso banco ou no Spotify.
+                            Nenhum resultado encontrado para "{query}".
                         </p>
 
                         <h1 className='search-subtitle'>Talvez você goste:</h1>

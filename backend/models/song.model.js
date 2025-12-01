@@ -30,4 +30,22 @@ const songSchema = new Schema({
 
 songSchema.index({ album: 1, trackNumber: 1 }); 
 songSchema.index({ title: 'text' }); 
+
+songSchema.statics.searchByTerm = async function(term) {
+    try {
+        const results = await this.find({
+            $text: { $search: term }
+        })
+        .select('title artists album cover duration explicit previewUrl')
+        .populate('artists', 'name') 
+        .populate('album', 'title') 
+        .limit(20);
+
+        return results;
+    } catch (error) {
+        console.error(`Erro ao buscar músicas com o termo "${term}":`, error);
+        throw new Error('Falha no banco de dados ao buscar músicas.');
+    }
+};
+
 export default mongoose.model('Song', songSchema);

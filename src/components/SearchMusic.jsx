@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     InputBase, 
     Box, 
@@ -15,31 +15,6 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import api from '../services/api.js'; 
-
-const normalizeName = (str) => {
-    if (!str) return '';
-    return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-};
-
-const filterDataByQuery = (data, query, field, mode = 'starts_with') => {
-    if (!query || !data || data.length === 0) return [];
-    
-    const lowerQuery = normalizeName(query);
-
-    return data.filter(item => {
-        const fieldValue = item[field];
-        if (!fieldValue) return false;
-
-        const lowerFieldValue = normalizeName(String(fieldValue));
-        
-        if (mode === 'exact') return lowerFieldValue === lowerQuery;
-        if (mode === 'includes') return lowerFieldValue.includes(lowerQuery);
-        
-        if (field === 'artist' && mode === 'includes') return lowerFieldValue.includes(lowerQuery);
-        
-        return lowerFieldValue.startsWith(lowerQuery); 
-    });
-};
 
 const SearchContainer = styled('div')(({ theme }) => ({
     position: 'relative',
@@ -89,53 +64,63 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
     },
 }));
 
-function SearchMusicLocal({ onSongSelect }) {
+const SearchMusicBackend = ({ onSongSelect }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [allSongs, setAllSongs] = useState([]);
+    const [searchResults, setSearchResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
     useEffect(() => {
-        const fetchAllSongs = async () => {
+        if (!debouncedSearchTerm.trim()) {
+            setSearchResults([]);
+            return;
+        }
+
+        const fetchResults = async () => {
             setIsLoading(true);
+            setError(null);
+            
             try {
-                const response = await api.get('/songs'); 
-                setAllSongs(response.data);
-                setError(null);
+                const response = await api.get(`/api/search`, { 
+                    params: { 
+                        query: debouncedSearchTerm,
+                        category: 'musica'
+                    }
+                });
+                
+                const tracks = response.data.results || [];
+
+                const adaptedTracks = tracks.map(track => {
+                    const artistNames = Array.isArray(track.artists)
+                        ? track.artists.map(a => a.name).join(', ')
+                        : 'Desconhecido';
+
+                    return {
+                        ...track,
+                        id: track._id,
+                        artist: artistNames,
+                        cover: track.cover 
+                    };
+                });
+                
+                setSearchResults(adaptedTracks);
+
             } catch (err) {
-                console.error("Erro ao carregar todas as músicas:", err);
-                setError("Falha ao carregar a lista de músicas.");
+                console.error("Erro na busca de autocompletar:", err);
+                setError("Falha na busca de músicas.");
             } finally {
-                 setIsLoading(false);
+                setIsLoading(false);
             }
         };
-        fetchAllSongs();
-    }, []);
 
-    const searchResults = useMemo(() => {
-        if (!searchTerm.trim()) return [];
-
-        let mainSongs = filterDataByQuery(allSongs, searchTerm, 'title', 'starts_with');
-        
-        const relatedSongsByTitle = filterDataByQuery(allSongs, searchTerm, 'title', 'includes');
-        const relatedSongsByArtist = filterDataByQuery(allSongs, searchTerm, 'artist', 'includes');
-
-        const uniqueSongs = [...new Map(
-            [...mainSongs, ...relatedSongsByTitle, ...relatedSongsByArtist].map(song => [song.id, song])
-        ).values()];
-
-        return uniqueSongs.slice(0, 10); 
-
-    }, [searchTerm, allSongs]);
+        fetchResults();
+    }, [debouncedSearchTerm]);
 
 
-    const handleClearSearch = () => {
-        setSearchTerm('');
-    };
-
-    const handleInputChange = (event) => {
-        setSearchTerm(event.target.value);
-    };
+    const handleClearSearch = () => setSearchTerm('');
+    const handleInputChange = (event) => setSearchTerm(event.target.value);
     
     const handleKeyDown = (event) => {
         if (event.key === 'Enter') {
@@ -186,7 +171,6 @@ function SearchMusicLocal({ onSongSelect }) {
                                 <ListItem
                                     key={song.id}
                                     onClick={() => handleAddSong(song)} 
-                        
                                     sx={{ 
                                         '&:hover': { 
                                             backgroundColor: 'var(--hover-bg)', 
@@ -223,6 +207,6 @@ function SearchMusicLocal({ onSongSelect }) {
             {error && <Typography sx={{ p: 2, color: 'red' }}>Erro: {error}</Typography>}
         </Box>
     );
-}
+};
 
-export default SearchMusicLocal;
+export default SearchMusicBackend;

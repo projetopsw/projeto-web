@@ -24,4 +24,20 @@ const userSchema = new Schema({
 
 }, { timestamps: true });
 
+userSchema.statics.searchByTerm = async function(term) {
+    try {
+        const results = await this.find({
+            $or: [
+                { username: { $regex: term, $options: 'i' } },
+                { email: { $regex: term, $options: 'i' } }
+            ]
+        }).select('username email img role').limit(20); 
+
+        return results;
+    } catch (error) {
+        console.error(`Erro ao buscar usuários com o termo "${term}":`, error);
+        throw new Error('Falha no banco de dados ao buscar usuários.');
+    }
+};
+
 export default mongoose.model('User', userSchema);
