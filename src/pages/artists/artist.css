@@ -1,228 +1,329 @@
-  .main-artist-page {
-    margin: 0;
-    width: 100%;
-    padding-left: 0;
-    padding-top: 0;
-    padding-right: 0;
-  }
-  
-  p, h1, h3 {
-    margin: 0;
-  }
-  
-  .lighter-text {
-    color: #B3B3B3;
-  }
-  
-  .flex {
-    display: flex;
-  }
-  
-  .artist-header {
-    padding: 60px 40px 40px; 
-    border: none; 
-    background-color: #69645e;
-    width: 100%;  
-  }
+.main-artist-page {
+  margin: 0;
+  width: 100%;
+  padding-left: 0;
+  padding-top: 0;
+  padding-right: 0;
+}
+
+p, h1, h3 {
+  margin: 0;
+}
+
+.lighter-text {
+  color: #B3B3B3;
+}
+
+.flex {
+  display: flex;
+}
 
 
-  .follow-btn.following {
-    border-color: white;     
+.artist-header {
+  padding: 40px 40px 20px;
+  border: none;
+  background-color: transparent;
+  width: 100%;
+}
 
-    color: white; 
+.artist-header-main-content.flex {
+  gap: 2em;
+  align-items: flex-end;
+  margin-bottom: 2em;
+}
+
+.artist-header-photo {
+  width: 250px;
+  min-width: 250px;
+  height: 250px;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+
+.artist-header-photo img.artist-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.artist-info {
+  flex-direction: column;
+  text-align: start;
+  gap: 0.625em;
+  margin-top: auto;
+  justify-content: flex-end;
+}
+
+.artist-header-tag {
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5em;
+  color: white;
+}
+
+.name-artist {
+  font-size: 5rem;
+  line-height: 1.1;
+  margin-bottom: 0;
+}
+
+.artist-details.flex {
+  align-items: center;
+  gap: 0.8em;
+  flex-wrap: wrap;
+  margin-top: 1em;
+}
+
+.artist-header-listeners {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #B3B3B3;
+}
+
+.monthly-listeners-icon {
+  display: none;
+}
+
+.artist-follow-btn {
+  background-color: transparent;
+  color: white;
+  font-size: 14px;
+  border: 1px solid white;
+  padding: 6px 12px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.artist-follow-btn.following {
+  background-color: white;
+  color: black;
+  border-color: white;
+}
+
+.artist-follow-btn:hover {
+  border-color: #ff6b00;
+  color: #ff6b00;
+}
+
+
+.artist-content-section {
+  padding: 2em 40px;
+}
+
+.artist-song {
+  margin: 0 70px;
+}
+
+.mais-tocadas {
+  padding: 1.6em 0 1.6em;
+  margin-top: 0;
+}
+
+.mais-tocadas h3 {
+  font-size: 1.5rem;
+}
+
+.seus-artistas {
+  margin-top: 3em;
+}
+
+
+.follow-btn.following {
+  border-color: white;
+  color: white;
 }
 
 .follow-btn.following:hover {
-    background-color: var(--darker-orange);
-    border-color: var(--darker-orange); 
+  background-color: var(--darker-orange);
+  border-color: var(--darker-orange);
 }
-  .artist-info {
-    flex-direction: column;
-    text-align: start;
-  }
 
-  .artist-song{
-    margin: 0 70px;
+.follow-btn {
+  background-color: #121212;
+  color: white;
+  font-size: 17px;
+  border: 1px solid #4a4a4a;
+  height: fit-content;
+  padding: 15px 25px;
+  border-radius: 50px;
+  text-align: start;
+}
 
-  }
+.follow-btn:hover {
+  cursor: pointer;
+  background-color: #ff6b00;
+}
 
-  .artist-description {
-    margin-bottom: 1em;
-  }
-  
-  .artist-actions {
-    margin-top: 20px;
-    margin-left: 40px;
-    align-items: center;
-    gap: 1em; 
-  }
-  
 
-  .play-btn {
-    background-color: #ff6b00;
-    border: none;
-    color: white;
-    padding: 15px;
-    margin-right: 10px; 
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .follow-btn {
-    background-color: #121212;
-    color: white;
-    font-size: 17px;
-    border: 1px solid #4a4a4a;
-    height: fit-content;
-    padding: 15px 25px;
-    border-radius: 50px;
-    text-align: start;
-  }
+.artist-description {
+  margin-bottom: 1em;
+}
 
-  .follow-btn:hover {
-    cursor: pointer;
-    background-color: #ff6b00;
-  }
-  
-  
-  .user-icon > img {
-    display: block;
-    border-radius: 50%;
-  }
-  
-  .user-info {
-    margin-left: 2em;
-    flex-direction: column;
-    justify-content: start;
-    gap: 0.5em;
-    height: fit-content;
-    margin-top: auto;
-  }
-  
-  .edit-btn {
-    border-radius: 50px;
-    padding: 10px 20px;
-    font-size: 0.9rem;
-    width: fit-content;
-    border: none;
-    font-weight: 700;
-    background-color: #ff6b00;
-    height: fit-content;
-    margin-top: auto;
-  }
-  
-  .edit-btn:hover {
-    background-color: #f58332;
-    cursor: pointer;
-  }
-  
+.artist-actions {
+  margin-top: 20px;
+  margin-left: 40px;
+  align-items: center;
+  gap: 1em;
+}
+
+.play-btn {
+  background-color: #ff6b00;
+  border: none;
+  color: white;
+  padding: 15px;
+  margin-right: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-icon > img {
+  display: block;
+  border-radius: 50%;
+}
+
+.user-info {
+  margin-left: 2em;
+  flex-direction: column;
+  justify-content: start;
+  gap: 0.5em;
+  height: fit-content;
+  margin-top: auto;
+}
+
+.edit-btn {
+  border-radius: 50px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  width: fit-content;
+  border: none;
+  font-weight: 700;
+  background-color: #ff6b00;
+  height: fit-content;
+  margin-top: auto;
+}
+
+.edit-btn:hover {
+  background-color: #f58332;
+  cursor: pointer;
+}
+
+.user-details {
+  gap: 0.625em;
+  align-items: center;
+}
+
+.song {
+  padding: 1em 1.875em;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.song:hover,
+.song:focus {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  background-color: grey;
+  cursor: pointer;
+}
+
+.song-detail {
+  gap: 1em;
+  align-items: center;
+}
+
+.song-info {
+  flex-direction: column;
+}
+
+.play-icon:hover,
+.icon:hover {
+  transform: scale(1.3);
+}
+
+.song-cover {
+  width: 50px;
+}
+
+.playlists-container,
+.artists-container,
+.friends-container {
+  overflow-x: auto;
+  gap: 1em;
+  padding-top: 1em;
+}
+
+.playlist-card,
+.artist-card,
+.amigo-card {
+  text-align: center;
+}
+
+.playlist-card img {
+  border-radius: 10px;
+}
+
+.artist-icon,
+.amigo-icon {
+  border-radius: 50%;
+}
+
+.seus-amigos {
+  margin-top: 5em;
+}
+
+.descricao-artista {
+  margin-top: 50px;
+}
+
+.margin-bottom {
+  margin-bottom: 100px;
+}
+
+p a {
+  color: white;
+  text-decoration: none;
+}
+
+
+@media (max-width: 1024px) {
   .name-artist {
-    font-size: 3.5em;
+    font-size: 4rem;
   }
-  
-  .user-details {
-    gap: 0.625em;
-    align-items: center;
-  }
-  
-  
-  .song {
-    padding: 1em 1.875em;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .song:hover,
-  .song:focus {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-    background-color: grey;
-    cursor: pointer; 
-  }
-  
-  .song-detail {
-    gap: 1em;
-    align-items: center;
-  }
-  
-  .song-info {
+}
+
+@media (max-width: 768px) {
+  .artist-header-main-content.flex {
     flex-direction: column;
-  }
-  
-  .play-icon:hover, .icon:hover {
-    transform: scale(1.3);
-  }
-  
-  .mais-tocadas {
-    padding: 1.6em 0 5em;
-    margin-top: 1.5em;
-  }
-  
-  .song-cover {
-    width: 50px;
-  }
-  
-  .playlists-container,
-  .artists-container,
-  .friends-container {
-    overflow-x: auto;
-    gap: 1em;
-    padding-top: 1em;
-  }
-  
-  .playlist-card,
-  .artist-card,
-  .amigo-card {
+    align-items: center;
     text-align: center;
-  }
-  
- 
-  .playlist-card img {
-    border-radius: 10px; 
-  }
-  
-  .artist-icon, .amigo-icon {
-    border-radius: 50%;
-  }
-  
-  .seus-artistas, .seus-amigos {
-    margin-top: 5em;
-  }
-  
-  .descricao-artista {
-    margin-top: 50px;
-  }
-  
-  .margin-bottom {
-    margin-bottom: 100px;
-  }
-  
-
-  p a {
-    color: white;
-    text-decoration: none;
+    gap: 1.5em;
   }
 
-  .mais-tocadas {
-    padding-bottom: 0;
+  .artist-content-section {
+    padding: 2em 20px;
   }
-
-  .mais-tocadas h3{
-    font-size: 1.5rem;
-  }
-
-
-  @media (max-width: 768px) {
-  
 
   .artist-header {
     padding: 30px 20px;
-    flex-direction: column;
+  }
+
+  .artist-header-photo {
+    width: 150px;
+    min-width: 150px;
+    height: 150px;
+    margin: 0 auto;
+  }
+
+  .artist-info {
     align-items: center;
-    text-align: center;
+    margin-top: 0;
+    gap: 1em;
   }
 
   .artist-song {
@@ -230,7 +331,7 @@
   }
 
   .name-artist {
-    font-size: 2.5em; 
+    font-size: 2.5rem;
   }
 
   .user-info {
@@ -259,10 +360,16 @@
   .mais-tocadas,
   .seus-artistas,
   .seus-amigos {
-    margin-top: 2.5em; 
+    margin-top: 2.5em;
   }
 
   .mais-tocadas h3 {
     font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .name-artist {
+    font-size: 1.8rem;
   }
 }
