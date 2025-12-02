@@ -1,15 +1,9 @@
 import express from 'express';
 import Playlist from '../models/playlist.model.js';
 import User from '../models/user.model.js';
+import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
-
-const isAuthenticated = (req, res, next) => {
-    if (!req.user && !req.body.creatorId && !req.params.id) {
-        return next(); 
-    }
-    next();
-};
 
 const getPlaylists = async (req, res, next) => {
   try {
@@ -19,9 +13,7 @@ const getPlaylists = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
-
-router.use(isAuthenticated); 
+}; 
 
 router.get("/", getPlaylists);
 
@@ -37,7 +29,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
     const { name, creatorId, img, type, description, songs = [], isPublic = false } = req.body;
 
     let creatorName = 'Usuário Desconhecido';
@@ -78,7 +70,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', verifyToken, async (req, res) => {
     const { name, description, img, isPublic, songs } = req.body;
 
     if (req.params.id === '0') {

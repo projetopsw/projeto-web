@@ -51,10 +51,12 @@ export default function Song({ song }) {
 
     const durationDisplay = formatTime(song.duration);
 
-    const { user, userPlaylistsDetail } = useSelector(state => state.auth);
+    const user = useSelector(state => state.user?.user);
+    const userPlaylistsDetail = useSelector(state => state.auth?.userPlaylistsDetail || []);
 
     const userLikedSongs = user?.likedSongs || [];
-    const isLiked = userLikedSongs.includes(songId); 
+    const songIdStr = String(songId);
+    const isLiked = userLikedSongs.some(id => String(id) === songIdStr); 
 
     const { currentSong, isPlaying } = useSelector(state => state.player);
     const isThisSongCurrentlySelected = (currentSong?._id === songId) || (currentSong?.id === songId);
@@ -89,7 +91,7 @@ export default function Song({ song }) {
 
         try {
             await dispatch(toggleLikeSongAsync({
-                userId: user.id,
+                userId: user.id || user._id,
                 songId: songId,
                 currentLikedSongs: userLikedSongs,
             })).unwrap();
@@ -153,9 +155,10 @@ export default function Song({ song }) {
         }
         
         dispatch(addSongToPlaylistAsync({
-            userId: user.id,
+            userId: user.id || user._id,
             playlistId: playlistId,
-            songId: songId
+            songId: songId,
+            currentLikedSongs: userLikedSongs
         })).unwrap().then(() => {
             alert(`"${title}" adicionada com sucesso à playlist "${playlistName}"!`);
         }).catch((error) => {

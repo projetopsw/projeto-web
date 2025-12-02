@@ -32,7 +32,7 @@ export default function ArtistHeader({ artist = {} }) {
         if (!user) return navigate("/login");
 
         dispatch(toggleFollowArtistAsync({
-            userId: user.id,
+            userId: user.id || user._id,
             artistId,
             currentFollowing: user.following || [],
         }));

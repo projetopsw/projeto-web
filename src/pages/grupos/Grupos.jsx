@@ -385,7 +385,8 @@ function Grupos() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    const currentUserId = String(useSelector((state) => state.auth.user?.id) || ''); 
+    const user = useSelector(state => state.user?.user);
+    const currentUserId = String(user?.id || user?._id || '');
 
     const allGroups = useSelector(selectAllGroups);
     const groupsStatus = useSelector(selectGroupStatus);

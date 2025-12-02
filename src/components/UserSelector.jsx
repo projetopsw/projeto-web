@@ -19,8 +19,9 @@ const USER_PROFILES = [
 
 function UserSelector() {
     const dispatch = useDispatch();
-    const currentUserId = useSelector(state => state.auth.user?.id || USER_PROFILES[0].id);
-    const currentUserName = useSelector(state => state.auth.user?.username || USER_PROFILES[0].name);
+    const user = useSelector(state => state.user?.user);
+    const currentUserId = user?.id || user?._id || USER_PROFILES[0].id;
+    const currentUserName = user?.username || user?.name || USER_PROFILES[0].name;
 
     const handleChange = (event) => {
         const newId = event.target.value;

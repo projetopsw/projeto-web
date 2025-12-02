@@ -47,14 +47,12 @@ function GrupoDetalhe() {
     const { id } = useParams(); 
     const dispatch = useDispatch(); 
    
-    const { user: authUser } = useSelector((state) => state.auth);
-    const updatedUser = useSelector((state) => state.user.user);
-    const user = updatedUser || authUser;
+    const user = useSelector((state) => state.user?.user);
 
     const currentUser = {
-        id: user?.id || user?.username || 'unknown-id',
-        name: user?.name || 'Visitante', 
-        username: user?.username || 'unknown_user',
+        id: user?.id || user?._id || 'unknown-id',
+        name: user?.name || user?.username || 'Visitante', 
+        username: user?.username || user?.name || 'unknown_user',
     };
     
     const queue = useSelector(state => state.player.queue || []);

@@ -133,10 +133,9 @@ function PlaylistDetalhe() {
     const dispatch = useDispatch();
     
     const { currentSong, isPlaying } = useSelector(state => state.player);
-    const likedSongsFromRedux = useSelector(state => 
-        state.auth.userPlaylistsDetail.find(p => p.id === '0')?.songs || []
-    );
-    const userPlaylists = useSelector(state => state.auth.userPlaylistsDetail || []);
+    const userPlaylistsDetail = useSelector(state => state.auth.userPlaylistsDetail || []);
+    const likedSongsFromRedux = userPlaylistsDetail.find(p => p.id === '0')?.songs || [];
+    const userPlaylists = userPlaylistsDetail;
 
     const [playlistDetails, setPlaylistDetails] = useState(null);
     const [localSongs, setLocalSongs] = useState([]);

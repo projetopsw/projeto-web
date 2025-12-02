@@ -83,8 +83,9 @@ function Playlists() {
     const dispatch = useDispatch();
     const location = useLocation();
     
-    const { user, userPlaylistsDetail } = useSelector(state => state.auth);
-    const USER_ID = user?.id; 
+    const user = useSelector(state => state.user?.user);
+    const userPlaylistsDetail = useSelector(state => state.auth?.userPlaylistsDetail);
+    const USER_ID = user?.id || user?._id; 
     const userLikedSongs = user?.likedSongs || []; 
 
     const [playlists, setPlaylists] = useState([]); 
@@ -105,7 +106,7 @@ function Playlists() {
             const playlistsResponses = await Promise.all(playlistsPromises);
             let userAllPlaylists = playlistsResponses.map(res => res.data);
             
-            let userCustomPlaylists = userAllPlaylists.filter(p => p.id !== LIKED_SONGS_PLAYLIST.id);
+            let userCustomPlaylists = userAllPlaylists.filter(p => String(p.id || p._id) !== String(LIKED_SONGS_PLAYLIST.id));
 
             const updatedLikedPlaylist = {
                 ...LIKED_SONGS_PLAYLIST,

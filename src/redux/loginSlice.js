@@ -78,10 +78,11 @@ export const toggleLikeSongAsync = createAsyncThunk(
         try {
             const songsToToggle = currentLikedSongs || (await api.get(`/users/${userId}`)).data.likedSongs || [];
             
-            const isLiked = songsToToggle.includes(songId);
+            const songIdStr = String(songId);
+            const isLiked = songsToToggle.some(id => String(id) === songIdStr);
     
             const newLikedSongs = isLiked
-                ? songsToToggle.filter(id => id !== songId)
+                ? songsToToggle.filter(id => String(id) !== songIdStr)
                 : [...songsToToggle, songId];
 
             await api.patch(`/users/${userId}`, { likedSongs: newLikedSongs });
@@ -89,18 +90,25 @@ export const toggleLikeSongAsync = createAsyncThunk(
             return newLikedSongs; 
 
         } catch (error) {
-            return rejectWithValue(error.response?.data || 'Falha ao curtir música.');
+            console.error("Erro ao fazer toggle de like:", error.response?.data || error.message);
+            return rejectWithValue(error.response?.data?.message || 'Falha ao curtir música.');
         }
     }
 );
 
 export const addSongToPlaylistAsync = createAsyncThunk(
     'auth/addSongToPlaylist',
-    async ({ userId, playlistId, songId }, { rejectWithValue, dispatch }) => {
+    async ({ userId, playlistId, songId, currentLikedSongs }, { rejectWithValue, dispatch }) => {
         try {
             if (playlistId === LIKED_SONGS_ID) {
-                const result = await dispatch(toggleLikeSongAsync({ userId, songId })).unwrap();
-                const isNowInList = result.includes(songId);
+                const result = await dispatch(toggleLikeSongAsync({ 
+                    userId, 
+                    songId,
+                    currentLikedSongs 
+                })).unwrap();
+                
+                const songIdStr = String(songId);
+                const isNowInList = result.some(id => String(id) === songIdStr);
                 
                 return { 
                     songId, 
@@ -113,7 +121,10 @@ export const addSongToPlaylistAsync = createAsyncThunk(
                 const playlistResponse = await api.get(`/userPlaylists/${playlistId}`);
                 const currentSongs = playlistResponse.data.songs || [];
 
-                if (!currentSongs.includes(songId)) {
+                const songIdStr = String(songId);
+                const isSongAlreadyInPlaylist = currentSongs.some(id => String(id) === songIdStr);
+
+                if (!isSongAlreadyInPlaylist) {
                     const updatedSongs = [...currentSongs, songId];
                     await api.patch(`/userPlaylists/${playlistId}`, { songs: updatedSongs });
                     
@@ -123,7 +134,8 @@ export const addSongToPlaylistAsync = createAsyncThunk(
                 return { songId: null, playlistId, added: false, message: "Música já está nesta playlist." };
             }
         } catch (error) {
-            return rejectWithValue(error.message || 'Falha ao adicionar música à playlist.');
+            console.error("Erro ao adicionar música à playlist:", error.response?.data || error.message);
+            return rejectWithValue(error.response?.data?.message || error.message || 'Falha ao adicionar música à playlist.');
         }
     }
 );

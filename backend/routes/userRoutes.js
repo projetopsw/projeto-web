@@ -23,7 +23,8 @@ router.get('/me', verifyToken, getMyProfile);
 router.get('/:id', getUserById);
 router.get('/', getAllUsers);
 router.put('/:id', verifyToken, updateUserController);
+router.patch('/:id', verifyToken, updateUserController);
 router.delete('/:id', verifyToken, deleteUserController);
-router.post('/like', LikeController.likeSong);
+router.post('/like', verifyToken, LikeController.likeSong);
 
 export default router;

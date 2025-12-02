@@ -94,6 +94,6 @@ router.delete('/:id', checkObjectId, async (req, res) => {
     }
 });
 
-router.post('/:musicaId/interacao', MusicaController.toggleLikeDislike);
+router.post('/:musicaId/interacao', verifyToken, MusicaController.toggleLikeDislike);
 
 export default router;
