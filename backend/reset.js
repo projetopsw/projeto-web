@@ -1,17 +1,10 @@
-//
-//
-// SÓ SERVE PARA CASO DE PERDER A SENHA E QUERER REDEFINIR
-//
-//
 
 import mongoose from 'mongoose';
 import User from './models/user.model.js';
 import 'dotenv/config'; 
 
 const DB = 'mongodb+srv://anaisabelmatiasb_db_user:WWYrYbqyMnsIUEKD@moosica.nvvuzox.mongodb.net/?appName=Moosica'
-//MUDE O EMAIL ABAIXO
 const ADMIN_EMAIL = 'igor@email.com';
-//MUDE O HASH ABAIXO PARA O HASH QUE VOCÊ GEROU NO tempHash.js
 const NOVO_HASH = '$2b$10$ZB1KS.UxSRlKBCo5OEldUeOZ9AYjrxImFa7lcBEzOrRmRQFutcUt2'; 
 
 async function resetPassword() {

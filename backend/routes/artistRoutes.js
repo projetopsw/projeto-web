@@ -1,6 +1,6 @@
 import express from 'express';
 import Artist from '../models/artist.model.js';
-import mongoose from 'mongoose'; // Importado para checagem de ObjectId
+import mongoose from 'mongoose'; 
 // import { verifyToken } from '../middleware/authMiddleware.js'; // Assumindo que está importado/usado em outras rotas
 import { getArtistById, getArtistAlbums, getArtistTopTracks } from "../controller/artistController.js";
 

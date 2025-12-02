@@ -1,12 +1,6 @@
-//
-//
-// CRIA UM NOVO HASH PARA BOTAR DE SENHA
-//
-//
 
 import bcrypt from 'bcryptjs';
 
-// TROQUE A NOVA SENHA AQUI
 const NOVA_SENHA = 'Igor'; 
 
 async function generateHash() {

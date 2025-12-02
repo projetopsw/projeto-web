@@ -104,41 +104,30 @@ export const getArtistTopTracks = async (req, res) => {
     const { id } = req.params; 
 
     try {
-        // 1. Identificar o Artista no Banco
         let query = id.match(/^[0-9a-fA-F]{24}$/) ? { _id: id } : { spotifyId: id };
         let artist = await Artist.findOne(query);
 
         if (!artist && !id.match(/^[0-9a-fA-F]{24}$/)) {
-            // Se não achou e é ID do Spotify, tenta criar
              const spArtist = await spotifyGet(`/artists/${id}`);
              if(spArtist) artist = await upsertArtist(spArtist);
         }
 
         if (!artist) return res.status(404).json({ message: "Artista não encontrado" });
 
-        // 2. Busca Híbrida: Tenta pegar do Spotify para garantir que são os HITS reais
-        // O endpoint é /artists/{id}/top-tracks?market=BR
         if (artist.spotifyId) {
             const spTopTracks = await spotifyGet(`/artists/${artist.spotifyId}/top-tracks?market=BR`);
 
             if (spTopTracks && spTopTracks.tracks) {
-                // Salva/Atualiza essas músicas no seu banco
                 const trackPromises = spTopTracks.tracks.map(async (spTrack) => {
-                    // Garante artistas da música
                     const artistPromises = spTrack.artists.map(a => upsertArtist(a));
                     const artistDocs = await Promise.all(artistPromises);
                     const artistIds = artistDocs.map(d => d._id);
 
-                    // Precisamos do ID do álbum para salvar a track corretamente (mesmo que seja single)
-                    // Na lista de top-tracks, o álbum vem simplificado, mas serve.
                     let albumId = null;
                     if (spTrack.album) {
-                        // Opcional: Poderíamos salvar o álbum aqui também, mas para agilizar,
-                        // vamos focar na track. Se quiser salvar álbum, chame upsertAlbum aqui.
+            
                     }
 
-                    // Usa sua função auxiliar de salvar track (certifique-se que ela existe neste arquivo ou importada)
-                    // Se não tiver a função upsertTrack solta, use a lógica do mapTrack + findOneAndUpdate direto:
                     const trackData = mapTrack(spTrack, artistIds, albumId);
                     
                     return await Song.findOneAndUpdate(
@@ -153,7 +142,6 @@ export const getArtistTopTracks = async (req, res) => {
             }
         }
 
-        // 3. Fallback: Se falhar no Spotify, busca o que temos localmente ordenado por popularidade
         const localTopSongs = await Song.find({ artists: artist._id })
             .sort({ popularity: -1 })
             .limit(10)

@@ -86,7 +86,6 @@ router.get('/callback', async (req, res) => {
         
         const moosicaToken = generateJWT(user); 
 
-        // Redireciona para o Frontend na rota /callback com o token
         res.redirect(`http://localhost:5173/callback?token=${moosicaToken}`); 
         
     } catch (error) {

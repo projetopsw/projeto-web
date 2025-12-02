@@ -13,13 +13,10 @@ const isAuthenticated = (req, res, next) => {
 
 const getPlaylists = async (req, res, next) => {
   try {
-    // Busca todas as playlists no banco
     const playlists = await Playlist.find();
     
-    // Retorna status 200 (OK) e o array de dados
     res.status(200).json(playlists);
   } catch (err) {
-    // Se der erro no banco, repassa o erro (vai gerar o erro 500)
     next(err);
   }
 };

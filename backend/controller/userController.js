@@ -75,17 +75,13 @@ export const getMyProfile = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
     try {
-        const { id } = req.query;
-        let query = {};
+        const users = await User.find({}).select('-password -refresh_token_spotify -access_token_spotify'); 
+    
+        return res.status(200).json(users);
         
-        if (id) {
-            query._id = { $in: Array.isArray(id) ? id : [id] }; 
-        }
-
-        const users = await User.find(query, 'username email img role createdAt updatedAt'); 
-        res.json(users);
     } catch (error) {
-        res.status(500).json({ message: 'Erro ao buscar todos os usuários.', error: error.message });
+        console.error("Erro ao buscar todos os usuários:", error);
+        return res.status(500).json({ message: 'Erro interno do servidor ao carregar usuários.', error: error.message });
     }
 };
 
