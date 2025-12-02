@@ -21,6 +21,7 @@
     "genius-lyrics": "^4.4.7",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.20.0",
+    "multer": "^2.0.2",
     "session-store": "^0.0.3"
   },
   "devDependencies": {

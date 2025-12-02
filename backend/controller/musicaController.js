@@ -1,11 +1,32 @@
 import Musica from '../models/song.model.js'; 
+import User from '../models/user.model.js'; 
+
+const convertDurationToSeconds = (durationString) => {
+    if (!durationString || typeof durationString !== 'string') {
+        return 0;
+    }
+    const parts = durationString.split(':').map(p => parseInt(p, 10));
+    
+    if (parts.length === 2) {
+        const minutes = parts[0] || 0;
+        const seconds = parts[1] || 0;
+        return minutes * 60 + seconds;
+    } 
+    return 0;
+};
+
+const getArtistIdFromAuth = (req) => {
+    return req.userId; 
+};
+
+const API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:3000'; 
 
 const MusicaController = {
     
     getMusicas: async (req, res) => {
         try {
             const musicas = await Musica.find({})
-                .populate('artists', 'name')
+                .populate('artists', 'username img')
                 .populate('album', 'title cover');
             
             res.status(200).json(musicas);
@@ -15,16 +36,87 @@ const MusicaController = {
     },
     
     createMusica: async (req, res) => {
+        
+        const {
+            title, 
+            duration,         
+            descricao,        
+            letra,            
+            generos,          
+            recordLabel,      
+        } = req.body;
+        
+        if (!req.files || !req.files.arquivoMusica || !req.files.arquivoCapa) {
+             return res.status(400).json({ message: 'Arquivos de música e capa são obrigatórios.' });
+        }
+        
+        if (!title || !duration || !generos) {
+            return res.status(400).json({ message: 'Dados de música incompletos (título, duração e gênero são obrigatórios).' });
+        }
+        
         try {
-            const novaMusica = new Musica(req.body);
+            
+            const durationInSeconds = convertDurationToSeconds(duration);
+
+            if (durationInSeconds === 0) {
+                 return res.status(400).json({ message: 'Duração da música inválida.' });
+            }
+            
+            const artistId = getArtistIdFromAuth(req); 
+            if (!artistId) {
+                return res.status(401).json({ message: 'Falha na autenticação: ID do usuário (artista) ausente na requisição.' });
+            }
+
+            const musicaFilename = req.files.arquivoMusica[0].filename;
+            const capaFilename = req.files.arquivoCapa[0].filename;
+            
+            const finalCaminho = `${API_BASE_URL}/music_files/${musicaFilename}`; 
+            const finalCoverUrl = `${API_BASE_URL}/cover_images/${capaFilename}`;
+            
+            let finalGenres = generos;
+            if (typeof generos === 'string') {
+                 try {
+                     finalGenres = JSON.parse(generos);
+                 } catch (e) {
+                     finalGenres = [generos];
+                 }
+            }
+            
+            const musicData = {
+                title: title,
+                duration: durationInSeconds,
+                
+                description: descricao,
+                lyrics: letra,
+                recordLabel: recordLabel,
+                
+                caminho: finalCaminho,
+                cover: finalCoverUrl,
+                
+                artists: [artistId], 
+                
+                genres: finalGenres,
+                releaseDate: new Date(),
+            };
+            
+            const novaMusica = new Musica(musicData);
             await novaMusica.save();
             
+            await User.findByIdAndUpdate(artistId, {
+                $push: { myMusics: novaMusica._id }
+            }, { new: true });
+            
             res.status(201).json(novaMusica);
+            
         } catch (error) {
             if (error.code === 11000) {
-                return res.status(409).json({ message: 'Música com este ID/ISRC já existe.' });
+                 return res.status(409).json({ message: 'Música com este ID/ISRC já existe.' });
             }
-            res.status(400).json({ message: 'Falha ao criar música.', error: error.message });
+            if (error.name === 'ValidationError') {
+                 return res.status(400).json({ message: 'Erro de validação nos dados da música.', error: error.message });
+            }
+            
+            res.status(500).json({ message: 'Falha ao criar música (Erro interno do servidor).', error: error.message });
         }
     },
     
@@ -58,6 +150,13 @@ const MusicaController = {
                 return res.status(404).json({ message: 'Música não encontrada.' });
             }
             
+            const artistId = musicaDeletada.artists[0];
+            if (artistId) {
+                await User.findByIdAndUpdate(artistId, {
+                    $pull: { myMusics: musicaId }
+                });
+            }
+
             res.status(200).json({ message: 'Música deletada com sucesso.' });
         } catch (error) {
             res.status(500).json({ message: 'Falha ao deletar música.', error: error.message });
@@ -77,9 +176,9 @@ const MusicaController = {
 
             let userAction = null;
             if (userId) {
-                if (musica.likes.includes(userId)) {
+                if (musica.likes.map(id => id.toString()).includes(userId)) {
                     userAction = 'like';
-                } else if (musica.dislikes.includes(userId)) {
+                } else if (musica.dislikes.map(id => id.toString()).includes(userId)) {
                     userAction = 'dislike';
                 }
             }
@@ -148,7 +247,6 @@ const MusicaController = {
             });
 
         } catch (error) {
-            console.error("Erro ao processar like/dislike:", error);
             res.status(500).json({ message: 'Erro interno do servidor.', error: error.message });
         }
     }

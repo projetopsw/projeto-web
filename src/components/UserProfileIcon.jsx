@@ -32,6 +32,11 @@ function UserProfileIcon() {
     handleClose();
   };
 
+const handleUploadClick = () => {
+    navigate('/upload');
+    handleClose();
+  };
+
   const handleAdminClick = () => {
     navigate('/admin');
     handleClose();
@@ -112,6 +117,8 @@ function UserProfileIcon() {
         <div style={{ borderBottom: '1px solid var(--border-color)', margin: '5px 0' }}></div>
 
         <MenuItem onClick={handleProfileClick}>Ver Perfil</MenuItem>
+
+        <MenuItem onClick={handleUploadClick}>Upload de Músicas</MenuItem>
         
         {isAdmin && (
           <MenuItem onClick={handleAdminClick} sx={{ fontWeight: 'bold', color: 'var(--orange)' }}>

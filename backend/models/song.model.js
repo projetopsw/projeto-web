@@ -23,7 +23,9 @@ const songSchema = new Schema({
     popularity: { type: Number, default: 0 },
     releaseDate: { type: Date }, 
     spotifyUrl: { type: String, default: '' },
-    
+    description: { type: String, default: '' },
+    recordLabel: { type: String, default: 'Independente' },
+
     genres: [{ 
         type: String, 
         enum: VALID_GENRES, 

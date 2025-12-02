@@ -1,7 +1,11 @@
 import express from 'express';
 import Song from '../models/song.model.js'; 
 import { getSongLyrics } from '../controller/lyricsController.js';
+import MusicaController from '../controller/musicaController.js';
+import uploadMusicaMiddleware from '../middleware/uploadMusica.js';
 import mongoose from 'mongoose';
+import Multer from 'multer';
+import { verifyToken } from '../middleware/authMiddleware.js'; 
 
 const router = express.Router();
 
@@ -12,31 +16,26 @@ const checkObjectId = (req, res, next) => {
     next();
 };
 
-router.post('/', async (req, res) => {
-    try {
-        const newSong = new Song(req.body);
-        const savedSong = await newSong.save();
-        await savedSong.populate('artists', 'name').populate('album', 'title');
-        res.status(201).json(savedSong);
-    } catch (error) {
-        if (error.name === 'ValidationError') {
-             res.status(400).json({ message: error.message });
-        } else {
-             res.status(500).json({ message: 'Erro ao criar a música', error: error.message });
+router.post('/', verifyToken, (req, res, next) => {
+    uploadMusicaMiddleware(req, res, function (err) {
+        if (err instanceof Multer.MulterError) {
+            return res.status(400).json({ message: "Erro de Upload: " + err.message });
+        } else if (err) {
+            return res.status(400).json({ message: err.message });
         }
-    }
-});
+        next(); 
+    });
+}, MusicaController.createMusica);
 
 router.get('/', async (req, res) => {
     try {
         const songs = await Song.find({})
-            .populate('artists', 'name') 
+            .populate('artists', 'name img') 
             .populate('album', 'title')
             .lean();
 
         res.status(200).json(songs);
     } catch (error) {
-        console.error("Erro no GET /songs:", error);
         res.status(500).json({ message: 'Erro ao buscar as músicas', error: error.message });
     }
 });
@@ -44,7 +43,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', checkObjectId, async (req, res) => {
     try {
         const song = await Song.findById(req.params.id)
-            .populate('artists', 'name')
+            .populate('artists', 'name img')
             .populate('album', 'title')
             .lean();
 
@@ -66,7 +65,7 @@ router.put('/:id', checkObjectId, async (req, res) => {
             req.body,
             { new: true, runValidators: true }
         )
-        .populate('artists', 'name')
+        .populate('artists', 'name img')
         .populate('album', 'title');
 
         if (!updatedSong) {
@@ -95,6 +94,6 @@ router.delete('/:id', checkObjectId, async (req, res) => {
     }
 });
 
-// router.post('/:musicaId/interacao', MusicaController.toggleLikeDislike);
+router.post('/:musicaId/interacao', MusicaController.toggleLikeDislike);
 
 export default router;

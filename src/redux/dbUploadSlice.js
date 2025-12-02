@@ -3,26 +3,29 @@ import { API_BASE_URL } from '../services/api';
 
 export const uploadMusicaToDB = createAsyncThunk(
     'dbUpload/uploadMusica',
-    async (musicaData, { rejectWithValue }) => {
+    async ({ formData, token }, { rejectWithValue }) => {
         try {
+            if (!token) {
+                return rejectWithValue("Token de autenticação ausente. Por favor, faça login.");
+            }
             const response = await fetch(`${API_BASE_URL}/songs`, { 
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
                 },
-                body: JSON.stringify(musicaData),
+                body: formData,
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                return rejectWithValue(errorData);
+                const errorMessage = errorData.message || `Erro do servidor: ${response.status}`;
+                return rejectWithValue(errorMessage);
             }
 
             const data = await response.json();
             return data; 
         } catch (error) {
-            console.error("Erro ao fazer upload para o DB:", error);
-            return rejectWithValue("Falha ao conectar ou enviar dados para a API (Verifique o JSON Server).");
+            return rejectWithValue("Falha ao conectar ou enviar dados para a API.");
         }
     }
 );
@@ -32,11 +35,13 @@ const dbUploadSlice = createSlice({
     initialState: {
         status: 'idle', 
         error: null,
+        uploadedSongData: null, 
     },
     reducers: {
         resetUploadStatus: (state) => {
             state.status = 'idle';
             state.error = null;
+            state.uploadedSongData = null;
         }
     },
     extraReducers: (builder) => {
@@ -44,9 +49,11 @@ const dbUploadSlice = createSlice({
             .addCase(uploadMusicaToDB.pending, (state) => {
                 state.status = 'loading';
                 state.error = null;
+                state.uploadedSongData = null;
             })
-            .addCase(uploadMusicaToDB.fulfilled, (state) => {
+            .addCase(uploadMusicaToDB.fulfilled, (state, action) => {
                 state.status = 'succeeded';
+                state.uploadedSongData = action.payload; 
             })
             .addCase(uploadMusicaToDB.rejected, (state, action) => {
                 state.status = 'failed';

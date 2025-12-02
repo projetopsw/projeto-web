@@ -20,7 +20,11 @@ const userSchema = new Schema({
         type: String, 
         default: [] 
     }],
-
+    
+    myMusics: [{ 
+        type: Schema.Types.ObjectId, 
+        ref: 'Musica' 
+    }],
 
 }, { timestamps: true });
 
