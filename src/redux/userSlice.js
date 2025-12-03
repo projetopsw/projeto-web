@@ -98,33 +98,16 @@ const userSlice = createSlice({
         // foi modificado no loginSlice.js para retornar o objeto do usuário completo.
         
         builder.addCase(loginUserAsync.fulfilled, (state, action) => {
-            // Reutiliza o reducer setUserData para normalizar e salvar o usuário completo.
-            // Nota: O payload de loginUserAsync DEVE ser o objeto do usuário completo (com ID e Token).
-            if (action.payload && action.payload.user) {
-                userSlice.caseReducers.setUserData(state, { payload: action.payload.user });
-            } else if (action.payload && action.payload.token) {
-                // Caso o loginSlice retorne APENAS o token, forçamos o load de dados, mas é menos ideal.
-                // O melhor é que o loginSlice retorne o objeto completo do usuário.
-                // Aqui vamos assumir a estrutura que você tinha em loginSlice: { user, token }
-                const { user, token } = action.payload;
-                if (user && token) {
-                    userSlice.caseReducers.setUserData(state, { payload: { ...user, token } });
-                }
+            // O thunk retorna { userWithToken }
+            const userWithToken = action.payload?.userWithToken;
+            if (userWithToken) {
+                userSlice.caseReducers.setUserData(state, { payload: userWithToken });
             }
         });
 
         builder.addCase(handleSpotifyCallback.fulfilled, (state, action) => {
-            // Reutiliza o reducer setUserData para normalizar e salvar o usuário completo.
-            // Nota: O payload de handleSpotifyCallback DEVE ser o objeto do usuário completo (com ID e Token).
-            if (action.payload && action.payload.user) {
-                userSlice.caseReducers.setUserData(state, { payload: action.payload.user });
-            } else if (action.payload && action.payload.token) {
-                // Caso o loginSlice retorne APENAS o token, forçamos o load de dados, mas é menos ideal.
-                const { user, token } = action.payload;
-                if (user && token) {
-                    userSlice.caseReducers.setUserData(state, { payload: { ...user, token } });
-                }
-            }
+            // O thunk retorna apenas { token } e já despacha setUserData com o usuário completo antes.
+            // Nada adicional é necessário aqui.
         });
 
         builder.addCase(toggleLikeSongAsync.fulfilled, (state, action) => {

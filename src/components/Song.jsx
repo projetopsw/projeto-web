@@ -96,6 +96,13 @@ export default function Song({ song }) {
                 currentLikedSongs: userLikedSongs,
             })).unwrap();
 
+            // Atualiza detalhes das playlists (inclui playlist virtual de curtidas)
+            try {
+                dispatch(fetchUserPlaylistsDetail(user.id || user._id));
+            } catch (e) {
+                console.warn('Não foi possível atualizar as playlists do usuário após like.', e);
+            }
+
             if (!wasLiked) {
                 
                 try {

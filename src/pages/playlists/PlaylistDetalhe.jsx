@@ -33,10 +33,10 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useSelector, useDispatch } from 'react-redux';
 import { setQueue, togglePlayPause } from '../../redux/playerSlice';
+import { fetchUserPlaylistsDetail } from '../../redux/loginSlice';
 import api from '../../services/api';
 
 const INACTIVE_ICON_COLOR = 'var(--secondary-text-color)';
-const USER_ID = "1"; 
 const LIKED_SONGS_COVER = '/assets/img/liked_cover_0.png';
 const DEFAULT_PLAYLIST_COVER = '/assets/img/vacateste.jpg';
 
@@ -134,8 +134,11 @@ function PlaylistDetalhe() {
     
     const { currentSong, isPlaying } = useSelector(state => state.player);
     const userPlaylistsDetail = useSelector(state => state.auth.userPlaylistsDetail || []);
+    const user = useSelector(state => state.user?.user);
+    const USER_ID = user?._id || user?.id || '';
     const likedSongsFromRedux = userPlaylistsDetail.find(p => p.id === '0')?.songs || [];
     const userPlaylists = userPlaylistsDetail;
+    const playlistsStatus = useSelector(state => state.auth.playlistsStatus);
 
     const [playlistDetails, setPlaylistDetails] = useState(null);
     const [localSongs, setLocalSongs] = useState([]);
@@ -164,9 +167,20 @@ function PlaylistDetalhe() {
         setIsLoading(true);
         try {
             if (id === '0') {
-                const songsPromises = likedSongsFromRedux.map(songId => api.get(`/songs/${songId}`));
-                const songsResponses = await Promise.all(songsPromises);
-                const songs = songsResponses.map(res => res.data);
+                // Aguarda playlists carregarem (inclui playlist virtual de curtidas)
+                if (playlistsStatus !== 'succeeded') {
+                    setIsLoading(true);
+                    return;
+                }
+
+                let songs = [];
+                if (likedSongsFromRedux && likedSongsFromRedux.length > 0) {
+                    const songsPromises = likedSongsFromRedux.map(songId => api.get(`/songs/${songId}`));
+                    const results = await Promise.allSettled(songsPromises);
+                    songs = results
+                        .filter(r => r.status === 'fulfilled')
+                        .map(r => r.value.data);
+                }
                 
                 const likedPlaylistData = {
                     id: '0',
@@ -186,13 +200,15 @@ function PlaylistDetalhe() {
                 return;
             }
 
-            const playlistResponse = await api.get(`/userPlaylists/${id}`);
+            const playlistResponse = await api.get(`/playlists/${id}`);
             let playlistData = playlistResponse.data;
             let songIds = playlistData.songs || [];
 
             const songsPromises = songIds.map(songId => api.get(`/songs/${songId}`));
-            const songsResponses = await Promise.all(songsPromises);
-            const songs = songsResponses.map(res => res.data);
+            const results = await Promise.allSettled(songsPromises);
+            const songs = results
+                .filter(r => r.status === 'fulfilled')
+                .map(r => r.value.data);
             
             const updatedPlaylist = {
                 ...playlistData,
@@ -219,7 +235,17 @@ function PlaylistDetalhe() {
 
     useEffect(() => {
         fetchPlaylistData();
-    }, [id, likedSongsFromRedux.length]); 
+    }, [id, likedSongsFromRedux.length, playlistsStatus]); 
+
+    // Garante que a playlist virtual de curtidas esteja disponível ao entrar nesta página
+    useEffect(() => {
+        if (id === '0' && USER_ID) {
+            // Se ainda não carregou as playlists do usuário, requisita
+            if (playlistsStatus !== 'succeeded') {
+                try { dispatch(fetchUserPlaylistsDetail(USER_ID)); } catch {}
+            }
+        }
+    }, [id, USER_ID, playlistsStatus, dispatch]); 
     
     useEffect(() => {
         setLocalSongs(prevSongs => sortSongs(prevSongs, sortKey));
@@ -254,7 +280,7 @@ function PlaylistDetalhe() {
             };
 
             try {
-                await api.patch(`/userPlaylists/${id}`, updatedData);
+                await api.patch(`/playlists/${id}`, updatedData);
                 fetchPlaylistData();
                 handleCloseEditModal();
             } catch (error) {
@@ -269,15 +295,10 @@ function PlaylistDetalhe() {
         if (id === "0") return;
         if (window.confirm(`Tem certeza que deseja excluir a playlist "${playlistDetails.name}"?`)) {
             try {
-                await api.delete(`/userPlaylists/${id}`);
+                await api.delete(`/playlists/${id}`);
 
-                const userResponse = await api.get(`/users/${USER_ID}`);
-                const currentUserPlaylists = userResponse.data.userPlaylists || [];
-                const updatedPlaylistsList = currentUserPlaylists.filter(plId => plId !== id);
-
-                await api.patch(`/users/${USER_ID}`, { userPlaylists: updatedPlaylistsList });
-
-                navigate('/playlists'); 
+                // Backend já remove a referência do usuário. Apenas navegar e deixar a lista atualizar.
+                 navigate('/playlists'); 
             } catch (error) {
                 console.error("Erro ao excluir playlist:", error);
                 alert("Não foi possível excluir a playlist.");
@@ -315,7 +336,7 @@ function PlaylistDetalhe() {
         const songIdsToAdd = songOptionsSong ? [songOptionsSong.id] : localSongs.map(song => song.id);
 
         try {
-            const targetPlaylistResponse = await api.get(`/userPlaylists/${targetPlaylistId}`);
+            const targetPlaylistResponse = await api.get(`/playlists/${targetPlaylistId}`);
             const targetPlaylist = targetPlaylistResponse.data;
             
             const existingSongs = new Set(targetPlaylist.songs || []);
@@ -323,7 +344,7 @@ function PlaylistDetalhe() {
             
             if (songsSuccessfullyAdded.length > 0) {
                 const newSongsList = [...(targetPlaylist.songs || []), ...songsSuccessfullyAdded];
-                await api.patch(`/userPlaylists/${targetPlaylistId}`, { songs: newSongsList });
+                await api.patch(`/playlists/${targetPlaylistId}`, { songs: newSongsList });
                 alert(`${songsSuccessfullyAdded.length} música(s) adicionada(s) à playlist "${targetPlaylist.name}" com sucesso!`);
             } else {
                 alert("As músicas selecionadas já estão nesta playlist.");
@@ -373,7 +394,7 @@ function PlaylistDetalhe() {
                 setLocalSongs(newLocalSongs);
 
                 const newSongIds = newLocalSongs.map(song => song.id);
-                await api.patch(`/userPlaylists/${id}`, { songs: newSongIds });
+                await api.patch(`/playlists/${id}`, { songs: newSongIds });
                 
                 fetchPlaylistData();
                 
@@ -464,7 +485,7 @@ function PlaylistDetalhe() {
 
         try {
             const newSongIds = newSongs.map(song => song.id);
-            await api.patch(`/userPlaylists/${id}`, { songs: newSongIds });
+            await api.patch(`/playlists/${id}`, { songs: newSongIds });
             
         } catch (error) {
             console.error("Erro ao salvar nova ordem da playlist:", error);

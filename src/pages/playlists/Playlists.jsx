@@ -102,7 +102,7 @@ function Playlists() {
             
             const likedSongsCount = (userData.likedSongs || []).filter(id => id).length; 
 
-            const playlistsPromises = userPlaylistsIds.map(id => api.get(`/userPlaylists/${id}`));
+            const playlistsPromises = userPlaylistsIds.map(id => api.get(`/playlists/${id}`));
             const playlistsResponses = await Promise.all(playlistsPromises);
             let userAllPlaylists = playlistsResponses.map(res => res.data);
             
@@ -155,31 +155,24 @@ function Playlists() {
             try {
                 const newPlaylist = {
                     name,
-                    creatorId: USER_ID,
-                    img: DEFAULT_PLAYLIST_COVER, 
-                    type: "Playlist do Usuário",
-                    description: `Playlist criada por ${user.name || 'usuário'}.`, 
-                    songs: [], 
-                    duration: "0 min",
-                    songCount: 0,
+                    user: USER_ID,
+                    img: DEFAULT_PLAYLIST_COVER,
+                    description: `Playlist criada por ${user?.name || user?.username || 'usuário'}.`,
+                    songs: [],
                 };
                 
-                const response = await api.post('/userPlaylists', newPlaylist);
+                const response = await api.post('/playlists', newPlaylist);
                 const createdPlaylist = response.data;
 
-                const userResponse = await api.get(`/users/${USER_ID}`);
-                const currentUserPlaylists = userResponse.data.userPlaylists || [];
-                
-                const updatedPlaylistsList = [...currentUserPlaylists, createdPlaylist.id];
-
-                await api.patch(`/users/${USER_ID}`, { userPlaylists: updatedPlaylistsList });
-                
+                // O backend já adiciona a nova playlist em user.userPlaylists.
+                // Apenas recarregamos a lista local.
                 fetchPlaylists(); 
                 handleClose();
 
             } catch (error) {
                 console.error("Erro ao criar playlist:", error);
-                alert("Não foi possível criar a playlist. Verifique a conexão com o json-server.");
+                const detail = error?.response?.data?.message || error.message || '';
+                alert(`Não foi possível criar a playlist. Detalhe: ${detail}`);
             }
         }
     };

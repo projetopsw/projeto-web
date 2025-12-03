@@ -118,7 +118,7 @@ export const addSongToPlaylistAsync = createAsyncThunk(
                 };
             } 
             else {
-                const playlistResponse = await api.get(`/userPlaylists/${playlistId}`);
+                const playlistResponse = await api.get(`/playlists/${playlistId}`);
                 const currentSongs = playlistResponse.data.songs || [];
 
                 const songIdStr = String(songId);
@@ -126,7 +126,7 @@ export const addSongToPlaylistAsync = createAsyncThunk(
 
                 if (!isSongAlreadyInPlaylist) {
                     const updatedSongs = [...currentSongs, songId];
-                    await api.patch(`/userPlaylists/${playlistId}`, { songs: updatedSongs });
+                    await api.patch(`/playlists/${playlistId}`, { songs: updatedSongs });
                     
                     return { songId, playlistId, updatedSongs, added: true, message: "Adicionada à playlist com sucesso!" };
                 }
@@ -145,12 +145,25 @@ export const fetchUserPlaylistsDetail = createAsyncThunk(
     async (userId, { rejectWithValue }) => {
         try {
             const userResponse = await api.get(`/users/${userId}`);
-            const userPlaylistsIds = userResponse.data.userPlaylists || []; 
+            const userData = userResponse.data || {};
+            const userPlaylistsIds = userData.userPlaylists || [];
+
+            // Playlist virtual de Músicas Curtidas (id "0") baseada em likedSongs do usuário
+            const likedSongs = (userData.likedSongs || []).filter(Boolean);
+            const likedVirtual = {
+                id: '0',
+                name: 'Músicas Curtidas',
+                img: '/assets/img/liked_cover_0.png',
+                songs: likedSongs,
+                songCount: likedSongs.length,
+                duration: `${likedSongs.length} músicas`,
+            };
             
-            const promises = userPlaylistsIds.map(id => api.get(`/userPlaylists/${id}`));
+            const promises = userPlaylistsIds.map(id => api.get(`/playlists/${id}`));
             const responses = await Promise.all(promises);
 
-            return responses.map(response => response.data);
+            const realPlaylists = responses.map(response => response.data);
+            return [likedVirtual, ...realPlaylists];
         } catch (error) {
             return rejectWithValue(error.response?.data || 'Falha ao buscar detalhes das playlists.');
         }
@@ -220,12 +233,16 @@ const authSlice = createSlice({
     extraReducers: (builder) => {
         builder
             .addCase(loginUserAsync.fulfilled, (state, action) => {
-                const { token } = action.payload;
-                
-                state.isAuthenticated = true;
-                state.token = token;
-                state.loginError = null;
-                localStorage.setItem('token', token); 
+                const token = action.payload?.userWithToken?.token;
+                if (token) {
+                    state.isAuthenticated = true;
+                    state.token = token;
+                    state.loginError = null;
+                    localStorage.setItem('token', token);
+                } else {
+                    state.isAuthenticated = false;
+                    state.token = null;
+                }
             })
             .addCase(loginUserAsync.rejected, (state, action) => {
                 state.loginError = action.payload;
@@ -235,11 +252,16 @@ const authSlice = createSlice({
             })
 
             .addCase(handleSpotifyCallback.fulfilled, (state, action) => {
-                const { token } = action.payload;
-                
-                state.isAuthenticated = true;
-                state.token = token;
-                state.loginError = null;
+                const token = action.payload?.token;
+                if (token) {
+                    state.isAuthenticated = true;
+                    state.token = token;
+                    state.loginError = null;
+                    localStorage.setItem('token', token);
+                } else {
+                    state.isAuthenticated = false;
+                    state.token = null;
+                }
             })
             .addCase(handleSpotifyCallback.rejected, (state, action) => {
                 state.loginError = action.payload;

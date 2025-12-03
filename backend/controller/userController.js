@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model.js';
+import mongoose from 'mongoose';
 
 const generateToken = (user) => {
     return jwt.sign(
@@ -124,6 +125,33 @@ export const updateUserController = async (req, res) => {
         delete otherUpdateData.access_token_spotify;
         
         const updateData = { ...otherUpdateData };
+
+        // Normaliza e valida likedSongs para ObjectId válidos
+        if (Array.isArray(updateData.likedSongs)) {
+            try {
+                const converted = updateData.likedSongs.map((val) => {
+                    if (val instanceof mongoose.Types.ObjectId) {
+                        return val;
+                    }
+                    if (val && typeof val === 'object' && val._id) {
+                        if (mongoose.Types.ObjectId.isValid(val._id)) {
+                            return new mongoose.Types.ObjectId(val._id);
+                        }
+                        throw new Error('ID inválido em likedSongs (objeto).');
+                    }
+                    if (typeof val === 'string') {
+                        if (mongoose.Types.ObjectId.isValid(val)) {
+                            return new mongoose.Types.ObjectId(val);
+                        }
+                        throw new Error('ID inválido em likedSongs (string).');
+                    }
+                    throw new Error('Formato inválido em likedSongs.');
+                });
+                updateData.likedSongs = converted;
+            } catch (e) {
+                return res.status(400).json({ message: `likedSongs contém IDs inválidos. Detalhe: ${e.message}` });
+            }
+        }
 
         if (newPassword) {
             if (!currentPassword) {
