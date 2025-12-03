@@ -42,10 +42,12 @@ function Player() {
         isShuffling,
         repeatMode, 
         queue, 
+        selectedSongInfo, // <<< Adicionado para exibir o nome da música real
     } = useSelector((state) => state.player);
     
     const dispatch = useDispatch();
     
+    // NOTA: O novo Audio() deve ser criado apenas uma vez
     const audioRef = useRef(new Audio());
     
     const [localVolume, setLocalVolume] = useState(volume);
@@ -55,15 +57,23 @@ function Player() {
         setLocalVolume(volume);
     }, [volume]);
 
+    // CORREÇÃO CRÍTICA AQUI: Usar 'audioUrl' do AMBIENT_SONG ou 'caminho' da música real
     useEffect(() => {
-        if (currentSong && currentSong.caminho) {
-            audioRef.current.src = currentSong.caminho;
+        if (currentSong && (currentSong.audioUrl || currentSong.caminho)) {
+            const audioSource = currentSong.audioUrl || currentSong.caminho;
+            audioRef.current.src = audioSource;
         }
     }, [currentSong]);
     
     useEffect(() => {
         if (isPlaying && currentSong) {
-            audioRef.current.play().catch(e => console.error("Erro ao tentar tocar áudio:", e));
+            // O load() é importante para garantir que o novo src seja processado antes do play()
+            audioRef.current.load(); 
+            audioRef.current.play().catch(e => {
+                // Captura erro de autoplay bloqueado
+                console.error("Erro ao tentar tocar áudio (autoplay bloqueado?):", e);
+                // Você pode adicionar uma UI aqui pedindo ao usuário para interagir
+            });
         } else {
             audioRef.current.pause();
         }
@@ -133,7 +143,7 @@ function Player() {
 
     const handleToggleShuffle = (e) => {
         e.stopPropagation();
-        if (queue.length > 0) {
+        if (queue.length > 1) { // Mudado para > 1, pois queue agora tem 1 item (ambient)
             dispatch(toggleShuffle());
         }
     };
@@ -156,8 +166,12 @@ function Player() {
     };
 
     const progress = (currentTime / duration) * 100 || 0;
-    const songName = currentSong ? `${currentSong.title} - ${currentSong.artist}` : " ";
-    const detailRoute = currentSong ? `${MUSIC_DETAIL_PATH_BASE}${currentSong.id}` : MUSIC_DETAIL_PATH_BASE;
+    
+    // CORREÇÃO: Usa selectedSongInfo se existir, ou currentSong (que é a ambiente)
+    const songDisplay = selectedSongInfo || currentSong; 
+    const songName = songDisplay ? `${songDisplay.title} - ${songDisplay.artist}` : " ";
+    const detailRoute = songDisplay ? `${MUSIC_DETAIL_PATH_BASE}${songDisplay.id}` : MUSIC_DETAIL_PATH_BASE;
+    
     const PlayPauseIcon = isPlaying ? "fas fa-pause" : "fas fa-play";
     const VolumeIcon = localVolume === 0 ? "fas fa-volume-mute" : localVolume < 0.5 ? "fas fa-volume-down" : "fas fa-volume-up";
 
@@ -262,7 +276,7 @@ function Player() {
             >
                 <IconButton
                     aria-label="Abrir página da música"
-                    disabled={!currentSong}
+                    disabled={!songDisplay}
                     sx={{
                         color: 'var(--orange)',
                         '&:hover': { backgroundColor: 'rgba(255, 117, 51, 0.1)' }
