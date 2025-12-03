@@ -25,6 +25,31 @@ const userSchema = new Schema({
         type: Schema.Types.ObjectId, 
         ref: 'Musica' 
     }],
+    
+    likedSongs: [{ 
+        type: Schema.Types.ObjectId, 
+        ref: 'Musica' 
+    }],
+    
+    userPlaylists: [{ 
+        type: Schema.Types.ObjectId, 
+        ref: 'Playlist' 
+    }],
+    
+    following: [{ 
+        type: Schema.Types.ObjectId, 
+        ref: 'Artist' 
+    }],
+    
+    friends: [{ 
+        type: Schema.Types.ObjectId, 
+        ref: 'User' 
+    }],
+    
+    friendshipRequests: [{ 
+        type: Schema.Types.ObjectId, 
+        ref: 'User' 
+    }],
 
 }, { timestamps: true });
 
