@@ -42,9 +42,21 @@ export default function SongDetail({ songID }) {
         }
     }, [song, dispatch]); 
 
+    // Função que dispara a ação playSong com o objeto completo da música.
     const handlePlaySong = () => {
         if (song) {
-            dispatch(playSong(song));
+            // Garante que o objeto passado contém a capa e o ID, que são essenciais para a UI.
+            const songPayload = {
+                id: song._id,
+                title: song.title,
+                artist: song.artists && song.artists.length > 0 
+                    ? song.artists.map(a => a.name || a.username).join(', ') 
+                    : (song.artist || 'Desconhecido'),
+                cover: song.cover || (song.album && song.album.cover),
+                // Adicione outros campos necessários aqui, como o caminho do áudio real se ele existisse:
+                // audioUrl: song.audioUrl || `/api/musics/stream/${song._id}`,
+            };
+            dispatch(playSong(songPayload));
         }
     };
 
@@ -84,7 +96,7 @@ export default function SongDetail({ songID }) {
             <div className="song-list-container"> 
                 <SongList 
                     tracksArr={[song]} 
-                    onTrackClick={(clickedSong) => dispatch(playSong(clickedSong))}
+                    onTrackClick={handlePlaySong} // Chame handlePlaySong ao clicar na track list
                 />
             </div>
 
