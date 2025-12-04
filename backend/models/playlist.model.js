@@ -13,21 +13,44 @@ const playlistSchema = new Schema({
     songCount: { type: Number, default: 0 }
 }, {timestamps: true});
 
-playlistSchema.statics.searchByTerm = async function(term) {
+playlistSchema.statics.searchByTerm = async function(searchRegexStart, searchRegexContains) {
     try {
-        const results = await this.find({
-            $or: [
-                { name: { $regex: term, $options: 'i' } },
-                { description: { $regex: term, $options: 'i' } }
-            ]
-        })
-        .select('name description img user songCount')
-        .populate('user', 'username') 
-        .limit(20);
+        const selectFields = 'name description img user songCount';
 
-        return results;
+        const priorityQuery = {
+            $or: [
+                { name: { $regex: searchRegexStart } },
+                { description: { $regex: searchRegexStart } }
+            ]
+        };
+
+        const priorityResults = await this.find(priorityQuery)
+            .select(selectFields)
+            .populate('user', 'username')
+            .limit(10)
+            .lean();
+
+        const priorityIds = priorityResults.map(r => r._id);
+
+        const relatedQuery = {
+            _id: { $nin: priorityIds },
+            $or: [
+                { name: { $regex: searchRegexContains } },
+                { description: { $regex: searchRegexContains } }
+            ]
+        };
+
+        const relatedResults = await this.find(relatedQuery)
+            .select(selectFields)
+            .populate('user', 'username')
+            .limit(10);
+            
+        return {
+            priority: priorityResults,
+            related: relatedResults
+        };
+
     } catch (error) {
-        console.error(`Erro ao buscar playlists com o termo "${term}":`, error);
         throw new Error('Falha no banco de dados ao buscar playlists.');
     }
 };

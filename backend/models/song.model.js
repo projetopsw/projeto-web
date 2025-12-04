@@ -46,21 +46,47 @@ const songSchema = new Schema({
 }, { timestamps: true });
 
 songSchema.index({ album: 1, trackNumber: 1 }); 
-songSchema.index({ title: 'text' }); 
 
-songSchema.statics.searchByTerm = async function(term) {
+songSchema.statics.searchByTerm = async function(searchRegexStart, searchRegexContains) {
     try {
-        const results = await this.find({
-            $text: { $search: term }
-        })
-        .select('title artists album cover duration explicit previewUrl genres') 
-        .populate('artists', 'name') 
-        .populate('album', 'title') 
-        .limit(20);
+        const selectFields = 'title artists album cover duration explicit previewUrl genres';
 
-        return results;
+        const priorityQuery = {
+            $or: [
+                { title: { $regex: searchRegexStart } }, 
+                { 'artists.name': { $regex: searchRegexStart } }
+            ]
+        };
+
+        const priorityResults = await this.find(priorityQuery)
+            .select(selectFields)
+            .populate('artists', 'name')
+            .populate('album', 'title')
+            .limit(10)
+            .lean(); 
+
+        const priorityIds = priorityResults.map(r => r._id);
+
+        const relatedQuery = {
+            _id: { $nin: priorityIds }, 
+            $or: [
+                { title: { $regex: searchRegexContains } }, 
+                { 'artists.name': { $regex: searchRegexContains } } 
+            ]
+        };
+
+        const relatedResults = await this.find(relatedQuery)
+            .select(selectFields)
+            .populate('artists', 'name')
+            .populate('album', 'title')
+            .limit(10);
+            
+        return {
+            priority: priorityResults,
+            related: relatedResults
+        };
+
     } catch (error) {
-        console.error(`Erro ao buscar músicas com o termo "${term}":`, error);
         throw new Error('Falha no banco de dados ao buscar músicas.');
     }
 };

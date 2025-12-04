@@ -2,22 +2,51 @@ import SearchService from '../services/searchService.js';
 
 class SearchController {
     static async index(req, res) {
-        const { query, category } = req.query;
+        let { query, category } = req.query;
 
-        if (!query || !category) {
-            return res.status(400).json({ 
-                error: 'Os parâmetros "query" e "category" (música, album, artista, etc.) são obrigatórios.' 
-            });
+        if (!query && req.query.q) {
+            query = req.query.q;
+        }
+
+        if (!query) {
+             return res.status(400).json({ 
+                 error: 'O parâmetro "query" é obrigatório.' 
+             });
+        }
+        
+        if (!category) {
+            category = 'tudo'; 
         }
 
         try {
             const results = await SearchService.executeSearch(query, category);
 
+            const calculateTotalCount = (resObj) => {
+                if (Array.isArray(resObj)) {
+                    return resObj.length;
+                }
+                
+                if (resObj && resObj.priority && resObj.related) {
+                    return resObj.priority.length + resObj.related.length;
+                }
+
+                let totalCount = 0;
+                for (const key in resObj) {
+                    const categoryResults = resObj[key];
+                    if (categoryResults && categoryResults.priority && categoryResults.related) {
+                        totalCount += categoryResults.priority.length + categoryResults.related.length;
+                    }
+                }
+                return totalCount;
+            };
+
+            const totalCount = calculateTotalCount(results);
+
             return res.status(200).json({ 
                 category: category,
                 query: query,
                 results: results,
-                count: Array.isArray(results) ? results.length : Object.values(results).flat().length
+                count: totalCount
             });
 
         } catch (error) {

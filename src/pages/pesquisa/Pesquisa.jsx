@@ -29,55 +29,77 @@ const getRandomItems = (data, count = 5) => {
     return shuffled.slice(0, count);
 };
 
-const adaptResults = (data) => {
-    const artistsData = data.artistas || data.artists || [];
-    const albumsData = data.albuns || data.albums || [];
-    const tracksData = data.musicas || data.tracks || [];
-    const playlistsData = data.playlists || [];
-    const usersData = data.usuarios || data.users || [];
+const getCombinedResults = (data) => {
+    if (!data || (!data.priority && !data.related)) {
+        return [];
+    }
+    return [...(data.priority || []), ...(data.related || [])];
+};
+
+const mapUser = (user) => ({
+    ...user,
+    id: user._id || user.id,
+});
+
+const mapPlaylist = (playlist) => ({
+    ...playlist,
+    id: playlist._id || playlist.id,
+});
+
+const mapArtist = (artist) => ({
+    id: artist._id || artist.id, 
+    name: artist.name,
+    image: artist.image
+});
+
+const mapAlbum = (album) => {
+    const artistNames = Array.isArray(album.artists) 
+        ? album.artists.map(a => a.name).join(', ') 
+        : (typeof album.artist === 'string' ? album.artist : 'Vários Artistas');
 
     return {
-        artists: artistsData.map(artist => ({
-            id: artist._id || artist.id, 
-            name: artist.name,
-            image: artist.image
-        })),
+        ...album,
+        id: album._id || album.id, 
+        artist: artistNames, 
+        cover: album.cover || (album.images && album.images[0]?.url)
+    };
+};
 
-        albums: albumsData.map(album => {
-            const artistNames = Array.isArray(album.artists) 
-                ? album.artists.map(a => a.name).join(', ') 
-                : (typeof album.artist === 'string' ? album.artist : 'Vários Artistas');
+const mapTrack = (track) => {
+    const artistNames = Array.isArray(track.artists)
+        ? track.artists.map(a => a.name).join(', ')
+        : 'Desconhecido';
 
+    return {
+        ...track,
+        id: track._id || track.id,
+        artist: artistNames,
+        image: track.cover || (track.album && track.album.cover)
+    };
+};
+
+const adaptResults = (data) => {
+    const getSplitResults = (backendKey) => {
+        const raw = data[backendKey];
+        if (raw && (raw.priority || raw.related)) {
             return {
-                ...album,
-                id: album._id || album.id, 
-                artist: artistNames, 
-                cover: album.cover || (album.images && album.images[0]?.url)
+                priority: raw.priority || [],
+                related: raw.related || []
             };
-        }),
+        }
+        if (Array.isArray(raw)) {
+             return { priority: raw, related: [] };
+        }
+        return { priority: [], related: [] };
+    };
 
-        tracks: tracksData.map(track => {
-            const artistNames = Array.isArray(track.artists)
-                ? track.artists.map(a => a.name).join(', ')
-                : 'Desconhecido';
 
-            return {
-                ...track,
-                id: track._id || track.id,
-                artist: artistNames,
-                image: track.cover || (track.album && track.album.cover)
-            };
-        }),
-        
-        playlists: playlistsData.map(playlist => ({
-            ...playlist,
-            id: playlist._id || playlist.id,
-        })),
-
-        users: usersData.map(user => ({
-            ...user,
-            id: user._id || user.id,
-        }))
+    return {
+        artists: getSplitResults('artistas'),
+        albums: getSplitResults('albuns'),
+        tracks: getSplitResults('musicas'),
+        playlists: getSplitResults('playlists'),
+        users: getSplitResults('usuarios'),
     };
 };
 
@@ -87,7 +109,11 @@ function Pesquisa() {
     const query = searchParams.get('q'); 
 
     const [results, setResults] = useState({
-        artists: [], albums: [], tracks: [], playlists: [], users: []      
+        artists: { priority: [], related: [] }, 
+        albums: { priority: [], related: [] }, 
+        tracks: { priority: [], related: [] }, 
+        playlists: { priority: [], related: [] }, 
+        users: { priority: [], related: [] }
     });
 
     const [randomSuggestions, setRandomSuggestions] = useState({
@@ -112,37 +138,44 @@ function Pesquisa() {
             });
 
             const rawData = response.data.results; 
-            let adaptedData = {
-                artists: [], albums: [], tracks: [], playlists: [], users: []
-            };
+            let finalResults = {}; 
 
             if (backendCategory === 'tudo') {
-                adaptedData = adaptResults(rawData);
+                const adaptedData = adaptResults(rawData);
+                finalResults = {
+                    artists: adaptedData.artists,
+                    albums: adaptedData.albums,
+                    tracks: adaptedData.tracks,
+                    playlists: adaptedData.playlists,
+                    users: adaptedData.users,
+                };
             } else {
-                const specificResults = adaptResults({ 
-                    artistas: backendCategory === 'artista' ? rawData : [],
-                    albuns: backendCategory === 'album' ? rawData : [],
-                    musicas: backendCategory === 'musica' ? rawData : [],
-                    playlists: backendCategory === 'playlist' ? rawData : [],
-                    usuarios: backendCategory === 'usuario' ? rawData : []
-                });
-                
-                // Mapeia o resultado específico para a chave correta
+                let stateKey;
                 switch (backendCategory) {
-                    case 'musica':
-                        adaptedData.tracks = specificResults.tracks; break;
-                    case 'album':
-                        adaptedData.albums = specificResults.albums; break;
-                    case 'artista':
-                        adaptedData.artists = specificResults.artists; break;
-                    case 'playlist':
-                        adaptedData.playlists = specificResults.playlists; break;
-                    case 'usuario':
-                        adaptedData.users = specificResults.users; break;
+                    case 'musica': stateKey = 'tracks'; break;
+                    case 'album': stateKey = 'albums'; break;
+                    case 'artista': stateKey = 'artists'; break;
+                    case 'playlist': stateKey = 'playlists'; break;
+                    case 'usuario': stateKey = 'users'; break;
+                    default: stateKey = null;
+                }
+                
+                if (stateKey) {
+                    const normalizedData = Array.isArray(rawData) 
+                        ? { priority: rawData, related: [] } 
+                        : rawData; 
+
+                    finalResults = { 
+                        ...results, 
+                        [stateKey]: normalizedData
+                    };
                 }
             }
             
-            setResults(adaptedData);
+            if (Object.keys(finalResults).length > 0) {
+                setResults(finalResults);
+            }
+
 
         } catch (err) {
             console.error("Erro na busca:", err);
@@ -154,7 +187,13 @@ function Pesquisa() {
 
     useEffect(() => {
         if (!query || query.trim() === "") {
-            setResults({ artists: [], albums: [], tracks: [], playlists: [], users: [] });
+            setResults({ 
+                artists: { priority: [], related: [] }, 
+                albums: { priority: [], related: [] }, 
+                tracks: { priority: [], related: [] }, 
+                playlists: { priority: [], related: [] }, 
+                users: { priority: [], related: [] }
+            });
             return;
         }
 
@@ -162,9 +201,13 @@ function Pesquisa() {
 
     }, [query, selectedFilter]);
 
-    // Lógica para carregar sugestões aleatórias (mantida para o caso de 0 resultados)
     useEffect(() => {
-        const totalMainResults = results.tracks.length + results.artists.length + results.albums.length + results.playlists.length + results.users.length;
+        const totalMainResults = 
+            getCombinedResults(results.tracks).length + 
+            getCombinedResults(results.artists).length + 
+            getCombinedResults(results.albums).length + 
+            getCombinedResults(results.playlists).length + 
+            getCombinedResults(results.users).length;
         
         if (query && totalMainResults === 0 && !isLoading) {
             const loadSuggestions = async () => {
@@ -194,14 +237,19 @@ function Pesquisa() {
         setSelectedFilter(item);
     };
     
-    const totalMainResults = results.tracks.length + results.artists.length + results.albums.length + results.playlists.length + results.users.length;
+    const totalMainResults = 
+        getCombinedResults(results.tracks).length + 
+        getCombinedResults(results.artists).length + 
+        getCombinedResults(results.albums).length + 
+        getCombinedResults(results.playlists).length + 
+        getCombinedResults(results.users).length;
     
-    const mainSections = [
-        { title: "Músicas", type: "song", data: results.tracks, renderCard: (item) => <SongCard key={item.id} {...item} /> },
+    const sectionsData = [
+        { title: "Músicas", type: "musica", data: results.tracks, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Álbuns", type: "album", data: results.albums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
-        { title: "Artistas", type: "artist", data: results.artists, renderCard: (item) => <ArtistCircle key={item.id} id={item.id} image={item.image} name={item.name} />},
+        { title: "Artistas", type: "artista", data: results.artists, renderCard: (item) => <ArtistCircle key={item.id} id={item.id} image={item.image} name={item.name} />},
         { title: "Playlists", type: "playlist", data: results.playlists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
-        { title: "Usuários", type: "user", data: results.users, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
+        { title: "Usuários", type: "usuario", data: results.users, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
     ];
 
     const randomSections = [
@@ -210,6 +258,40 @@ function Pesquisa() {
         { title: "Artistas", type: "artist", data: randomSuggestions.artists, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
     ];
 
+    const renderResultsSection = (section, isPriority) => {
+        const dataKey = isPriority ? 'priority' : 'related';
+        
+        const dataArray = (section.data && section.data[dataKey]) || [];
+
+        const sectionTitle = isPriority ? section.title : `Relacionados em ${section.title}`;
+        const containerClass = isPriority ? "section-scroll-container" : "section-scroll-container related-section";
+        
+        const isFiltered = selectedFilter === 'Tudo' || selectedFilter === section.title;
+
+        if (dataArray.length > 0 && isFiltered) {
+            
+            const mapFunction = (item) => {
+                if (section.title === 'Músicas') return mapTrack(item);
+                if (section.title === 'Álbuns') return mapAlbum(item);
+                if (section.title === 'Artistas') return mapArtist(item);
+                if (section.title === 'Playlists') return mapPlaylist(item);
+                if (section.title === 'Usuários') return mapUser(item);
+                return item;
+            };
+
+            const finalData = dataArray.map(mapFunction);
+            
+            return (
+                <Section key={section.title + '-' + dataKey} title={sectionTitle} showTitle={isPriority || selectedFilter !== 'Tudo'}>
+                    <div className={containerClass}>
+                        {finalData.map(section.renderCard)}
+                    </div>
+                </Section>
+            );
+        }
+        return null;
+    };
+    
     return (
         <>
             <Header initialQuery={query} />
@@ -230,20 +312,17 @@ function Pesquisa() {
                 {!isLoading && !error && totalMainResults > 0 && (
                     <>
                         <h1 className='search-subtitle'>Resultados para "{query}"</h1>
-                        {mainSections.map((section) => {
-                            const isFiltered = selectedFilter === 'Tudo' || selectedFilter === section.title;
-
-                            if (section.data && section.data.length > 0 && isFiltered) {
-                                return (
-                                    <Section key={section.title + '-main'} title={section.title}>
-                                        <div className="section-scroll-container">
-                                            {section.data.map(section.renderCard)}
-                                        </div>
-                                    </Section>
-                                );
-                            }
-                            return null;
-                        })}
+                        
+                        <div className="search-priority-section">
+                            {sectionsData.map((section) => renderResultsSection(section, true))}
+                        </div>
+                        
+                        <h2 className='search-related-title' style={{ display: sectionsData.some(s => s.data.related && s.data.related.length > 0) ? 'block' : 'none' }}>
+                            Relacionados
+                        </h2>
+                        <div className="search-related-section">
+                            {sectionsData.map((section) => renderResultsSection(section, false))}
+                        </div>
                     </>
                 )}
 

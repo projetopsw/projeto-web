@@ -53,18 +53,38 @@ const userSchema = new Schema({
 
 }, { timestamps: true });
 
-userSchema.statics.searchByTerm = async function(term) {
+userSchema.statics.searchByTerm = async function(searchRegexStart, searchRegexContains) {
+    
+    const fieldsToSelect = '_id username email img friends following'; 
+    const limit = 10;
+    
     try {
-        const results = await this.find({
+        const priorityResults = await this.find({
             $or: [
-                { username: { $regex: term, $options: 'i' } },
-                { email: { $regex: term, $options: 'i' } }
+                { username: { $regex: searchRegexStart } },
+                { email: { $regex: searchRegexStart } }
             ]
-        }).select('username email img role').limit(20); 
+        }).select(fieldsToSelect).limit(limit).exec();
 
-        return results;
+        const relatedResults = await this.find({
+            $and: [
+                { 
+                    $or: [
+                        { username: { $regex: searchRegexContains } },
+                        { email: { $regex: searchRegexContains } }
+                    ]
+                },
+                { 
+                    _id: { $nin: priorityResults.map(u => u._id) } 
+                }
+            ]
+        }).select(fieldsToSelect).limit(limit).exec();
+
+        return {
+            priority: priorityResults,
+            related: relatedResults
+        };
     } catch (error) {
-        console.error(`Erro ao buscar usuários com o termo "${term}":`, error);
         throw new Error('Falha no banco de dados ao buscar usuários.');
     }
 };

@@ -16,21 +16,44 @@ const albumSchema = new Schema({
 
 }, { timestamps: true });
 
-albumSchema.statics.searchByTerm = async function(term) {
+albumSchema.statics.searchByTerm = async function(searchRegexStart, searchRegexContains) { 
     try {
-        const results = await this.find({
-            $or: [
-                { title: { $regex: term, $options: 'i' } },
-                { recordLabel: { $regex: term, $options: 'i' } }
-            ]
-        })
-        .select('title cover releaseDate totalTracks artists genres')
-        .populate('artists', 'name') 
-        .limit(20);
+        const selectFields = 'title cover releaseDate totalTracks artists genres';
 
-        return results;
+        const priorityQuery = {
+            $or: [
+                { title: { $regex: searchRegexStart } },
+                { recordLabel: { $regex: searchRegexStart } }
+            ]
+        };
+
+        const priorityResults = await this.find(priorityQuery)
+            .select(selectFields)
+            .populate('artists', 'name')
+            .limit(10)
+            .lean();
+
+        const priorityIds = priorityResults.map(r => r._id);
+
+        const relatedQuery = {
+            _id: { $nin: priorityIds },
+            $or: [
+                { title: { $regex: searchRegexContains } },
+                { recordLabel: { $regex: searchRegexContains } }
+            ]
+        };
+
+        const relatedResults = await this.find(relatedQuery)
+            .select(selectFields)
+            .populate('artists', 'name')
+            .limit(10);
+            
+        return {
+            priority: priorityResults,
+            related: relatedResults
+        };
+
     } catch (error) {
-        console.error(`Erro ao buscar álbuns com o termo "${term}":`, error);
         throw new Error('Falha no banco de dados ao buscar álbuns.');
     }
 };

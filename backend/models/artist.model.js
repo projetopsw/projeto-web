@@ -10,19 +10,42 @@ const artistSchema = new Schema({
     spotifyUrl: { type: String, default: '' }, 
 }, { timestamps: true });
 
-artistSchema.index({ name: 'text', genres: 'text' });
-
-artistSchema.statics.searchByTerm = async function(term) {
+artistSchema.statics.searchByTerm = async function(searchRegexStart, searchRegexContains) {
     try {
-        const results = await this.find({
-            $text: { $search: term }
-        })
-        .select('name image genres popularity followers spotifyUrl') 
-        .limit(20);
+        const selectFields = 'name image genres popularity followers spotifyUrl';
 
-        return results;
+        const priorityQuery = {
+            $or: [
+                { name: { $regex: searchRegexStart } },
+                { genres: { $regex: searchRegexStart } }
+            ]
+        };
+
+        const priorityResults = await this.find(priorityQuery)
+            .select(selectFields)
+            .limit(10)
+            .lean();
+
+        const priorityIds = priorityResults.map(r => r._id);
+
+        const relatedQuery = {
+            _id: { $nin: priorityIds },
+            $or: [
+                { name: { $regex: searchRegexContains } },
+                { genres: { $regex: searchRegexContains } }
+            ]
+        };
+
+        const relatedResults = await this.find(relatedQuery)
+            .select(selectFields)
+            .limit(10);
+            
+        return {
+            priority: priorityResults,
+            related: relatedResults
+        };
+
     } catch (error) {
-        console.error(`Erro ao buscar artistas com o termo "${term}":`, error);
         throw new Error('Falha no banco de dados ao buscar artistas.');
     }
 };

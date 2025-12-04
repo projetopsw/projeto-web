@@ -6,13 +6,15 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 
 const defaultImage = "https://placehold.co/400x400?text=U"; 
 
-function UserCard({ name, email, friends, following, image, id }) {
+function UserCard({ username, email, friends, following, image, profilePicture, img, id }) {
     const navigate = useNavigate(); 
     
     const friendCount = friends ? friends.length : 0;
     const followingCount = following ? following.length : 0;
     
-    const userImage = image || defaultImage; 
+    const userImage = img || profilePicture || image || defaultImage; 
+
+    const userNameDisplay = username || "Usuário Desconhecido"; 
 
     const handleCardClick = () => {
         navigate(`/perfil/${id}`);
@@ -38,7 +40,7 @@ function UserCard({ name, email, friends, following, image, id }) {
             onClick={handleCardClick}
         >
             <Avatar 
-                alt={name} 
+                alt={userNameDisplay} 
                 src={userImage} 
                 sx={{ width: 60, height: 60, mr: 3 }} 
             />
@@ -48,7 +50,7 @@ function UserCard({ name, email, friends, following, image, id }) {
                     component="div" 
                     sx={{ fontWeight: 'bold', color: 'var(--title-color, white)' }}
                 >
-                    {name}
+                    {userNameDisplay} 
                 </Typography>
                 <Typography 
                     variant="body2" 

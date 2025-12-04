@@ -6,39 +6,39 @@ import UserModel from './user.model.js';
 
 class SearchModel {
     
-    static async searchByCategory(term, category) {
+    static async searchByCategory(searchRegexStart, searchRegexContains, category) {
         let results = [];
         
         switch (category) {
             case 'musica':
-                results = await MusicaModel.searchByTerm(term);
+                results = await MusicaModel.searchByTerm(searchRegexStart, searchRegexContains);
                 break;
             case 'album':
-                results = await AlbumModel.searchByTerm(term);
+                results = await AlbumModel.searchByTerm(searchRegexStart, searchRegexContains);
                 break;
             case 'artista':
-                results = await ArtistaModel.searchByTerm(term);
+                results = await ArtistaModel.searchByTerm(searchRegexStart, searchRegexContains);
                 break;
             case 'playlist':
-                results = await PlaylistModel.searchByTerm(term);
+                results = await PlaylistModel.searchByTerm(searchRegexStart, searchRegexContains);
                 break;
             case 'usuario':
-                results = await UserModel.searchByTerm(term);
+                results = await UserModel.searchByTerm(searchRegexStart, searchRegexContains);
                 break;
             default:
-                results = [];
+                results = { priority: [], related: [] }; 
         }
         return results;
     }
 
-    static async searchAll(term) {
+    static async searchAll(searchRegexStart, searchRegexContains) {
 
         const [musica, album, artista, usuario, playlist] = await Promise.all([
-            this.searchByCategory(term, 'musica'),
-            this.searchByCategory(term, 'album'),
-            this.searchByCategory(term, 'artista'),
-            this.searchByCategory(term, 'usuario'),
-            this.searchByCategory(term, 'playlist')
+            this.searchByCategory(searchRegexStart, searchRegexContains, 'musica'),
+            this.searchByCategory(searchRegexStart, searchRegexContains, 'album'),
+            this.searchByCategory(searchRegexStart, searchRegexContains, 'artista'),
+            this.searchByCategory(searchRegexStart, searchRegexContains, 'usuario'),
+            this.searchByCategory(searchRegexStart, searchRegexContains, 'playlist')
         ]);
         
         return {
