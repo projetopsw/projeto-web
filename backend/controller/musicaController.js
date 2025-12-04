@@ -15,11 +15,9 @@ const convertDurationToSeconds = (durationString) => {
     return 0;
 };
 
-const getArtistIdFromAuth = (req) => {
-    return req.userId; 
+const getOwnerIdFromAuth = (req) => {
+    return req.user ? (req.user.id || req.user._id) : null; 
 };
-
-const API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:3000'; 
 
 const MusicaController = {
     
@@ -39,15 +37,15 @@ const MusicaController = {
         
         const {
             title, 
-            duration,         
-            descricao,        
-            letra,            
-            generos,          
-            recordLabel,      
+            duration, 
+            descricao, 
+            letra, 
+            generos, 
+            recordLabel, 
         } = req.body;
         
-        if (!req.files || !req.files.arquivoMusica || !req.files.arquivoCapa) {
-             return res.status(400).json({ message: 'Arquivos de música e capa são obrigatórios.' });
+        if (!req.files || !req.files.arquivoMusica || req.files.arquivoMusica.length === 0) {
+            return res.status(400).json({ message: 'O arquivo de música é obrigatório.' });
         }
         
         if (!title || !duration || !generos) {
@@ -59,61 +57,75 @@ const MusicaController = {
             const durationInSeconds = convertDurationToSeconds(duration);
 
             if (durationInSeconds === 0) {
-                 return res.status(400).json({ message: 'Duração da música inválida.' });
+                return res.status(400).json({ message: 'Duração da música inválida.' });
             }
             
-            const artistId = getArtistIdFromAuth(req); 
-            if (!artistId) {
-                return res.status(401).json({ message: 'Falha na autenticação: ID do usuário (artista) ausente na requisição.' });
+            const ownerId = getOwnerIdFromAuth(req); 
+            if (!ownerId) {
+                return res.status(401).json({ message: 'Falha na autenticação: ID do usuário (owner) ausente na requisição.' });
             }
 
-            const musicaFilename = req.files.arquivoMusica[0].filename;
-            const capaFilename = req.files.arquivoCapa[0].filename;
-            
-            const finalCaminho = `${API_BASE_URL}/music_files/${musicaFilename}`; 
-            const finalCoverUrl = `${API_BASE_URL}/cover_images/${capaFilename}`;
-            
             let finalGenres = generos;
             if (typeof generos === 'string') {
-                 try {
-                     finalGenres = JSON.parse(generos);
-                 } catch (e) {
-                     finalGenres = [generos];
-                 }
+                try {
+                    finalGenres = JSON.parse(generos);
+                } catch (e) {
+                    if (generos.includes(',')) {
+                        finalGenres = generos.split(',').map(g => g.trim());
+                    } else {
+                        finalGenres = [generos];
+                    }
+                }
+            } else if (!Array.isArray(generos)) {
+                finalGenres = [generos];
             }
             
+            const musicaFilename = req.files.arquivoMusica[0].filename;
+            let capaFilename = null;
+            if (req.files.arquivoCapa && req.files.arquivoCapa[0]) {
+                capaFilename = req.files.arquivoCapa[0].filename;
+            }
+            
+            const finalCaminho = `/music_files/${musicaFilename}`; 
+            const finalCoverUrl = capaFilename 
+                ? `/cover_images/${capaFilename}`
+                : `/cover_images/default.jpg`; 
+
             const musicData = {
                 title: title,
                 duration: durationInSeconds,
-                
                 description: descricao,
                 lyrics: letra,
                 recordLabel: recordLabel,
-                
-                caminho: finalCaminho,
+                caminho: finalCaminho, 
                 cover: finalCoverUrl,
-                
-                artists: [artistId], 
-                
-                genres: finalGenres,
+                owner: ownerId,
+                isArtistUpload: false,
+                artists: [ownerId], 
+                genres: finalGenres, 
                 releaseDate: new Date(),
             };
             
             const novaMusica = new Musica(musicData);
             await novaMusica.save();
             
-            await User.findByIdAndUpdate(artistId, {
+            await User.findByIdAndUpdate(ownerId, {
                 $push: { myMusics: novaMusica._id }
             }, { new: true });
             
-            res.status(201).json(novaMusica);
+            const populatedMusica = await Musica.findById(novaMusica._id)
+                .populate('owner', 'name username')
+                .populate('artists', 'name username')
+                .lean();
+
+            res.status(201).json(populatedMusica);
             
         } catch (error) {
             if (error.code === 11000) {
-                 return res.status(409).json({ message: 'Música com este ID/ISRC já existe.' });
+                return res.status(409).json({ message: 'Música com este ID/ISRC já existe.' });
             }
             if (error.name === 'ValidationError') {
-                 return res.status(400).json({ message: 'Erro de validação nos dados da música.', error: error.message });
+                return res.status(400).json({ message: 'Erro de validação nos dados da música.', error: error.message });
             }
             
             res.status(500).json({ message: 'Falha ao criar música (Erro interno do servidor).', error: error.message });
@@ -123,6 +135,20 @@ const MusicaController = {
     updateMusica: async (req, res) => {
         try {
             const { musicaId } = req.params;
+            const ownerId = getOwnerIdFromAuth(req);
+
+            if (!ownerId) {
+                return res.status(401).json({ message: 'Usuário não autenticado.' });
+            }
+
+            const musica = await Musica.findById(musicaId).select('owner');
+            if (!musica) {
+                return res.status(404).json({ message: 'Música não encontrada.' });
+            }
+
+            if (musica.owner.toString() !== ownerId) {
+                return res.status(403).json({ message: 'Acesso negado. Você não é o proprietário desta música.' });
+            }
             
             const musicaAtualizada = await Musica.findByIdAndUpdate(
                 musicaId,
@@ -130,10 +156,6 @@ const MusicaController = {
                 { new: true, runValidators: true }
             );
 
-            if (!musicaAtualizada) {
-                return res.status(404).json({ message: 'Música não encontrada.' });
-            }
-            
             res.status(200).json(musicaAtualizada);
         } catch (error) {
             res.status(400).json({ message: 'Falha ao atualizar música.', error: error.message });
@@ -143,16 +165,27 @@ const MusicaController = {
     deleteMusica: async (req, res) => {
         try {
             const { musicaId } = req.params;
-            
-            const musicaDeletada = await Musica.findByIdAndDelete(musicaId);
+            const userId = getOwnerIdFromAuth(req);
 
-            if (!musicaDeletada) {
+            if (!userId) {
+                return res.status(401).json({ message: 'Usuário não autenticado.' });
+            }
+
+            const musica = await Musica.findById(musicaId);
+            if (!musica) {
                 return res.status(404).json({ message: 'Música não encontrada.' });
             }
+
+            const ownerId = musica.owner ? musica.owner.toString() : (musica.artists[0] ? musica.artists[0].toString() : null);
+
+            if (ownerId !== userId) {
+                return res.status(403).json({ message: 'Acesso negado. Você não é o proprietário desta música.' });
+            }
+
+            const musicaDeletada = await Musica.findByIdAndDelete(musicaId);
             
-            const artistId = musicaDeletada.artists[0];
-            if (artistId) {
-                await User.findByIdAndUpdate(artistId, {
+            if (ownerId) {
+                await User.findByIdAndUpdate(ownerId, {
                     $pull: { myMusics: musicaId }
                 });
             }

@@ -16,14 +16,10 @@ const musicGenres = [
 
 const formatDuration = (seconds) => {
     if (isNaN(seconds) || seconds === 0) return "00:00";
-    
     const totalSeconds = Math.round(seconds);
-    
     const minutes = Math.floor(totalSeconds / 60);
     const remainingSeconds = totalSeconds % 60;
-
     const pad = (num) => num.toString().padStart(2, '0');
-
     return `${pad(minutes)}:${pad(remainingSeconds)}`;
 };
 
@@ -32,21 +28,17 @@ const getAudioDuration = (file) => {
         if (!file || !file.type.startsWith('audio/')) {
             return resolve("00:00");
         }
-        
         const objectUrl = URL.createObjectURL(file);
         const audio = document.createElement('audio');
-
         audio.addEventListener('loadedmetadata', () => {
             const duration = formatDuration(audio.duration);
             resolve(duration);
             URL.revokeObjectURL(objectUrl); 
         });
-
         audio.addEventListener('error', () => {
             resolve("Erro ao carregar");
             URL.revokeObjectURL(objectUrl);
         });
-
         audio.src = objectUrl;
     });
 };
@@ -56,7 +48,6 @@ const MusicaPreviewModal = ({ isOpen, onClose, musica }) => {
     const uploadStatus = useSelector(state => state.dbUpload.status);
     const uploadError = useSelector(state => state.dbUpload.error);
     const uploadedSongData = useSelector(state => state.dbUpload.uploadedSongData);
-
     const dispatch = useDispatch();
 
     const handleClose = () => {
@@ -70,21 +61,16 @@ const MusicaPreviewModal = ({ isOpen, onClose, musica }) => {
     if (!isOpen || !musica) return null;
 
     const dadosExibicao = uploadStatus === 'succeeded' && uploadedSongData ? uploadedSongData : musica;
-    
     const generosFormatados = (dadosExibicao.generos || []).filter(g => g.trim() !== '').join(', ');
     const duracaoFormatada = dadosExibicao.duration_string || dadosExibicao.duration || "00:00"; 
-    
     const capaURL = dadosExibicao.cover || dadosExibicao.coverUrl || 'https://placehold.co/400x400/8d6a4f/e7e7e7?text=CAPA+MOCK';
-    
     const songPageLink = `${FRONTEND_BASE_URL}/song/${dadosExibicao._id || dadosExibicao.id}`; 
     
     let successMessage = "Upload CONCLUÍDO!";
     let linkElement = null;
 
     if (uploadStatus === 'succeeded' && uploadedSongData && uploadedSongData._id) {
-        
         successMessage = "Link da página da música:";
-        
         linkElement = (
             <div className="success-link-block">
                 <a 
@@ -143,9 +129,7 @@ const MusicaPreviewModal = ({ isOpen, onClose, musica }) => {
                     </div>
 
                     <div className="modal-info-grid">
-                        <div className="modal-info-item"><strong>ID (DB):</strong> {dadosExibicao._id || dadosExibicao.id || 'N/A'}</div>
                         <div className="modal-info-item"><strong>Título:</strong> {dadosExibicao.title}</div>
-                        <div className="modal-info-item"><strong>Artista:</strong> {dadosExibicao.artists && dadosExibicao.artists.length > 0 ? dadosExibicao.artists[0] : 'Artista Desconhecido'}</div> 
                         <div className="modal-info-item"><strong>Gravadora:</strong> {dadosExibicao.recordLabel}</div>
                         <div className="modal-info-item-full"><strong>Gênero(s):</strong> {generosFormatados || "Nenhum"}</div>
                         <div className="modal-info-item"><strong>Data Upload:</strong> {new Date(dadosExibicao.releaseDate).toLocaleString('pt-BR')}</div>
@@ -158,9 +142,6 @@ const MusicaPreviewModal = ({ isOpen, onClose, musica }) => {
                                 {dadosExibicao.lyrics || dadosExibicao.letra || "Letra não fornecida."}
                             </pre>
                         </div>
-                        
-                        
-
                     </div>
                 </div>
 
@@ -174,13 +155,14 @@ const MusicaPreviewModal = ({ isOpen, onClose, musica }) => {
 const UploadMusica = () => {
     const dispatch = useDispatch();
     const { status, error } = useSelector(state => state.dbUpload);
-
+    
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [lastUploadedMusic, setLastUploadedMusic] = useState(null);
 
     const [titulo, setTitulo] = useState('');
     const [descricao, setDescricao] = useState('');
     const [letra, setLetra] = useState(''); 
+    const [recordLabel, setRecordLabel] = useState('Independente');
     const [generosSelecionados, setGenerosSelecionados] = useState([]);
     const [outroGenero, setOutroGenero] = useState('');
     const [isOutroChecked, setIsOutroChecked] = useState(false);
@@ -196,7 +178,6 @@ const UploadMusica = () => {
              if (!isModalOpen) setIsModalOpen(true); 
         }
     }, [status, isModalOpen]);
-
 
     const openModal = (musicaData) => {
         setLastUploadedMusic(musicaData);
@@ -241,19 +222,25 @@ const UploadMusica = () => {
     const handleUploadMusica = () => {
         const tituloMusica = titulo.trim();
         
+        let userId = null;
         let userToken = null;
+        let nomeDoUsuarioLogado = 'Usuário Desconhecido';
+        
         try {
             const serializedUser = localStorage.getItem('loggedUser'); 
             if (serializedUser) {
                 const loggedUser = JSON.parse(serializedUser);
                 userToken = loggedUser.token;
+                userId = loggedUser.id || loggedUser._id;
+                
+                nomeDoUsuarioLogado = loggedUser.name || loggedUser.username || 'Usuário Desconhecido';
             }
         } catch (e) {
-            console.error("Erro ao ler token do localStorage:", e);
+            console.error("Erro ao ler token, ID ou nome do localStorage:", e);
         }
 
-        if (!userToken) {
-            alert("Erro: Você precisa estar logado (Token JWT ausente).");
+        if (!userToken || !userId) {
+            alert("Erro: Você precisa estar logado (Token ou ID do Usuário ausente).");
             return;
         }
 
@@ -294,7 +281,7 @@ const UploadMusica = () => {
         formData.append('descricao', descricao);
         formData.append('letra', letra);
         formData.append('generos', JSON.stringify(generosFinais)); 
-        formData.append('recordLabel', 'Independente');
+        formData.append('recordLabel', recordLabel);
         
         const coverUrlParaPreview = arquivoCapa
             ? URL.createObjectURL(arquivoCapa) 
@@ -306,8 +293,10 @@ const UploadMusica = () => {
             descricao: descricao,
             letra: letra,
             generos: generosFinais,
+            recordLabel: recordLabel,
             cover: coverUrlParaPreview,
             releaseDate: new Date().toISOString(),
+            uploaderName: nomeDoUsuarioLogado, 
         };
         
         dispatch(uploadMusicaToDB({ formData, token: userToken }));
@@ -317,6 +306,7 @@ const UploadMusica = () => {
         setTitulo('');
         setDescricao('');
         setLetra(''); 
+        setRecordLabel('Independente');
         setGenerosSelecionados([]);
         setOutroGenero('');
         setIsOutroChecked(false);
@@ -369,6 +359,17 @@ const UploadMusica = () => {
                             onChange={(e) => setTitulo(e.target.value)}
                             placeholder="Ex: Minha Nova Canção"
                             required 
+                            disabled={isUploading}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="recordLabel">Gravadora (Opcional)</label>
+                        <input
+                            id="recordLabel"
+                            type="text"
+                            value={recordLabel}
+                            onChange={(e) => setRecordLabel(e.target.value)}
+                            placeholder="Ex: Sua Gravadora / Independente"
                             disabled={isUploading}
                         />
                     </div>

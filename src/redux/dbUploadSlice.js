@@ -8,6 +8,7 @@ export const uploadMusicaToDB = createAsyncThunk(
             if (!token) {
                 return rejectWithValue("Token de autenticação ausente. Por favor, faça login.");
             }
+            
             const response = await fetch(`${API_BASE_URL}/songs`, { 
                 method: 'POST',
                 headers: {
@@ -17,6 +18,10 @@ export const uploadMusicaToDB = createAsyncThunk(
             });
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    return rejectWithValue("Autenticação falhou (Status 401). Verifique se o seu login está ativo.");
+                }
+                
                 const errorData = await response.json();
                 const errorMessage = errorData.message || `Erro do servidor: ${response.status}`;
                 return rejectWithValue(errorMessage);
@@ -25,7 +30,7 @@ export const uploadMusicaToDB = createAsyncThunk(
             const data = await response.json();
             return data; 
         } catch (error) {
-            return rejectWithValue("Falha ao conectar ou enviar dados para a API.");
+            return rejectWithValue("Falha ao conectar ou enviar dados para a API. Erro de rede.");
         }
     }
 );

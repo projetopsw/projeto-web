@@ -12,6 +12,13 @@ const songSchema = new Schema({
     isrc: { type: String, trim: true, index: true }, 
     title: { type: String, required: true, trim: true }, 
     cover: { type: String, default: ''}, 
+    
+    owner: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'User', 
+        required: true 
+    },
+    
     artists: [{ type: Schema.Types.ObjectId, ref: 'Artist', required: true }],
     album: { type: Schema.Types.ObjectId, ref: 'Album', default: null },
     duration: { type: Number, required: true }, 
@@ -32,6 +39,11 @@ const songSchema = new Schema({
         required: true,
         default: ['Outro']
     }],
+
+    isArtistUpload: { 
+        type: Boolean,
+        default: false, // usuário fez uploead = false          API/artista = true
+    },
 
     likes: [{
         type: Schema.Types.ObjectId,

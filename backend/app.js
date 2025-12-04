@@ -31,6 +31,7 @@ app.use(cookieParser());
 
 app.use('/music_files', express.static(path.join(__dirname, 'public', 'music_files')));
 app.use('/cover_images', express.static(path.join(__dirname, 'public', 'cover_images')));
+app.use(express.static(path.join(__dirname, 'public'))); 
 
 app.use('/api/search', searchRoutes);
 app.use('/albums', albumRoutes);
@@ -43,4 +44,5 @@ app.use('/api/spotify', spotifyRoutes);
 app.use('/api/spotify-cache', spotifyCacheRoutes);
 app.use("/playlists", playlistRoutes);
 app.use('/api/comentarios', comentariosRoutes);
+
 export default app

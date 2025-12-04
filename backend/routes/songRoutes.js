@@ -30,7 +30,8 @@ router.post('/', verifyToken, (req, res, next) => {
 router.get('/', async (req, res) => {
     try {
         const songs = await Song.find({})
-            .populate('artists', 'name img') 
+            .populate('artists', 'name username img') 
+            .populate('owner', 'name username') 
             .populate('album', 'title')
             .lean();
 
@@ -43,7 +44,8 @@ router.get('/', async (req, res) => {
 router.get('/:id', checkObjectId, async (req, res) => {
     try {
         const song = await Song.findById(req.params.id)
-            .populate('artists', 'name img')
+            .populate('artists', 'name username img') 
+            .populate('owner', 'name username') 
             .populate('album', 'title')
             .lean();
 
@@ -65,7 +67,8 @@ router.put('/:id', checkObjectId, async (req, res) => {
             req.body,
             { new: true, runValidators: true }
         )
-        .populate('artists', 'name img')
+        .populate('artists', 'name username img') 
+        .populate('owner', 'name username') 
         .populate('album', 'title');
 
         if (!updatedSong) {

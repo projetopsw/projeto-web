@@ -1,6 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs'; 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,16 @@ const storage = multer.diskStorage({
             destinationPath = path.join(BACKEND_ROOT_DIR, 'public', 'cover_images');
         } else {
             return cb(new Error('Campo de arquivo desconhecido'), '');
+        }
+
+        if (!fs.existsSync(destinationPath)) {
+            try {
+                fs.mkdirSync(destinationPath, { recursive: true });
+                console.log(`Diretório criado: ${destinationPath}`);
+            } catch (error) {
+                console.error("Erro ao criar diretório:", error);
+                return cb(new Error('Falha ao criar diretório de destino.'), '');
+            }
         }
 
         console.log("Caminho de Destino Tentado:", destinationPath); 

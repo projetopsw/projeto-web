@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchSongById, fetchAlbumsByArtist } from '../../redux/catalogoSlice';
 import { playSong } from '../../redux/playerSlice.js';
@@ -25,6 +25,17 @@ export default function SongDetail({ songID }) {
     const { details: song, status: songStatus } = useSelector((state) => state.catalog.selectedSong);
     const { items: artistAlbums, status: artistAlbumsStatus } = useSelector((state) => state.catalog.albumsByArtist);
 
+    const mainArtistIdForFetch = (song) => {
+        if (!song) return null;
+        if (Array.isArray(song.artists) && song.artists.length > 0) {
+            return song.artists[0]._id || song.artists[0].id;
+        }
+        if (song.owner) {
+            return song.owner._id || song.owner.id;
+        }
+        return null;
+    };
+
     useEffect(() => {
         if (effectiveId) {
             dispatch(fetchSongById(effectiveId));
@@ -32,54 +43,60 @@ export default function SongDetail({ songID }) {
     }, [effectiveId, dispatch]);
 
     useEffect(() => {
-        if (song && song.artists && song.artists.length > 0) {
-            const mainArtistId = song.artists[0]._id || song.artists[0].id;
-            if (mainArtistId) {
-                dispatch(fetchAlbumsByArtist(mainArtistId));
-            }
-        } else if (song && song.artist && typeof song.artist === 'string') {
-            dispatch(fetchAlbumsByArtist(song.artist));
+        const idToFetch = mainArtistIdForFetch(song);
+        if (song && idToFetch) {
+            dispatch(fetchAlbumsByArtist(idToFetch));
         }
     }, [song, dispatch]); 
 
-    // Função que dispara a ação playSong com o objeto completo da música.
     const handlePlaySong = () => {
         if (song) {
-            // Garante que o objeto passado contém a capa e o ID, que são essenciais para a UI.
+            const artistForPlayer = Array.isArray(song.artists) && song.artists.length > 0 
+                ? song.artists.map(a => a.name || a.username).join(', ') 
+                : (song.owner ? song.owner.username : (song.artist || 'Desconhecido'));
+
             const songPayload = {
                 id: song._id,
                 title: song.title,
-                artist: song.artists && song.artists.length > 0 
-                    ? song.artists.map(a => a.name || a.username).join(', ') 
-                    : (song.artist || 'Desconhecido'),
+                artist: artistForPlayer,
                 cover: song.cover || (song.album && song.album.cover),
-                // Adicione outros campos necessários aqui, como o caminho do áudio real se ele existisse:
-                // audioUrl: song.audioUrl || `/api/musics/stream/${song._id}`,
             };
             dispatch(playSong(songPayload));
         }
     };
 
     if (songStatus === 'loading') {
-        return <main><h1>Carregando...</h1></main>;
+        return <main><h1>Carregando... 🎧</h1></main>;
     }
 
     if (songStatus === 'failed' || !song) {
-        return <main><h1>Música não encontrada</h1></main>;
+        return <main><h1>Música não encontrada 😥</h1></main>;
     }
 
-    // CORREÇÃO CRÍTICA: Prioriza 'name' (Artista da API) e tenta 'username' (Usuário) como fallback.
     const artistName = Array.isArray(song.artists) && song.artists.length > 0
         ? song.artists.map(a => a.name || a.username || 'Artista Desconhecido').join(', ')
-        : (song.artist || 'Desconhecido');
+        : (song.owner && song.owner.username)
+            ? song.owner.username
+            : (song.artist || 'Desconhecido');
 
-    // Mantenha o ID do objeto que está populando o campo 'artists'.
     const mainArtistId = Array.isArray(song.artists) && song.artists.length > 0 
         ? (song.artists[0]._id || song.artists[0].id)
+        : song.owner 
+            ? (song.owner._id || song.owner.id)
+            : null;
+            
+    const linkPath = song.isArtistUpload ? '/artist/' : '/perfil/';
+
+    const ownerName = song.owner 
+        ? (song.owner.name || song.owner.username || 'Proprietário Desconhecido')
         : null;
-
-    const label = song.album?.recordLabel || song.recordLabel || 'Gravadora não informada';
-
+        
+    const ownerId = song.owner 
+        ? (song.owner._id || song.owner.id) 
+        : null;
+        
+    const label = song.album?.recordLabel || song.recordLabel || 'Não informada';
+    
     return (
         <main>
             <AlbumHeader 
@@ -87,7 +104,8 @@ export default function SongDetail({ songID }) {
                 type={'Single'} 
                 title={song.title} 
                 artist={artistName}
-                artistId={mainArtistId}
+                artistId={mainArtistId} 
+                artistLinkPrefix={linkPath} 
                 year={song.releaseDate ? new Date(song.releaseDate).getFullYear() : ""}
                 duration={"1 música, " + formatTime(song.duration)}
                 onPlay={handlePlaySong} 
@@ -96,13 +114,13 @@ export default function SongDetail({ songID }) {
             <div className="song-list-container"> 
                 <SongList 
                     tracksArr={[song]} 
-                    onTrackClick={handlePlaySong} // Chame handlePlaySong ao clicar na track list
+                    onTrackClick={handlePlaySong}
                 />
             </div>
-
+            
             {song.lyrics && (
                 <div className="song-lyrics-container">
-                    <h2>Letra</h2>
+                    <h2>Letra 🎶</h2>
                     <pre className="song-lyrics-text">{song.lyrics}</pre>
                 </div>
             )}
@@ -110,6 +128,7 @@ export default function SongDetail({ songID }) {
             <ReleaseInfo
                 releaseDate={song.releaseDate} 
                 recordLabel={label} 
+                genres={song.generos && song.generos.length > 0 ? song.generos.join(', ') : 'N/A'}
             />
 
             <Section title={`Mais de ${artistName}`} className="section-mais-do-artista">
@@ -118,7 +137,6 @@ export default function SongDetail({ songID }) {
                     artistAlbums.map((album) => {
                         let albArtist = 'Desconhecido';
                         if (album.artists && Array.isArray(album.artists)) {
-                            // Usando 'name' primeiro para a listagem de álbuns
                             albArtist = album.artists.map(a => a.name || a.username || 'Desconhecido').join(', ');
                         }
                         return (

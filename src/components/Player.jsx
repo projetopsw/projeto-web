@@ -15,6 +15,7 @@ import {
     skipPrevious,
     toggleShuffle,
     toggleRepeat, 
+    setVolume,
 } from '../redux/playerSlice';
 
 const MUSIC_DETAIL_PATH_BASE = '/musica/';
@@ -42,14 +43,12 @@ function Player() {
         isShuffling,
         repeatMode, 
         queue, 
-        selectedSongInfo, // <<< Adicionado para exibir o nome da música real
+        selectedSongInfo,
     } = useSelector((state) => state.player);
     
     const dispatch = useDispatch();
     
-    // NOTA: O novo Audio() deve ser criado apenas uma vez
     const audioRef = useRef(new Audio());
-    
     const [localVolume, setLocalVolume] = useState(volume);
 
     useEffect(() => {
@@ -57,25 +56,41 @@ function Player() {
         setLocalVolume(volume);
     }, [volume]);
 
-    // CORREÇÃO CRÍTICA AQUI: Usar 'audioUrl' do AMBIENT_SONG ou 'caminho' da música real
     useEffect(() => {
-        if (currentSong && (currentSong.audioUrl || currentSong.caminho)) {
-            const audioSource = currentSong.audioUrl || currentSong.caminho;
-            audioRef.current.src = audioSource;
-        }
-    }, [currentSong]);
-    
-    useEffect(() => {
-        if (isPlaying && currentSong) {
-            // O load() é importante para garantir que o novo src seja processado antes do play()
-            audioRef.current.load(); 
-            audioRef.current.play().catch(e => {
-                // Captura erro de autoplay bloqueado
-                console.error("Erro ao tentar tocar áudio (autoplay bloqueado?):", e);
-                // Você pode adicionar uma UI aqui pedindo ao usuário para interagir
-            });
+        const audioSource = currentSong ? (currentSong.caminho || currentSong.audioUrl) : null;
+
+        console.log("Música Atual:", currentSong);
+        console.log("Caminho do Áudio (audioSource):", audioSource);
+        
+        if (currentSong && audioSource) {
+            
+            if (audioRef.current.src !== audioSource) {
+                audioRef.current.src = audioSource;
+                audioRef.current.load();
+            }
+            
+            if (isPlaying) {
+                 audioRef.current.play().catch(e => {
+                     console.warn("Autoplay bloqueado na troca de faixa:", e);
+                 });
+            }
         } else {
             audioRef.current.pause();
+            audioRef.current.src = '';
+            dispatch(setDuration(0));
+            dispatch(updateCurrentTime(0));
+        }
+    }, [currentSong, dispatch, isPlaying]);
+
+    useEffect(() => {
+        if (currentSong) {
+            if (isPlaying) {
+                audioRef.current.play().catch(e => {
+                    console.error("Erro ao tentar tocar áudio (autoplay bloqueado?):", e);
+                });
+            } else {
+                audioRef.current.pause();
+            }
         }
     }, [isPlaying, currentSong]);
 
@@ -115,6 +130,7 @@ function Player() {
         setLocalVolume(newVolume);
         
         audioRef.current.volume = newVolume;
+        dispatch(setVolume(newVolume));
     };
     
     const handleSeek = (event) => {
@@ -143,7 +159,7 @@ function Player() {
 
     const handleToggleShuffle = (e) => {
         e.stopPropagation();
-        if (queue.length > 1) { // Mudado para > 1, pois queue agora tem 1 item (ambient)
+        if (queue.length > 1) {
             dispatch(toggleShuffle());
         }
     };
@@ -167,10 +183,9 @@ function Player() {
 
     const progress = (currentTime / duration) * 100 || 0;
     
-    // CORREÇÃO: Usa selectedSongInfo se existir, ou currentSong (que é a ambiente)
     const songDisplay = selectedSongInfo || currentSong; 
     const songName = songDisplay ? `${songDisplay.title} - ${songDisplay.artist}` : " ";
-    const detailRoute = songDisplay ? `${MUSIC_DETAIL_PATH_BASE}${songDisplay.id}` : MUSIC_DETAIL_PATH_BASE;
+    const detailRoute = songDisplay ? `${MUSIC_DETAIL_PATH_BASE}${songDisplay._id}` : MUSIC_DETAIL_PATH_BASE;
     
     const PlayPauseIcon = isPlaying ? "fas fa-pause" : "fas fa-play";
     const VolumeIcon = localVolume === 0 ? "fas fa-volume-mute" : localVolume < 0.5 ? "fas fa-volume-down" : "fas fa-volume-up";

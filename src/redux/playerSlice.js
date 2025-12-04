@@ -15,13 +15,18 @@ const REPEAT_MODES = {
     SONG: 2,
 };
 
+// 🛑 CORREÇÃO: Usar a URL completa do backend para evitar erros de domínio/porta
+// Se sua porta do backend for diferente de 3000, altere este valor.
+const BACKEND_BASE_URL = 'http://localhost:3000'; 
+
 const AMBIENT_SONG = {
-    id: 'ambient-default', 
+    _id: 'ambient-default-mock-id', 
     title: 'Ambient Piano',
     artist: 'Moosica',
     cover: '/assets/img/vacateste.jpg', 
-    audioUrl: '/assets/audio/ambientpiano.mp3', 
+    caminho: `${BACKEND_BASE_URL}/mock/ambientpiano.mp3`, 
     isAmbient: true, 
+    isArtistUpload: true,
 };
 
 const initialState = {
@@ -35,7 +40,7 @@ const initialState = {
     currentTime: 0, 
     isShuffling: false,
     repeatMode: REPEAT_MODES.OFF,
-    selectedSongInfo: null, // Novo campo para guardar a info da música real selecionada
+    selectedSongInfo: null, 
 };
 
 export const playerSlice = createSlice({
@@ -43,13 +48,27 @@ export const playerSlice = createSlice({
     initialState,
     reducers: {
         playSong: (state, action) => {
-            const songToPlay = action.payload; 
+            const songToPlay = action.payload;
             
-            state.currentSong = AMBIENT_SONG;
-            state.selectedSongInfo = songToPlay; 
+            // ⭐️ CORREÇÃO DEFINITIVA: Usa !songToPlay.caminho para cobrir "", null e undefined.
+            const isApiOrArtist = songToPlay.isArtistUpload === true || !songToPlay.caminho; 
             
-            state.queue = [AMBIENT_SONG];
-            state.originalQueue = [AMBIENT_SONG];
+            const mockSongWithRealInfo = {
+                ...AMBIENT_SONG,
+                _id: songToPlay._id,
+                title: songToPlay.title,
+                cover: songToPlay.cover,
+                // Garantir que a propriedade 'artist' seja definida corretamente para o mock
+                artist: (songToPlay.artists && songToPlay.artists[0] ? songToPlay.artists[0].name || songToPlay.artists[0].username : 'Artista Desconhecido'),
+            };
+
+            const finalSong = isApiOrArtist ? mockSongWithRealInfo : songToPlay;
+
+            state.currentSong = finalSong;
+            state.selectedSongInfo = songToPlay;
+
+            state.queue = [finalSong];
+            state.originalQueue = [finalSong];
             state.queueIndex = 0;
             state.isPlaying = true;
             state.currentTime = 0;
@@ -57,29 +76,45 @@ export const playerSlice = createSlice({
         },
 
         setQueue: (state, action) => {
-            const newOriginalQueue = action.payload.songs;
+            const songsPayload = action.payload.songs;
+            const startIndex = action.payload.startIndex || 0;
             
-            state.originalQueue = [AMBIENT_SONG, ...newOriginalQueue];
+            if (songsPayload.length === 0) return;
+
+            const processedQueue = songsPayload.map(song => {
+                // ⭐️ CORREÇÃO DEFINITIVA
+                const isApiOrArtist = song.isArtistUpload === true || !song.caminho;
+                
+                if (isApiOrArtist) {
+                    return {
+                        ...AMBIENT_SONG,
+                        _id: song._id,
+                        title: song.title,
+                        cover: song.cover,
+                        artist: (song.artists && song.artists[0] ? song.artists[0].name || song.artists[0].username : 'Artista Desconhecido'),
+                    };
+                }
+                return song;
+            });
+            
+            state.originalQueue = processedQueue;
+            
+            const songToStart = processedQueue[startIndex];
             
             if (state.isShuffling) {
-                const songToStart = newOriginalQueue[action.payload.startIndex || 0];
-                
-                let remainingSongs = newOriginalQueue.filter((s, index) => index !== (action.payload.startIndex || 0));
+                let remainingSongs = processedQueue.filter((s, index) => index !== startIndex);
                 let shuffled = shuffleArray(remainingSongs);
-                
-                state.queue = [AMBIENT_SONG, songToStart, ...shuffled];
+                state.queue = [songToStart, ...shuffled];
             } else {
                 state.queue = state.originalQueue;
             }
 
-            const songToStart = action.payload.songs[action.payload.startIndex || 0];
-            state.selectedSongInfo = songToStart;
-
-            // O índice 0 agora é sempre a AMBIENT_SONG
-            state.queueIndex = 0; 
+            state.queueIndex = state.queue.findIndex(s => s._id === songToStart._id); 
+            state.currentSong = songToStart; 
             
+            state.selectedSongInfo = songsPayload.find(s => s._id === songToStart._id) || songToStart;
+
             if (state.queue.length > 0) {
-                state.currentSong = state.queue[state.queueIndex]; // AMBIENT_SONG
                 state.isPlaying = true;
                 state.currentTime = 0;
             }
@@ -91,37 +126,95 @@ export const playerSlice = createSlice({
             if (state.isShuffling) {
                 if (!state.currentSong) return;
                 
-                // Excluímos a AMBIENT_SONG da lista para embaralhar o restante
-                const restOfOriginal = [...state.originalQueue].filter(s => s.id !== AMBIENT_SONG.id);
+                const currentSongId = state.currentSong._id;
+                const restOfOriginal = state.originalQueue.filter(s => s._id !== currentSongId);
                 
                 let shuffledRest = shuffleArray(restOfOriginal);
                 
-                state.queue = [AMBIENT_SONG, ...shuffledRest];
+                state.queue = [state.currentSong, ...shuffledRest];
                 state.queueIndex = 0;
             } else {
+                const currentIndex = state.originalQueue.findIndex(s => s._id === state.currentSong._id);
                 state.queue = state.originalQueue;
-                state.queueIndex = 0; // Volta para AMBIENT_SONG na posição 0
+                state.queueIndex = currentIndex !== -1 ? currentIndex : 0;
             }
         },
-        
+
+        skipNext: (state) => {
+            if (state.repeatMode === REPEAT_MODES.SONG) {
+                state.isPlaying = true;
+                state.currentTime = 0; 
+                return;
+            }
+
+            let nextIndex = state.queueIndex + 1;
+            
+            if (nextIndex < state.queue.length) {
+                state.queueIndex = nextIndex;
+                state.currentSong = state.queue[nextIndex];
+                state.isPlaying = true;
+                state.currentTime = 0;
+                
+                state.selectedSongInfo = state.currentSong;
+            } else if (state.repeatMode === REPEAT_MODES.QUEUE && state.queue.length > 0) {
+                state.queueIndex = 0;
+                state.currentSong = state.queue[0];
+                state.isPlaying = true;
+                state.currentTime = 0;
+                
+                state.selectedSongInfo = state.currentSong;
+            } else {
+                state.isPlaying = false; 
+                state.currentSong = null;
+                state.queueIndex = -1;
+                state.selectedSongInfo = null;
+            }
+        },
+
+        skipPrevious: (state) => {
+            const prevIndex = state.queueIndex - 1;
+            
+            if (prevIndex >= 0) {
+                state.queueIndex = prevIndex;
+                state.currentSong = state.queue[prevIndex];
+                state.isPlaying = true;
+                state.currentTime = 0;
+                
+                state.selectedSongInfo = state.currentSong;
+            } else {
+                state.queueIndex = 0;
+                state.currentTime = 0;
+            }
+        },
+
         toggleRepeat: (state) => {
             state.repeatMode = (state.repeatMode + 1) % 3; 
         },
 
         addSingleSongToQueue: (state, action) => {
             const song = action.payload;
+            // ⭐️ CORREÇÃO DEFINITIVA
+            const isApiOrArtist = song.isArtistUpload === true || !song.caminho;
             
-            state.originalQueue.push(song);
+            const finalSong = isApiOrArtist ? {
+                ...AMBIENT_SONG,
+                _id: song._id,
+                title: song.title,
+                cover: song.cover,
+                artist: (song.artists && song.artists[0] ? song.artists[0].name || song.artists[0].username : 'Artista Desconhecido'),
+            } : song;
+            
+            state.originalQueue.push(finalSong);
             
             if (state.isShuffling) {
-                state.queue.push(song);
+                state.queue.push(finalSong);
             } else {
                 state.queue = state.originalQueue;
             }
 
             if (!state.currentSong) {
-                state.queueIndex = 0; 
-                state.currentSong = AMBIENT_SONG;
+                state.queueIndex = state.queue.length - 1; 
+                state.currentSong = finalSong;
                 state.selectedSongInfo = song;
                 state.isPlaying = true;
             }
@@ -131,101 +224,44 @@ export const playerSlice = createSlice({
             const songIdToRemove = action.payload;
 
             if (!state.currentSong || state.queue.length === 0) return;
-            if (songIdToRemove === AMBIENT_SONG.id) return; // Não permite remover a música ambiente
-
-            let indexToSplice = state.queue.findIndex((s, index) => 
-                s.id === songIdToRemove
-            );
-
-            if (indexToSplice === -1) return;
-
-            state.queue.splice(indexToSplice, 1);
             
-            // Remove da fila original, mantendo a música ambiente
-            state.originalQueue = state.originalQueue.filter(s => s.id !== songIdToRemove);
+            let indexToRemoveFromQueue = state.queue.findIndex(s => s._id === songIdToRemove);
+            
+            if (indexToRemoveFromQueue !== -1) {
+                state.queue.splice(indexToRemoveFromQueue, 1);
+            }
+            
+            state.originalQueue = state.originalQueue.filter(s => s._id !== songIdToRemove);
 
-            // Se o item removido estava antes do atual (que é sempre o índice 0, a música ambiente), não precisamos fazer nada
-            // O currentSong continua sendo AMBIENT_SONG no índice 0.
+            if (state.currentSong._id === songIdToRemove) {
+                state.currentSong = null;
+                state.isPlaying = false;
+                state.queueIndex = -1;
+                state.selectedSongInfo = null;
+            } else if (indexToRemoveFromQueue !== -1 && indexToRemoveFromQueue <= state.queueIndex) {
+                state.queueIndex = Math.max(0, state.queueIndex - 1);
+            }
         },
 
         reorderQueue: (state, action) => {
             const { sourceIndex, destinationIndex } = action.payload;
 
-            if (sourceIndex === 0 || destinationIndex === 0) return; // Impede mover a AMBIENT_SONG
+            if (sourceIndex < 0 || destinationIndex < 0 || sourceIndex >= state.queue.length || destinationIndex >= state.queue.length) return;
 
             const [movedItem] = state.queue.splice(sourceIndex, 1);
             state.queue.splice(destinationIndex, 0, movedItem);
 
             state.isShuffling = false; 
-            state.originalQueue = [...state.queue]; // A AMBIENT_SONG já está no começo
-
-            state.queueIndex = 0; // Continua na AMBIENT_SONG
-            state.currentSong = state.queue[state.queueIndex];
+            state.originalQueue = [...state.queue]; 
+            
+            state.queueIndex = state.queue.findIndex(s => s._id === state.currentSong._id);
+            if (state.queueIndex === -1) state.queueIndex = 0; 
         },
         
         togglePlayPause: (state) => {
             if (state.currentSong) {
                 state.isPlaying = !state.isPlaying;
             }
-        },
-        
-        skipNext: (state) => {
-            if (state.repeatMode === REPEAT_MODES.SONG) {
-                state.isPlaying = true;
-                state.currentTime = 0; 
-                return;
-            }
-
-            // Sempre voltamos para AMBIENT_SONG após tocar
-            state.queueIndex = 0; 
-            state.currentSong = state.queue[0];
-            state.isPlaying = true;
-            state.currentTime = 0;
-
-            // Se o objetivo é tocar a PRÓXIMA música REAL
-            /*
-            let nextIndex = state.queueIndex + 1;
-            
-            if (nextIndex < state.queue.length) {
-                state.queueIndex = nextIndex;
-                state.currentSong = state.queue[nextIndex];
-                state.isPlaying = true;
-                state.currentTime = 0;
-                if (!state.currentSong.isAmbient) {
-                     state.selectedSongInfo = state.currentSong;
-                }
-            } else if (state.repeatMode === REPEAT_MODES.QUEUE && state.queue.length > 0) {
-                state.queueIndex = 0;
-                state.currentSong = state.queue[0];
-                state.isPlaying = true;
-                state.currentTime = 0;
-                state.selectedSongInfo = state.currentSong.isAmbient ? state.originalQueue[1] : state.currentSong;
-            } else {
-                state.isPlaying = false; 
-            }
-            */
-        },
-
-        skipPrevious: (state) => {
-            // Em um player de música ambiente simples, skipPrevious pode apenas reiniciar
-            state.queueIndex = 0;
-            state.currentSong = state.queue[0];
-            state.isPlaying = true;
-            state.currentTime = 0;
-
-            // Se o objetivo é tocar a ANTERIOR música REAL
-            /*
-            const prevIndex = state.queueIndex - 1;
-            if (prevIndex >= 0) {
-                state.queueIndex = prevIndex;
-                state.currentSong = state.queue[prevIndex];
-                state.isPlaying = true;
-                state.currentTime = 0;
-                if (!state.currentSong.isAmbient) {
-                     state.selectedSongInfo = state.currentSong;
-                }
-            }
-            */
         },
         
         setDuration: (state, action) => {
