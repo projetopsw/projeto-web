@@ -1,153 +1,61 @@
+// src/routes/playlist.routes.js
 import express from 'express';
+import PlaylistController from '../controller/playlistController.js';
+import { verifyToken } from '../middleware/authMiddleware.js'; 
+import uploadCapaPlaylistMiddleware from '../middleware/uploadPlaylistCapa.js'; 
 import mongoose from 'mongoose';
-import Playlist from '../models/playlist.model.js';
-import User from '../models/user.model.js';
-import { verifyToken } from '../middleware/authMiddleware.js';
+import Multer from 'multer';
 
 const router = express.Router();
 
-// Helper: transforma doc Playlist para o formato esperado no frontend
-function toClientPlaylist(doc) {
-  if (!doc) return null;
-  const obj = doc.toObject ? doc.toObject() : doc;
-  const songsIds = (obj.songs || []).map((s) => (s && s.song ? s.song.toString() : s));
-  return {
-    id: obj._id.toString(),
-    _id: obj._id,
-    name: obj.name,
-    description: obj.description || '',
-    img: obj.img || '',
-    userId: obj.user?.toString?.() || obj.user || null,
-    songs: songsIds,
-    songCount: obj.songCount ?? songsIds.length,
-    duration: `${(obj.songCount ?? songsIds.length)} músicas`,
-  };
-}
-
-// Helper: valida e converte array de ids (strings) para [{ song: ObjectId }]
-function toSongRefs(songs) {
-  if (!Array.isArray(songs)) return undefined;
-  return songs
-    .filter(Boolean)
-    .map((id) => {
-      const str = typeof id === 'object' && id._id ? String(id._id) : String(id);
-      if (!mongoose.Types.ObjectId.isValid(str)) {
-        throw new Error(`ID de música inválido: ${id}`);
-      }
-      return { song: new mongoose.Types.ObjectId(str), addedAt: new Date() };
-    });
-}
-
-// GET /playlists - lista todas (opcional, não usado pelo FE atual)
-router.get('/', async (req, res, next) => {
-  try {
-    const playlists = await Playlist.find();
-    res.status(200).json(playlists.map(toClientPlaylist));
-  } catch (err) {
-    next(err);
-  }
-});
-
-// GET /playlists/:id - obtém detalhes (normaliza songs como array de IDs)
-router.get('/:id', async (req, res) => {
-  try {
-    const playlist = await Playlist.findById(req.params.id);
-    if (!playlist) {
-      return res.status(404).json({ message: 'Playlist não encontrada' });
+const checkObjectId = (req, res, next) => {
+    const idToCheck = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(idToCheck)) {
+        return res.status(400).json({ message: 'ID da Playlist inválido.' });
     }
-    res.status(200).json(toClientPlaylist(playlist));
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+    next();
+};
 
-// POST /playlists - cria playlist (usa campo 'user' exigido pelo schema)
-router.post('/', verifyToken, async (req, res) => {
-  const { name, creatorId, user: userFromBody, img, type, description, songs = [], isPublic = false } = req.body;
-
-  try {
-    const userId = userFromBody || creatorId || req.user?.id;
-    if (!userId) {
-      return res.status(400).json({ message: 'creatorId (ou user) é obrigatório.' });
+const handleMulterError = (err, req, res, next) => {
+    if (err instanceof Multer.MulterError) {
+        return res.status(400).json({ message: "Erro de Upload da Capa: " + err.message });
+    } else if (err) {
+        return res.status(400).json({ message: err.message });
     }
+    next();
+};
 
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: 'creatorId inválido.' });
-    }
+// POST /api/playlists - Criar Playlist
+router.post('/', 
+    verifyToken, 
+    uploadCapaPlaylistMiddleware, 
+    handleMulterError,
+    PlaylistController.createPlaylist
+);
 
-    const songsRefs = toSongRefs(songs) || [];
+// GET /api/playlists - Listar todas as Playlists
+router.get('/', PlaylistController.getPlaylists);
 
-    const newPlaylist = new Playlist({
-      name,
-      description: description || '',
-      img: img || '/assets/img/vacateste.jpg',
-      user: userId,
-      songs: songsRefs,
-      durationSeconds: 0,
-      songCount: songsRefs.length,
-    });
+// GET /api/playlists/:id - Obter detalhes (Requer token para checar acesso a playlists privadas)
+router.get('/:id', verifyToken, checkObjectId, PlaylistController.getPlaylistById); 
 
-    const savedPlaylist = await newPlaylist.save();
+// PATCH /api/playlists/:id - Atualizar metadados
+router.patch('/:id', 
+    verifyToken, 
+    checkObjectId, 
+    uploadCapaPlaylistMiddleware, 
+    handleMulterError,
+    PlaylistController.updatePlaylist
+);
 
-    // Vincula ao usuário
-    await User.findByIdAndUpdate(userId, { $push: { userPlaylists: savedPlaylist._id } });
+// DELETE /api/playlists/:id - Deletar uma Playlist
+router.delete('/:id', verifyToken, checkObjectId, PlaylistController.deletePlaylist);
 
-    res.status(201).json(toClientPlaylist(savedPlaylist));
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
+// POST /api/playlists/:id/songs - Adicionar uma música
+router.post('/:id/songs', verifyToken, checkObjectId, PlaylistController.addSongToPlaylist);
 
-// PATCH /playlists/:id - atualiza dados e/ou songs (aceita songs como array de IDs)
-router.patch('/:id', verifyToken, async (req, res) => {
-  try {
-    const update = {};
-    const { name, description, img, isPublic, songs } = req.body;
+// DELETE /api/playlists/:id/songs - Remover uma música
+router.delete('/:id/songs', verifyToken, checkObjectId, PlaylistController.removeSongFromPlaylist);
 
-    if (typeof name === 'string') update.name = name;
-    if (typeof description === 'string') update.description = description;
-    if (typeof img === 'string') update.img = img;
-    // isPublic não está no schema atual; ignorado para evitar validação
-
-    if (Array.isArray(songs)) {
-      const songsRefs = toSongRefs(songs);
-      update.songs = songsRefs;
-      update.songCount = songsRefs.length;
-    }
-
-    const updated = await Playlist.findByIdAndUpdate(
-      req.params.id,
-      { $set: update },
-      { new: true, runValidators: true }
-    );
-
-    if (!updated) {
-      return res.status(404).json({ message: 'Playlist não encontrada' });
-    }
-
-    res.status(200).json(toClientPlaylist(updated));
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-// DELETE /playlists/:id - exclui playlist e remove referência do usuário
-router.delete('/:id', verifyToken, async (req, res) => {
-  try {
-    const playlist = await Playlist.findByIdAndDelete(req.params.id);
-    if (!playlist) {
-      return res.status(404).json({ message: 'Playlist não encontrada' });
-    }
-
-    await User.updateMany(
-      { userPlaylists: req.params.id },
-      { $pull: { userPlaylists: req.params.id } }
-    );
-
-    res.status(200).json({ message: 'Playlist excluída com sucesso' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
 
 export default router;

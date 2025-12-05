@@ -1,20 +1,20 @@
+// src/pages/Playlists.jsx
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Modal,
     Box,
     Typography,
     TextField,
     Button,
-    styled
 } from '@mui/material';
 import api from '../../services/api';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchUserPlaylistsDetail } from '../../redux/loginSlice'; 
 
+// --- Configurações de Playlists Estáticas ---
 const LIKED_SONGS_COVER = '/assets/img/liked_cover_0.png';
 const DEFAULT_PLAYLIST_COVER = '/assets/img/vacateste.jpg';
-
 
 const LIKED_SONGS_PLAYLIST = {
     id: "0",
@@ -40,57 +40,24 @@ const ModalStyle = {
     p: 4,
     color: 'var(--text-color)',
 };
+// --- FIM Configurações de Playlists Estáticas ---
 
-const PlaylistBox = styled('div')({
-    width: '220px', 
-    marginBottom: '25px', 
-    textDecoration: 'none',
-    color: 'inherit',
-    transition: 'transform 0.2s ease',
-    '&:hover': {
-        cursor: 'pointer',
-        transform: 'scale(1.08)',
-    },
-    
-    '& .box-content': {
-        backgroundColor: 'var(--card-bg-light)', 
-        borderRadius: '8px',
-        padding: '15px',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%', 
-    },
-    
-    '& .image-container img': {
-        width: '100%',
-        height: '180px', 
-        objectFit: 'cover',
-        borderRadius: '6px',
-        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.3)',
-    },
-    
-    '& p': {
-        marginTop: '10px',
-        fontWeight: 'bold',
-        fontSize: '1rem',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-    },
-});
 
 function Playlists() {
     const dispatch = useDispatch();
     const location = useLocation();
-    
+    const navigate = useNavigate(); 
+
     const user = useSelector(state => state.user?.user);
-    const userPlaylistsDetail = useSelector(state => state.auth?.userPlaylistsDetail);
     const USER_ID = user?.id || user?._id; 
     const userLikedSongs = user?.likedSongs || []; 
 
     const [playlists, setPlaylists] = useState([]); 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newPlaylistName, setNewPlaylistName] = useState('');
+    const [isCreating, setIsCreating] = useState(false); 
+
+    // --- Lógica de Fetch e Handlers (MANTIDO) ---
 
     const fetchPlaylists = async () => {
         if (!USER_ID) return; 
@@ -102,12 +69,28 @@ function Playlists() {
             
             const likedSongsCount = (userData.likedSongs || []).filter(id => id).length; 
 
-            const playlistsPromises = userPlaylistsIds.map(id => api.get(`/playlists/${id}`));
-            const playlistsResponses = await Promise.all(playlistsPromises);
-            let userAllPlaylists = playlistsResponses.map(res => res.data);
+            const playlistsPromises = userPlaylistsIds.map(async id => {
+                try {
+                    const res = await api.get(`/playlists/${id}`);
+                    const playlistData = res.data;
+                    const songsCount = playlistData.songs ? playlistData.songs.length : 0;
+                    
+                    return {
+                        id: playlistData._id,
+                        name: playlistData.title,
+                        img: playlistData.cover || DEFAULT_PLAYLIST_COVER,
+                        description: playlistData.description,
+                        creator: playlistData.user?.username || 'Usuário',
+                        songCount: songsCount,
+                        duration: `${songsCount} músicas`,
+                    };
+                } catch (e) {
+                    return null;
+                }
+            });
             
-            let userCustomPlaylists = userAllPlaylists.filter(p => String(p.id || p._id) !== String(LIKED_SONGS_PLAYLIST.id));
-
+            let userCustomPlaylists = (await Promise.all(playlistsPromises)).filter(p => p !== null);
+            
             const updatedLikedPlaylist = {
                 ...LIKED_SONGS_PLAYLIST,
                 songCount: likedSongsCount,
@@ -144,28 +127,23 @@ function Playlists() {
 
     const handleCreatePlaylist = async (e) => {
         e.preventDefault();
-        const name = newPlaylistName.trim();
+        const title = newPlaylistName.trim();
         
         if (!USER_ID) {
             alert("Faça login para criar uma playlist.");
             return;
         }
 
-        if (name) {
+        if (title) {
+            setIsCreating(true);
             try {
                 const newPlaylist = {
-                    name,
-                    user: USER_ID,
-                    img: DEFAULT_PLAYLIST_COVER,
+                    title,
                     description: `Playlist criada por ${user?.name || user?.username || 'usuário'}.`,
-                    songs: [],
                 };
                 
-                const response = await api.post('/playlists', newPlaylist);
-                const createdPlaylist = response.data;
-
-                // O backend já adiciona a nova playlist em user.userPlaylists.
-                // Apenas recarregamos a lista local.
+                await api.post('/playlists', newPlaylist); 
+                
                 fetchPlaylists(); 
                 handleClose();
 
@@ -173,60 +151,78 @@ function Playlists() {
                 console.error("Erro ao criar playlist:", error);
                 const detail = error?.response?.data?.message || error.message || '';
                 alert(`Não foi possível criar a playlist. Detalhe: ${detail}`);
+            } finally {
+                setIsCreating(false);
             }
         }
     };
 
+    const navigateToDetail = (id) => {
+        navigate(`/playlist/${id}`);
+    };
+
+    // --- RENDERIZAÇÃO MELHORADA ---
 
     return (
-        <main className="content-area">
-            <h1>Minhas Playlists</h1>
+        <main className="content-area playlist-page">
+            <Typography variant="h1" component="h1" sx={{ 
+                // Usando sx para garantir que o título tenha a cor e tamanho certos
+                color: 'var(--text-color)', 
+                fontSize: '2.5rem', 
+                marginBottom: '40px',
+                paddingLeft: '0px' // O padding será controlado pelo main.playlist-page
+            }}>Minhas Playlists</Typography>
 
-            <Box className="playlists-container" sx={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                gap: '25px', 
-                padding: '10px 0' 
-            }}>
+            <Box className="playlists-container"> 
                 
-                <PlaylistBox onClick={handleOpen}>
-                    <div className="box-content" style={{ 
-                        justifyContent: 'center', 
-                        alignItems: 'center', 
-                        height: '100%', 
-                    }}>
-                        <button className="btn-add-playlist" style={{ 
-                            fontSize: '40px', 
-                            color: 'var(--orange)', 
-                            backgroundColor: 'transparent',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: 0,
-                        }}>
-                            <i className="fas fa-plus"></i>
-                        </button>
-                        <p style={{ color: 'var(--secondary-text-color)', marginTop: '15px' }}>Nova Playlist</p>
-                    </div>
-                </PlaylistBox>
+                {/* 1. BLOCo DE CRIAÇÃO (Card) */}
+                <div className="box-playlist add-playlist" onClick={handleOpen}>
+                    <button className="btn-add-playlist" disabled={isCreating}>
+                        {isCreating 
+                            ? <i className="fas fa-spinner fa-spin" style={{ color: 'var(--text-color)', fontSize: '40px' }}></i>
+                            : <i className="fas fa-plus" style={{ color: 'var(--text-color)', fontSize: '40px' }}></i>
+                        }
+                    </button>
+                    {/* Título (Primeiro P) */}
+                    <p style={{ color: 'var(--text-color)', marginTop: '10px', fontWeight: 'bold' }}>
+                        Nova Playlist
+                    </p>
+                    {/* Subtítulo discreto (Segundo P) */}
+                    <p style={{ fontSize: '0.9rem', color: 'var(--secondary-text-color)', fontWeight: 'normal' }}>
+                        Crie e personalize
+                    </p>
+                </div>
 
+                {/* 2. LISTAGEM DAS PLAYLISTS (Cards) */}
                 {playlists.map((playlist) => (
-                    <Link
+                    <div
                         key={playlist.id}
-                        to={`/playlists/${playlist.id}`}
-                        style={{ textDecoration: 'none', color: 'inherit' }}
+                        className="box-playlist" 
+                        onClick={() => navigateToDetail(playlist.id)}
                     >
-                        <PlaylistBox>
-                            <div className="box-content">
-                                <div className="image-container">
-                                    <img src={playlist.img} alt={`IMG Playlist: ${playlist.name}`} />
-                                </div>
-                                <p>{playlist.name}</p>
-                            </div>
-                        </PlaylistBox>
-                    </Link>
+                        {/* Imagem da Playlist */}
+                        <img 
+                            src={playlist.img} 
+                            alt={`Capa Playlist: ${playlist.name}`} 
+                        />
+                        
+                        {/* Título (Primeiro P - herda bold e text-color) */}
+                        <p title={playlist.name}>
+                            {playlist.name}
+                        </p>
+                        
+                        {/* Sub-texto/Contagem (Segundo P - herda secondary-text-color) */}
+                        <p style={{ 
+                            fontWeight: 'normal',
+                            fontSize: '0.9rem',
+                        }}>
+                            {playlist.songCount} músicas
+                        </p>
+                    </div>
                 ))}
             </Box>
 
+            {/* Modal de Criação (MANTIDO) */}
             <Modal
                 open={isModalOpen}
                 onClose={handleClose}
@@ -256,25 +252,27 @@ function Playlists() {
                         InputLabelProps={{ style: { color: 'var(--secondary-text-color)' } }}
                         InputProps={{ style: { color: 'var(--text-color)', border: '1px solid var(--border-color)' } }}
                         sx={{ mb: 3 }}
+                        disabled={isCreating}
                     />
 
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                         <Button
                             onClick={handleClose}
                             sx={{ color: 'var(--secondary-text-color)' }}
+                            disabled={isCreating}
                         >
                             Cancelar
                         </Button>
                         <Button
                             type="submit"
                             variant="contained"
-                            disabled={!newPlaylistName.trim()}
+                            disabled={!newPlaylistName.trim() || isCreating}
                             sx={{
                                 backgroundColor: 'var(--orange)',
                                 '&:hover': { backgroundColor: '#cc612a' }
                             }}
                         >
-                            Criar
+                            {isCreating ? 'Criando...' : 'Criar'}
                         </Button>
                     </Box>
                 </Box>

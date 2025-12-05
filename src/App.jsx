@@ -44,27 +44,36 @@ function App() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/cadastro" element={<Cadastro />} />
                     
-                    {/* ROTA PARA INTERCEPTAR O CALLBACK DO SPOTIFY */}
                     <Route path="/callback" element={<SpotifyCallback />} />
 
                     <Route element={<MainLayout />}>
                         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                        
+                        {/* ROTAS DE PLAYLISTS */}
                         <Route path="/playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
-                        <Route path="/playlists/:id" element={<ProtectedRoute><PlaylistDetalhe /></ProtectedRoute>} />
+                        
+                        {/* ROTA ÚNICA E CORRETA PARA DETALHE DA PLAYLIST */}
+                        <Route path="/playlist/:id" element={<ProtectedRoute><PlaylistDetalhe /></ProtectedRoute>} />
+                        
+                        {/* REMOVIDA A ROTA DUPLICADA: /playlists/:id */}
+                        {/* REMOVIDA A ROTA DUPLICADA: /playlists/:id */}
+                        
                         <Route path="/pesquisa" element={<ProtectedRoute><Pesquisa /></ProtectedRoute>} />
                         <Route path="/musica/:id" element={<ProtectedRoute><TelaMusica /></ProtectedRoute>} />
                         <Route path="/grupos" element={<ProtectedRoute><Grupos /></ProtectedRoute>} />
                         <Route path="/grupos/:id" element={<ProtectedRoute><GrupoDetalhe /></ProtectedRoute>} />
-                        <Route path="/artista/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
-                        <Route path="/song/:id" element={<ProtectedRoute><SongDetail /></ProtectedRoute>} />
-                        <Route path="/albumDetail/:id" element={<ProtectedRoute><AlbumDetail /></ProtectedRoute>} />
+                        
+                        {/* ROTAS DE ÁLBUNS E ARTISTAS PADRONIZADAS */}
                         <Route path="/album/:id" element={<ProtectedRoute><AlbumDetail /></ProtectedRoute>} />
-                        <Route path="/playlist/:id" element={<ProtectedRoute><PlaylistDetalhe /></ProtectedRoute>} />
-                        <Route path="/artistDetail/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
                         <Route path="/artist/:id" element={<ProtectedRoute><Artist /></ProtectedRoute>} />
+                        
+                        {/* ROTAS REMOVIDAS POIS SÃO DUPLICADAS: /albumDetail/:id, /artistDetail/:id, /playlists/:id */}
+                        
+                        <Route path="/song/:id" element={<ProtectedRoute><SongDetail /></ProtectedRoute>} />
                         <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
                         <Route path="/fila" element={<ProtectedRoute><FilaPage /></ProtectedRoute>} />
+                        
+                        {/* ROTAS DE PERFIL */}
                         <Route path="/perfil/editar" element={<ProtectedRoute><ProfileEdition /></ProtectedRoute>} />
                         <Route path="/perfil/:id" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
                         <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
