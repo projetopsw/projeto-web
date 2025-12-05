@@ -88,17 +88,49 @@ function Home() {
 
                     const normSongs = validSongs.map(s => {
                         let artistName = 'Desconhecido';
+                        let artistId = null; 
+                        let isArtistUpload = false; 
+                        let isUserUpload = false; 
+
+                        // ----------------------------------------------------
+                        // LÓGICA CORRIGIDA
+                        // ----------------------------------------------------
                         if (Array.isArray(s.artists) && s.artists.length > 0) {
-                            artistName = s.artists.map(a => a.name).join(', ');
+                            const mainArtist = s.artists[0];
+                            artistName = s.artists.map(a => a.name || a.username).join(', ');
+                            artistId = mainArtist._id;
+                            
+                            // 1. Coerção forçada para booleano:
+                            isArtistUpload = !!mainArtist.isArtistUpload;
+                            
+                            // 2. Coerção forçada para booleano + checagem de exclusividade:
+                            // É upload de usuário SE uploadedBy existir E NÃO for um upload de artista
+                            isUserUpload = !!s.uploadedBy && !isArtistUpload;
+
                         } else if (s.artist) {
-                            artistName = typeof s.artist === 'string' ? s.artist : s.artist.name;
+                            artistName = typeof s.artist === 'string' ? s.artist : s.artist.name || s.artist.username;
+                            artistId = typeof s.artist === 'object' ? s.artist._id : null;
+                            isArtistUpload = !!s.isArtistUpload;
+                            isUserUpload = !!s.uploadedBy && !isArtistUpload;
                         }
 
+                        // 3. REGRA DE FALLBACK FORTE:
+                        // Se temos um ID de artista, mas a flag é false (porque o MongoDB não a incluiu)
+                        // E não é um upload de usuário, forçamos isArtistUpload para true.
+                        if (artistId && !isArtistUpload && !isUserUpload) {
+                             isArtistUpload = true;
+                        }
+                        // ----------------------------------------------------
+                        
                         return {
                             id: s._id,
                             cover: s.cover || s.album?.cover, 
                             title: s.title,
                             artist: artistName, 
+                            artistId: artistId, 
+                            isArtistUpload: isArtistUpload, 
+                            isUserUpload: isUserUpload,     
+                            fullSongData: s,
                         };
                     });
                     setSongsData(normSongs);
@@ -163,15 +195,20 @@ function Home() {
             {filteredSections.map((section) => (
                 <Section key={section.title} title={section.title} className="card-container">
                     
-                    {section.type === 'song' && songsData.map((song) => (
-                        <SongCard
-                            key={song.id}
-                            id={song.id}
-                            cover={song.cover}
-                            title={song.title}
-                            artist={song.artist}
-                        />
-                    ))}
+                    {section.type === 'song' && songsData.map((song) => {                        
+                        return (
+                            <SongCard
+                                key={song.id}
+                                id={song.id}
+                                cover={song.cover}
+                                title={song.title}
+                                artist={song.artist}
+                                artistId={song.artistId}
+                                isArtistUpload={song.isArtistUpload}
+                                isUserUpload={song.isUserUpload}
+                            />
+                        );
+                    })}
 
                     {section.type === 'artist' && artistsData.map((artist) => (
                         <ArtistCircle

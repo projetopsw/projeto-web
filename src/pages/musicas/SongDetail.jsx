@@ -73,19 +73,43 @@ export default function SongDetail({ songID }) {
         return <main><h1>Música não encontrada 😥</h1></main>;
     }
 
-    const artistName = Array.isArray(song.artists) && song.artists.length > 0
-        ? song.artists.map(a => a.name || a.username || 'Artista Desconhecido').join(', ')
-        : (song.owner && song.owner.username)
-            ? song.owner.username
-            : (song.artist || 'Desconhecido');
+    let effectiveArtistId = null; 
+    let isArtistUpload = false; 
+    let isUserUpload = false; 
+    const s = song;
+    let finalArtistName = 'Desconhecido';
 
-    const mainArtistId = Array.isArray(song.artists) && song.artists.length > 0 
-        ? (song.artists[0]._id || song.artists[0].id)
-        : song.owner 
-            ? (song.owner._id || song.owner.id)
-            : null;
+    if (s) {
+        if (Array.isArray(s.artists) && s.artists.length > 0) {
+            const mainArtist = s.artists[0];
+            effectiveArtistId = mainArtist._id || mainArtist.id;
+            isArtistUpload = !!mainArtist.isArtistUpload;
+            finalArtistName = s.artists.map(a => a.name || a.username || 'Artista Desconhecido').join(', ');
             
-    const linkPath = song.isArtistUpload ? '/artist/' : '/perfil/';
+        } else if (s.owner) {
+            effectiveArtistId = s.owner._id || s.owner.id;
+            isUserUpload = true;
+            finalArtistName = s.owner.username || s.owner.name || 'Proprietário Desconhecido';
+        }
+
+        if (effectiveArtistId && !isUserUpload) {
+             isArtistUpload = true; 
+             isUserUpload = false;
+        } else if (isUserUpload) {
+             isArtistUpload = false;
+        }
+    }
+    
+    let artistLinkPrefix = '/perfil/';
+    if (isArtistUpload) {
+        artistLinkPrefix = '/artista/';
+    } else if (isUserUpload) {
+         artistLinkPrefix = '/perfil/';
+    }
+
+    const mainArtistId = effectiveArtistId;
+    const artistName = finalArtistName;
+    const linkPath = artistLinkPrefix;
 
     const ownerName = song.owner 
         ? (song.owner.name || song.owner.username || 'Proprietário Desconhecido')
