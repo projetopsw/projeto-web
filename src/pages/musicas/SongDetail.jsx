@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchSongById, fetchAlbumsByArtist } from '../../redux/catalogoSlice';
 import { playSong } from '../../redux/playerSlice.js';
@@ -8,6 +8,8 @@ import SongList from '../../components/SongList.jsx';
 import Section from '../../components/Section.jsx';
 import AlbumCard from '../../components/AlbumCard.jsx';
 import ReleaseInfo from '../../components/ReleaseInfo.jsx';
+import DeleteConfirmationModal from '../../components/DeleteMusica.jsx';
+import mongoApi from '../../services/mongoApi.js';
 import './css/SongAlbumDetail.css';
 
 const formatTime = (seconds) => {
@@ -21,9 +23,16 @@ export default function SongDetail({ songID }) {
     const { id: routeId } = useParams();
     const effectiveId = songID || routeId;
     const dispatch = useDispatch();
+    const navigate = useNavigate();
+
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const { details: song, status: songStatus } = useSelector((state) => state.catalog.selectedSong);
     const { items: artistAlbums, status: artistAlbumsStatus } = useSelector((state) => state.catalog.albumsByArtist);
+    
+    const currentUser = useSelector(state => state.auth.user); 
+    const currentUserId = currentUser?._id || currentUser?.id;
+    const isAdmin = currentUser?.role === 'admin'; 
 
     const mainArtistIdForFetch = (song) => {
         if (!song) return null;
@@ -41,6 +50,16 @@ export default function SongDetail({ songID }) {
             dispatch(fetchSongById(effectiveId));
         }
     }, [effectiveId, dispatch]);
+    
+    useEffect(() => {
+        if (song) {
+            console.log("--- DEBUG CAPAS ---");
+            console.log("Capa da Música (song.cover):", song.cover);
+            console.log("Capa do Álbum (song.album?.cover):", song.album?.cover);
+            console.log("Objeto song.album:", song.album);
+            console.log("-------------------");
+        }
+    }, [song]);
 
     useEffect(() => {
         const idToFetch = mainArtistIdForFetch(song);
@@ -49,6 +68,21 @@ export default function SongDetail({ songID }) {
         }
     }, [song, dispatch]); 
 
+    const handleDeleteSong = async () => {
+        if (!song || !effectiveId) return;
+
+        try {
+            await mongoApi.delete(`/songs/${effectiveId}`);
+            
+            alert('Música deletada com sucesso!'); 
+            navigate('/'); 
+
+        } catch (error) {
+            console.error('Erro ao deletar a música:', error);
+            alert('Falha ao deletar a música. Tente novamente.');
+        }
+    };
+    
     const handlePlaySong = () => {
         if (song) {
             const artistForPlayer = Array.isArray(song.artists) && song.artists.length > 0 
@@ -100,6 +134,13 @@ export default function SongDetail({ songID }) {
         }
     }
     
+    const isOwner = currentUserId && (
+        (isArtistUpload && effectiveArtistId === currentUserId) || 
+        (isUserUpload && s.owner?._id === currentUserId)
+    );
+    const canDelete = isAdmin || isOwner;
+
+
     let artistLinkPrefix = '/perfil/';
     if (isArtistUpload) {
         artistLinkPrefix = '/artista/';
@@ -121,10 +162,14 @@ export default function SongDetail({ songID }) {
         
     const label = song.album?.recordLabel || song.recordLabel || 'Não informada';
     
+    const albumCover = song.album?.cover || null; 
+    const musicCover = song.cover || null; 
+
     return (
         <main>
             <AlbumHeader 
-                cover={song.cover} 
+                cover={albumCover} 
+                songCover={musicCover} 
                 type={'Single'} 
                 title={song.title} 
                 artist={artistName}
@@ -132,8 +177,29 @@ export default function SongDetail({ songID }) {
                 artistLinkPrefix={linkPath} 
                 year={song.releaseDate ? new Date(song.releaseDate).getFullYear() : ""}
                 duration={"1 música, " + formatTime(song.duration)}
+                genres={song.genres} 
                 onPlay={handlePlaySong} 
-            /> 
+            >
+                {canDelete && (
+                     <div className="options-menu" style={{ position: 'relative' }}>
+                         <button 
+                             className="more-options-button"
+                             onClick={() => setShowDeleteModal(true)}
+                             style={{ 
+                                 background: 'none', 
+                                 border: '1px solid white', 
+                                 color: 'white', 
+                                 padding: '8px 15px', 
+                                 borderRadius: '20px',
+                                 cursor: 'pointer',
+                                 marginTop: '10px' 
+                             }}
+                         >
+                             ... Deletar Música
+                         </button>
+                     </div>
+                )}
+            </AlbumHeader> 
             
             <div className="song-list-container"> 
                 <SongList 
@@ -152,7 +218,7 @@ export default function SongDetail({ songID }) {
             <ReleaseInfo
                 releaseDate={song.releaseDate} 
                 recordLabel={label} 
-                genres={song.generos && song.generos.length > 0 ? song.generos.join(', ') : 'N/A'}
+                genres={song.genres && song.genres.length > 0 ? song.genres.join(', ') : 'N/A'}
             />
 
             <Section title={`Mais de ${artistName}`} className="section-mais-do-artista">
@@ -179,6 +245,13 @@ export default function SongDetail({ songID }) {
             </Section>
             
             <div className="margin-bottom-large"></div>
+            
+            <DeleteConfirmationModal
+                show={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={handleDeleteSong}
+                itemTitle={song.title}
+            />
         </main>
     );
 }

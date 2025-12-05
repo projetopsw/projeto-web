@@ -29,20 +29,20 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-app.use('/music_files', express.static(path.join(__dirname, 'public', 'music_files')));
-app.use('/cover_images', express.static(path.join(__dirname, 'public', 'cover_images')));
-app.use(express.static(path.join(__dirname, 'public'))); 
-
 app.use('/api/search', searchRoutes);
+app.use('/songs', songRoutes);
 app.use('/albums', albumRoutes);
 app.use('/artists', artistRoutes);
 app.use('/groups', groupRoutes);
-app.use('/songs', songRoutes);
 app.use('/users', userRoutes);
 app.use('/api/auth/spotify', spotifyAuthRoutes);
 app.use('/api/spotify', spotifyRoutes);
 app.use('/api/spotify-cache', spotifyCacheRoutes);
 app.use("/playlists", playlistRoutes);
 app.use('/api/comentarios', comentariosRoutes);
+
+app.use('/music_files', express.static(path.join(__dirname, 'public', 'music_files')));
+app.use('/cover_images', express.static(path.join(__dirname, 'public', 'cover_images')));
+app.use(express.static(path.join(__dirname, 'public'))); 
 
 export default app

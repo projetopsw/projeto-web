@@ -7,8 +7,14 @@ export default defineConfig({
 
   server: {
     proxy: {
-
       '/api': {
+        target: 'http://localhost:3000', 
+        changeOrigin: true,
+        secure: false, 
+      },
+      
+      // 🎯 NOVA REGRA: Redirecionar arquivos estáticos do backend
+      '/cover_images': {
         target: 'http://localhost:3000', 
         changeOrigin: true,
         secure: false, 

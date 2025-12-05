@@ -1,5 +1,7 @@
-import Musica from '../models/song.model.js'; 
-import User from '../models/user.model.js'; 
+import Musica from '../models/song.model.js';
+import User from '../models/user.model.js';
+import fs from 'fs';
+import path from 'path';
 
 const convertDurationToSeconds = (durationString) => {
     if (!durationString || typeof durationString !== 'string') {
@@ -133,60 +135,122 @@ const MusicaController = {
     },
     
     updateMusica: async (req, res) => {
+        const { id } = req.params;
+        const ownerId = getOwnerIdFromAuth(req);
+
+        if (!ownerId) {
+            return res.status(401).json({ message: 'Usuário não autenticado.' });
+        }
+
         try {
-            const { musicaId } = req.params;
-            const ownerId = getOwnerIdFromAuth(req);
-
-            if (!ownerId) {
-                return res.status(401).json({ message: 'Usuário não autenticado.' });
-            }
-
-            const musica = await Musica.findById(musicaId).select('owner');
-            if (!musica) {
+            const musicaAtual = await Musica.findById(id);
+            if (!musicaAtual) {
                 return res.status(404).json({ message: 'Música não encontrada.' });
             }
 
-            if (musica.owner.toString() !== ownerId) {
+            const userIdString = ownerId.toString();
+            const musicaOwnerIdString = musicaAtual.owner ? musicaAtual.owner.toString() : null;
+            
+            if (musicaOwnerIdString !== userIdString) {
                 return res.status(403).json({ message: 'Acesso negado. Você não é o proprietário desta música.' });
             }
+
+            let updateFields = {};
             
+            if (req.body.updateData) {
+                try {
+                    const parsedData = JSON.parse(req.body.updateData);
+                    
+                    if (parsedData.title !== undefined) updateFields.title = parsedData.title;
+                    if (parsedData.description !== undefined) updateFields.description = parsedData.description;
+                    if (parsedData.lyrics !== undefined) updateFields.lyrics = parsedData.lyrics;
+                    
+                    if (parsedData.genres !== undefined) {
+                        let finalGenres = parsedData.genres;
+                        if (typeof finalGenres === 'string') {
+                            finalGenres = finalGenres.split(',').map(g => g.trim()).filter(g => g);
+                        }
+                        updateFields.genres = finalGenres;
+                    }
+                    
+                } catch (e) {
+                    return res.status(400).json({ message: 'Dados de atualização (updateData) inválidos: JSON mal formatado.' });
+                }
+            }
+            
+            let novaCapaFile = req.files && req.files.coverImage && req.files.coverImage[0] 
+                               ? req.files.coverImage[0] 
+                               : null;
+            
+            if (!novaCapaFile && req.file && req.file.fieldname === 'coverImage') {
+                novaCapaFile = req.file;
+            }
+
+            if (novaCapaFile) {
+                
+                const capaFilename = novaCapaFile.filename;
+                const newCoverUrl = `/cover_images/${capaFilename}`;
+                updateFields.cover = newCoverUrl;
+            }
+            
+            if (Object.keys(updateFields).length === 0) {
+                 return res.status(200).json({ message: 'Nenhuma alteração detectada ou fornecida para atualização.', musica: musicaAtual });
+            }
+
             const musicaAtualizada = await Musica.findByIdAndUpdate(
-                musicaId,
-                req.body,
+                id,
+                updateFields,
                 { new: true, runValidators: true }
-            );
+            )
+            .populate('artists', 'username img')
+            .populate('album', 'title cover');
+
+            if (!musicaAtualizada) {
+                 return res.status(404).json({ message: 'Música não encontrada durante a atualização.' });
+            }
 
             res.status(200).json(musicaAtualizada);
+
         } catch (error) {
-            res.status(400).json({ message: 'Falha ao atualizar música.', error: error.message });
+            if (error.name === 'ValidationError') {
+                 return res.status(400).json({ message: 'Erro de validação nos dados fornecidos.', error: error.message });
+            }
+            res.status(500).json({ message: 'Falha ao atualizar música (Erro interno do servidor).', error: error.message });
         }
     },
     
     deleteMusica: async (req, res) => {
         try {
-            const { musicaId } = req.params;
+            const { id } = req.params;
             const userId = getOwnerIdFromAuth(req);
 
             if (!userId) {
                 return res.status(401).json({ message: 'Usuário não autenticado.' });
             }
 
-            const musica = await Musica.findById(musicaId);
+            const musica = await Musica.findById(id);
             if (!musica) {
                 return res.status(404).json({ message: 'Música não encontrada.' });
             }
 
-            const ownerId = musica.owner ? musica.owner.toString() : (musica.artists[0] ? musica.artists[0].toString() : null);
+            const ownerId = musica.owner 
+                ? musica.owner.toString() 
+                : (musica.artists && musica.artists.length > 0 ? musica.artists[0].toString() : null);
+            
+            const user = await User.findById(userId);
 
-            if (ownerId !== userId) {
-                return res.status(403).json({ message: 'Acesso negado. Você não é o proprietário desta música.' });
+            const isAdmin = user && user.role === 'admin';
+            const isOwner = ownerId && ownerId === userId;
+            
+            if (!isAdmin && !isOwner) {
+                return res.status(403).json({ message: 'Acesso negado. Você não é o proprietário ou um administrador desta música.' });
             }
 
-            const musicaDeletada = await Musica.findByIdAndDelete(musicaId);
+            const musicaDeletada = await Musica.findByIdAndDelete(id);
             
-            if (ownerId) {
+            if (musicaDeletada && ownerId) {
                 await User.findByIdAndUpdate(ownerId, {
-                    $pull: { myMusics: musicaId }
+                    $pull: { myMusics: id }
                 });
             }
 

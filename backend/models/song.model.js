@@ -36,13 +36,13 @@ const songSchema = new Schema({
     genres: [{ 
         type: String, 
         enum: VALID_GENRES, 
-        required: true,
+        required: false,
         default: ['Outro']
     }],
 
     isArtistUpload: { 
         type: Boolean,
-        default: false, // usuário fez uploead = false          API/artista = true
+        default: false,
     },
 
     likes: [{

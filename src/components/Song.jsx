@@ -10,12 +10,16 @@ import ShareIcon from '@mui/icons-material/Share';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import CloseIcon from '@mui/icons-material/Close';
-
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toggleLikeSongAsync, addSongToPlaylistAsync, fetchUserPlaylistsDetail } from '../redux/loginSlice';
 import { playSong, togglePlayPause, addSingleSongToQueue } from '../redux/playerSlice';
 import api from '../services/api'; 
+import mongoApi from '../services/mongoApi';
+import DeleteConfirmationModal from './DeleteMusica.jsx';
+import EditMusicaModal from './EditMusica.jsx'; 
 
 const COR_LARANJA = 'var(--orange)';
 const LIKED_SONGS_ID = "0";
@@ -52,6 +56,8 @@ export default function Song({ song }) {
     const durationDisplay = formatTime(song.duration);
 
     const user = useSelector(state => state.user?.user);
+    const currentUserId = user?._id || user?.id;
+    const isAdmin = user?.role === 'admin';
     const userPlaylistsDetail = useSelector(state => state.auth?.userPlaylistsDetail || []);
 
     const userLikedSongs = user?.likedSongs || [];
@@ -65,10 +71,20 @@ export default function Song({ song }) {
     const [anchorEl, setAnchorEl] = useState(null);
     const [playlistAnchorEl, setPlaylistAnchorEl] = useState(null);
     const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false); // NOVO ESTADO
     const [copied, setCopied] = useState(false);
     
     const aberto = Boolean(anchorEl);
     const playlistMenuAberto = Boolean(playlistAnchorEl);
+    
+    const songOwnerId = song.owner?._id || song.owner?.id;
+    const songMainArtistId = song.artists?.[0]?._id || song.artists?.[0]?.id;
+    
+    const isOwner = currentUserId && (
+        songOwnerId === currentUserId || songMainArtistId === currentUserId
+    );
+    const canManage = isAdmin || isOwner; // Usado para editar/deletar
 
     const handleMenuClose = () => {
         setAnchorEl(null);
@@ -78,6 +94,35 @@ export default function Song({ song }) {
         setPlaylistAnchorEl(null);
         handleMenuClose();
     };
+    
+    const handleDeleteSong = async () => {
+        if (!songId) return;
+
+        try {
+            // Usa mongoApi para endpoints que exigem autenticação
+            await mongoApi.delete(`/songs/${songId}`); 
+            
+            alert(`Música "${title}" deletada com sucesso!`); 
+            
+            // Simplesmente recarrega a página para atualizar listas
+            window.location.reload(); 
+
+        } catch (error) {
+            console.error('Erro ao deletar a música:', error);
+            alert('Falha ao deletar a música. Tente novamente.');
+        } finally {
+            setShowDeleteModal(false);
+        }
+    };
+
+    // Função de callback para o modal de edição
+    const handleUpdateSuccess = (updatedSongData) => {
+        // Recarrega a página para que as listas e detalhes sejam atualizados
+        window.location.reload(); 
+        setShowEditModal(false);
+    }
+    
+    // ... (restante das funções: handleLikeClick, handlePlayPauseClick, handleMenuClick, etc., permanecem as mesmas)
 
     const handleLikeClick = async (e) => {
         e.stopPropagation();
@@ -96,7 +141,6 @@ export default function Song({ song }) {
                 currentLikedSongs: userLikedSongs,
             })).unwrap();
 
-            // Atualiza detalhes das playlists (inclui playlist virtual de curtidas)
             try {
                 dispatch(fetchUserPlaylistsDetail(user.id || user._id));
             } catch (e) {
@@ -113,7 +157,7 @@ export default function Song({ song }) {
                     } else if (prefResponse.data.count) {
                         alert(`Like registrado. Faltam ${5 - prefResponse.data.count} para a análise de preferências.`);
                     } else {
-                         alert(`"${title}" foi curtida com sucesso!`);
+                        alert(`"${title}" foi curtida com sucesso!`);
                     }
                 } catch (prefError) {
                     console.warn("Aviso: Falha na análise de preferências. Continuando com o like padrão.");
@@ -211,8 +255,8 @@ export default function Song({ song }) {
             alert('Não foi possível copiar o link.');
         });
     };
-    
-    const menuOptions = [
+
+    const baseMenuOptions = [
         { 
             icon: <AddIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Adicionar à playlist', 
@@ -238,8 +282,24 @@ export default function Song({ song }) {
             icon: <ShareIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Compartilhar', 
             action: handleOpenShareModal 
-        },     
+        },
     ];
+
+    const managementOptions = canManage ? [
+        { 
+            icon: <EditIcon fontSize="small" sx={{ color: COR_LARANJA }} />, 
+            label: 'Editar Música', 
+            action: () => { handleMenuClose(); setShowEditModal(true); } 
+        },
+        { 
+            icon: <DeleteIcon fontSize="small" sx={{ color: 'red' }} />, 
+            label: 'Deletar Música', 
+            action: () => { handleMenuClose(); setShowDeleteModal(true); } 
+        },
+    ] : [];
+
+    const menuOptions = [...baseMenuOptions, ...managementOptions];
+
 
     const corIcone = isLiked ? COR_LARANJA : 'var(--secondary-text-color)';
     
@@ -307,13 +367,16 @@ export default function Song({ song }) {
                                 option.action(e.currentTarget);
                             } else {
                                 option.action();
-                                handleMenuClose();
+                                // Certifique-se de que o menu principal feche, exceto se for o AddPlaylistClick, que abre outro menu.
+                                if (option.label !== 'Adicionar à playlist') {
+                                    handleMenuClose();
+                                }
                             }
                         }}
                         sx={{ 
-                            color: 'var(--text-color)',
+                            color: option.label === 'Deletar Música' ? 'red' : 'var(--text-color)',
                             '&:hover': { 
-                                backgroundColor: 'var(--button-hover-bg)' 
+                                backgroundColor: option.label === 'Deletar Música' ? 'rgba(233, 30, 99, 0.2)' : 'var(--button-hover-bg)'
                             }, 
                         }}
                     >
@@ -429,6 +492,23 @@ export default function Song({ song }) {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <DeleteConfirmationModal
+                show={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={handleDeleteSong}
+                itemTitle={title}
+            />
+            
+            {/* NOVO MODAL DE EDIÇÃO */}
+            {song && (
+                <EditMusicaModal
+                    show={showEditModal}
+                    onClose={() => setShowEditModal(false)}
+                    song={song}
+                    onUpdateSuccess={handleUpdateSuccess}
+                />
+            )}
         </>
     )
 }

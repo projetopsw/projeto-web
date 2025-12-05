@@ -1,11 +1,18 @@
 import { Link } from 'react-router-dom'
 
-export default function AlbumHeader( {cover, type, title, artistImg = "https://placehold.co/30?text=Artist+Img.png", artist, year, duration, artistId, artistLinkPrefix = '/artist/', onPlay}){
+export default function AlbumHeader( {cover, songCover, type, title, artistImg = "https://placehold.co/30?text=Artist+Img.png", artist, year, duration, artistId, artistLinkPrefix = '/artist/', onPlay, genres}){
+    
+    const finalCover = cover ? cover : songCover;
+
+    const genresDisplay = Array.isArray(genres) 
+        ? genres.join(', ') 
+        : genres;
+
     return (
         <>
             <div className="album-header flex">
                 <div className="album-cover">
-                    <img src={cover} alt="Capa do Álbum"className="album-cover"/>
+                    <img src={finalCover} alt="Capa do Álbum/Música" className="album-cover"/>
                 </div>
                 <div className="album-info flex">
                     <p>{type}</p>
@@ -18,6 +25,14 @@ export default function AlbumHeader( {cover, type, title, artistImg = "https://p
                         <Link to={`${artistLinkPrefix}${artistId}`} className="artist-link">
                             <span>{artist}</span>
                         </Link>
+                        
+                        {genresDisplay && (
+                            <>
+                                <span>•</span>
+                                <span className='lighter-text'>{genresDisplay}</span>
+                            </>
+                        )}
+
                         <span>•</span>
                         <span className='lighter-text'>{year}</span>
                         <span>•</span>

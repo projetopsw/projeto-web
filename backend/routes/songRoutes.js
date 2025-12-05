@@ -1,17 +1,28 @@
 import express from 'express';
-import Song from '../models/song.model.js'; 
+import Song from '../models/song.model.js';
 import { getSongLyrics } from '../controller/lyricsController.js';
 import MusicaController from '../controller/musicaController.js';
 import uploadMusicaMiddleware from '../middleware/uploadMusica.js';
+import uploadCapaMiddleware from '../middleware/uploadCapa.js'; 
 import mongoose from 'mongoose';
 import Multer from 'multer';
-import { verifyToken } from '../middleware/authMiddleware.js'; 
+import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 const checkObjectId = (req, res, next) => {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    const idToCheck = req.params.id || req.params.musicaId;
+    if (!mongoose.Types.ObjectId.isValid(idToCheck)) {
         return res.status(404).json({ message: 'ID de música inválido.' });
+    }
+    next();
+};
+
+const handleMulterError = (err, req, res, next) => {
+    if (err instanceof Multer.MulterError) {
+        return res.status(400).json({ message: "Erro de Upload da Capa: " + err.message });
+    } else if (err) {
+        return res.status(400).json({ message: err.message });
     }
     next();
 };
@@ -23,16 +34,16 @@ router.post('/', verifyToken, (req, res, next) => {
         } else if (err) {
             return res.status(400).json({ message: err.message });
         }
-        next(); 
+        next();
     });
 }, MusicaController.createMusica);
 
 router.get('/', async (req, res) => {
     try {
         const songs = await Song.find({})
-            .populate('artists', 'name username img') 
-            .populate('owner', 'name username') 
-            .populate('album', 'title')
+            .populate('artists', 'name username img')
+            .populate('owner', 'name username')
+            .populate('album', 'title cover') 
             .lean();
 
         res.status(200).json(songs);
@@ -44,9 +55,9 @@ router.get('/', async (req, res) => {
 router.get('/:id', checkObjectId, async (req, res) => {
     try {
         const song = await Song.findById(req.params.id)
-            .populate('artists', 'name username img') 
-            .populate('owner', 'name username') 
-            .populate('album', 'title')
+            .populate('artists', 'name username img')
+            .populate('owner', 'name username')
+            .populate('album', 'title cover') 
             .lean();
 
         if (!song) {
@@ -60,43 +71,19 @@ router.get('/:id', checkObjectId, async (req, res) => {
 
 router.get('/:id/lyrics', getSongLyrics);
 
-router.put('/:id', checkObjectId, async (req, res) => {
-    try {
-        const updatedSong = await Song.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true, runValidators: true }
-        )
-        .populate('artists', 'name username img') 
-        .populate('owner', 'name username') 
-        .populate('album', 'title');
+router.patch('/:id', 
+    verifyToken, 
+    checkObjectId, 
+    uploadCapaMiddleware.fields([
+        { name: 'coverImage', maxCount: 1 }, 
+        { name: 'updateData', maxCount: 1 }  
+    ]),
+    handleMulterError,
+    MusicaController.updateMusica
+);
 
-        if (!updatedSong) {
-            return res.status(404).json({ message: 'Música não encontrada para atualização.' });
-        }
-        res.status(200).json(updatedSong);
-    } catch (error) {
-        if (error.name === 'ValidationError') {
-             res.status(400).json({ message: error.message });
-        } else {
-             res.status(500).json({ message: 'Erro ao atualizar a música', error: error.message });
-        }
-    }
-});
+router.delete('/:id', verifyToken, checkObjectId, MusicaController.deleteMusica);
 
-router.delete('/:id', checkObjectId, async (req, res) => {
-    try {
-        const deletedSong = await Song.findByIdAndDelete(req.params.id);
-
-        if (!deletedSong) {
-            return res.status(404).json({ message: 'Música não encontrada para exclusão.' });
-        }
-        res.status(200).json({ message: 'Música excluída com sucesso!' });
-    } catch (error) {
-        res.status(500).json({ message: 'Erro ao excluir a música', error: error.message });
-    }
-});
-
-router.post('/:musicaId/interacao', verifyToken, MusicaController.toggleLikeDislike);
+router.post('/:id/interacao', verifyToken, MusicaController.toggleLikeDislike);
 
 export default router;
