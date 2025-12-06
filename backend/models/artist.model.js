@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 
 const artistSchema = new Schema({
-    spotifyId: { type: String, required: true, unique: true, index: true, sparse: true },
+    spotifyId: { type: String, unique: true, index: true, sparse: true },
     name: { type: String, required: true, index: true, trim: true },
     image: { type: String, default: '' },
     genres: [{ type: String, trim: true }],

@@ -26,5 +26,6 @@ router.put('/:id', verifyToken, updateUserController);
 router.patch('/:id', verifyToken, updateUserController);
 router.delete('/:id', verifyToken, deleteUserController);
 router.post('/like', verifyToken, LikeController.likeSong);
+router.post('/', registerUser);
 
 export default router;

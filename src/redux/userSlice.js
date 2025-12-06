@@ -93,10 +93,6 @@ const userSlice = createSlice({
     },
     extraReducers: (builder) => {
         
-        // CORREÇÃO: Lidar com o sucesso do Login (Email/Senha) e Spotify.
-        // Assumimos que o payload de loginUserAsync/handleSpotifyCallback
-        // foi modificado no loginSlice.js para retornar o objeto do usuário completo.
-        
         builder.addCase(loginUserAsync.fulfilled, (state, action) => {
             // O thunk retorna { userWithToken }
             const userWithToken = action.payload?.userWithToken;

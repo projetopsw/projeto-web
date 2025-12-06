@@ -2,7 +2,7 @@ import express from 'express';
 import Artist from '../models/artist.model.js';
 import mongoose from 'mongoose'; 
 // import { verifyToken } from '../middleware/authMiddleware.js'; // Assumindo que está importado/usado em outras rotas
-import { getArtistById, getArtistAlbums, getArtistTopTracks } from "../controller/artistController.js";
+import { getArtistById, getArtistAlbums, getArtistTopTracks, updateArtist } from "../controller/artistController.js";
 
 const router = express.Router();
 
@@ -62,5 +62,8 @@ router.delete('/:id', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+
+router.patch('/:id', updateArtist); // Rota para Editar (o Admin usa PATCH)
+
 
 export default router;

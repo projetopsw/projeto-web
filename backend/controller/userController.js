@@ -13,7 +13,13 @@ const generateToken = (user) => {
 
 export const registerUser = async (req, res) => {
     try {
-        const { name, email, password, img, role } = req.body; 
+        const { username, name, email, password, img, role } = req.body; 
+
+        const finalUsername = username || name;
+
+        if (!finalUsername || !email || !password) {
+            return res.status(400).json({ message: 'Preencha todos os campos obrigatórios.' });
+        }
 
         const existingUser = await User.findOne({ email });
         if (existingUser) {
@@ -23,11 +29,11 @@ export const registerUser = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = new User({
-            username: name,
+            username: finalUsername, 
             email,
             password: hashedPassword,
             img,
-            role,
+            role: role || 'user', 
         });
 
         const savedUser = await newUser.save();
@@ -36,6 +42,7 @@ export const registerUser = async (req, res) => {
             user: { id: savedUser._id, username: savedUser.username, email: savedUser.email }, 
         });
     } catch (error) {
+        console.error("Erro ao registrar:", error); 
         res.status(500).json({ message: 'Erro interno do servidor ao registrar usuário.', error: error.message });
     }
 };

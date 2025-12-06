@@ -17,6 +17,7 @@ import Artist from './pages/artists/Artist';
 import SongDetail from './pages/musicas/SongDetail.jsx';
 import Perfil from './pages/perfil/Perfil.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute.jsx';
 import MainLayout from './components/MainLayout';
 import ProfileEdition from './components/ProfileEdition.jsx';
 import Conexoes from './components/Conexoes';
@@ -48,8 +49,7 @@ function App() {
 
                     <Route element={<MainLayout />}>
                         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                        
-                        {/* ROTAS DE PLAYLISTS */}
+                        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                         <Route path="/playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
                         
                         {/* ROTA ÚNICA E CORRETA PARA DETALHE DA PLAYLIST */}

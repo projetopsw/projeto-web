@@ -11,7 +11,9 @@ function UserProfileIcon() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { user, isAdmin } = useSelector((state) => state.user);
+  const { user } = useSelector((state) => state.user);
+
+const isAdmin = user?.role === 'admin';
 
   const profileImageUrl = user?.img || user?.image || '/assets/img/default_profile.png';
   const displayName = user?.name || user?.username || 'Visitante';

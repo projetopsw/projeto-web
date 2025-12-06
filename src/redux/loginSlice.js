@@ -76,7 +76,18 @@ export const toggleLikeSongAsync = createAsyncThunk(
     'auth/toggleLikeSong',
     async ({ userId, songId, currentLikedSongs }, { rejectWithValue }) => { 
         try {
-            const songsToToggle = currentLikedSongs || (await api.get(`/users/${userId}`)).data.likedSongs || [];
+            // 1. Recuperar o token
+            const token = localStorage.getItem('token');
+
+            // 2. Configurar o Header
+            const config = {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            };
+
+            // Nota: Se a rota GET abaixo também precisar de auth, adicione o config nela também
+            const songsToToggle = currentLikedSongs || (await api.get(`/users/${userId}`, config)).data.likedSongs || [];
             
             const songIdStr = String(songId);
             const isLiked = songsToToggle.some(id => String(id) === songIdStr);
@@ -85,7 +96,8 @@ export const toggleLikeSongAsync = createAsyncThunk(
                 ? songsToToggle.filter(id => String(id) !== songIdStr)
                 : [...songsToToggle, songId];
 
-            await api.patch(`/users/${userId}`, { likedSongs: newLikedSongs });
+            // 3. Passar o config (com o token) na requisição PATCH
+            await api.patch(`/users/${userId}`, { likedSongs: newLikedSongs }, config);
 
             return newLikedSongs; 
 
@@ -302,6 +314,8 @@ const authSlice = createSlice({
                 state.friends.status = 'failed';
                 state.friends.error = action.error.message;
             });
+
+            
     },
 });
 

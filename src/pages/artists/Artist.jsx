@@ -6,7 +6,6 @@ import ArtistHeader from '../../components/ArtistHeader.jsx';
 import SongList from '../../components/SongList.jsx';
 import Section from '../../components/Section.jsx';
 import AlbumCard from '../../components/AlbumCard.jsx';
-import ArtistCircle from '../../components/ArtistCircle.jsx';
 import './artist.css';
 import api from '../../services/api.js'; 
 
@@ -23,8 +22,6 @@ export default function Artist({ artistID }) {
   const [topTracks, setTopTracks] = useState([]);
   const [loadingTracks, setLoadingTracks] = useState(true);
 
-  const [relatedArtists, setRelatedArtists] = useState([]);
-  const [loadingRelated, setLoadingRelated] = useState(true);
 
   useEffect(() => {
     if (effectiveId) {
@@ -44,13 +41,6 @@ export default function Artist({ artistID }) {
           .then(res => setTopTracks(res.data))
           .catch(err => console.error("Erro top tracks", err))
           .finally(() => setLoadingTracks(false));
-
-      // 4. Parecidos
-      setLoadingRelated(true);
-      api.get(`/artists/${effectiveId}/related`)
-         .then(res => setRelatedArtists(res.data))
-         .catch(err => console.error("Erro related", err))
-         .finally(() => setLoadingRelated(false));
     }
   }, [effectiveId, dispatch]);
 

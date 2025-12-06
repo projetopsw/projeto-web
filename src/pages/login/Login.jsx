@@ -68,28 +68,6 @@ export default function Login() {
                         {isLoading ? 'Verificando...' : 'Entrar no pasto'}
                     </button>
                 </form>
-
-                {/* BOTÃO DE LOGIN COM SPOTIFY */}
-                <div style={{ marginTop: '20px', textAlign: 'center' }}>
-                    <a 
-                        href="http://127.0.0.1:3000/api/auth/spotify" 
-                        className="btn spotify-btn" 
-                        style={{ 
-                            backgroundColor: '#1DB954', 
-                            color: 'white', 
-                            padding: '10px 20px',
-                            borderRadius: '25px',
-                            textDecoration: 'none',
-                            fontWeight: 'bold',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '8px'
-                        }}
-                    >
-                        <FaSpotify size={20} />
-                        Logar com Spotify
-                    </a>
-                </div>
             </div>
 
             <div className="footer">

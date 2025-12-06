@@ -1,14 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
+
+import api from '../../services/api'; 
 
 import { ADMIN_CONFIG } from './adminDashboardConfig'; 
 import GenericAdminTable from './genericTable.jsx';     
 import AdminGenericFormModal from './genericFormModal.jsx';
 
 
+const handleAddItem = async (itemData) => {
+    const endpoint = currentConfig.endpoint;
+
+    let dataToSend = { ...itemData };
+    
+    if (endpoint === 'users') {
+        if (itemData.isAdmin) {
+            dataToSend.role = 'admin';
+        } else {
+            dataToSend.role = 'user';
+        }
+        delete dataToSend.isAdmin;
+    }
+
+    try {
+      if (editingItem) {
+        const id = editingItem._id || editingItem.id;
+        await api.patch(`/${endpoint}/${id}`, dataToSend); 
+        alert(`${currentConfig.singular} atualizado com sucesso!`);
+      } else {
+        await api.post(`/${endpoint}`, dataToSend); 
+        alert(`${currentConfig.singular} adicionado com sucesso!`);
+      }
+      
+      handleCloseModal();
+      setRefreshKey((prev) => prev + 1);
+
+    } catch (error) {
+      console.error('Erro:', error);
+      const msg = error.response?.data?.message || error.message;
+      alert(`Erro ao salvar: ${msg}`);
+    }
+  };
+
+  
 const AdminDashboard = () => {
-  const isAdmin = useSelector((state) => state.auth.isAdmin);
+  const navigate = useNavigate();
+  const { user } = useSelector((state) => state.user);
+  
+  const isAdmin = user?.role === 'admin'; 
+
   const tableOptions = Object.keys(ADMIN_CONFIG);
   const [selectedTable, setSelectedTable] = useState(tableOptions[0] || 'Songs');
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,37 +57,55 @@ const AdminDashboard = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [editingItem, setEditingItem] = useState(null); 
 
+  useEffect(() => {
+    if (user?.role !== 'admin') {
+        navigate('/'); 
+    }
+  }, [user, navigate]);
+
   if (!isAdmin) return <Navigate to="/" replace />;
 
   const currentConfig = ADMIN_CONFIG[selectedTable];
-  console.log(currentConfig)
   
   const handleAddItem = async (itemData) => {
-    const method = editingItem ? 'PUT' : 'POST';
     const endpoint = currentConfig.endpoint;
-    const apiUrl = editingItem
-      ? `http://localhost:3001/${endpoint}/${editingItem.id}`
-      : `http://localhost:3001/${endpoint}`;
+    
+    let dataToSend = { ...itemData };
+
+    if (selectedTable === 'Users' || endpoint === 'users') {
+        
+        if (dataToSend.isAdmin) {
+            dataToSend.role = 'admin';
+        } else {
+            dataToSend.role = 'user';
+        }
+
+        delete dataToSend.isAdmin;
+        
+        if (dataToSend.username && !dataToSend.name) {
+             dataToSend.name = dataToSend.username;
+        }
+    }
+
+    console.log("Enviando dados para o servidor:", dataToSend); 
 
     try {
-      const response = await fetch(apiUrl, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(itemData),
-      });
-
-      if (!response.ok) throw new Error('Falha ao salvar o item');
+      if (editingItem) {
+        const id = editingItem._id || editingItem.id;
+        await api.patch(`/${endpoint}/${id}`, dataToSend);
+        alert(`${currentConfig.singular} atualizado com sucesso!`);
+      } else {
+        await api.post(`/${endpoint}`, dataToSend);
+        alert(`${currentConfig.singular} adicionado com sucesso!`);
+      }
 
       handleCloseModal();
       setRefreshKey((prev) => prev + 1);
-      alert(
-        `${currentConfig.singular} ${
-          editingItem ? 'atualizado' : 'adicionado'
-        } com sucesso!`
-      );
+
     } catch (error) {
       console.error('Erro:', error);
-      alert(`Erro: ${error.message}`);
+      const msg = error.response?.data?.message || error.message;
+      alert(`Erro ao salvar: ${msg}`);
     }
   };
 
@@ -55,17 +114,16 @@ const AdminDashboard = () => {
     if (!confirm) return;
 
     try {
-      const response = await fetch(`http://localhost:3001/${currentConfig.endpoint}/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Erro ao excluir item');
+      const endpoint = currentConfig.endpoint;
+      
+      await api.delete(`/${endpoint}/${id}`);
 
       setRefreshKey((prev) => prev + 1);
       alert(`${currentConfig.singular} excluído com sucesso!`);
     } catch (error) {
       console.error(error);
-      alert(`Erro: ${error.message}`);
+      const msg = error.response?.data?.message || error.message;
+      alert(`Erro ao excluir: ${msg}`);
     }
   };
 

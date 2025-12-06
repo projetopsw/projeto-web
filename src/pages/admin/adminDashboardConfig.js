@@ -4,10 +4,10 @@ export const ADMIN_CONFIG = {
         singular: 'Música',    
         plural: 'Songs',       
         columns: [
-            { header: 'ID', accessor: 'id' },
+            { header: 'ID', accessor: '_id' }, 
             { header: 'Título', accessor: 'title' },
-            { header: 'Artista ID', accessor: 'artistId' },
-            { header: 'Álbum ID', accessor: 'albumId' },
+            { header: 'Artista', accessor: 'artists' },
+            { header: 'Álbum', accessor: 'album' },
             { header: 'Duração', accessor: 'duration' },
         ],
     
@@ -24,10 +24,10 @@ export const ADMIN_CONFIG = {
         singular: 'Usuário',
         plural: 'Users',
         columns: [
-            { header: 'ID', accessor: 'id' },
-            { header: 'Username', accessor: 'name' },
+            { header: 'ID', accessor: '_id' }, 
+            { header: 'Username', accessor: 'username' },
             { header: 'Email', accessor: 'email' },
-            { header: 'Admin?', accessor: 'role' },
+            { header: 'Role', accessor: 'role' },
         ],
         formFields: [
             { name: 'username', label: 'Username', type: 'text', required: true },
@@ -42,12 +42,12 @@ export const ADMIN_CONFIG = {
         singular: 'Artista',
         plural: 'Artists',
         columns: [
-            { header: 'ID', accessor: 'id' },
+            { header: 'ID', accessor: '_id' }, 
             { header: 'Name', accessor: 'name' },
-            { header: 'Genre', accessor: 'genre' },
+            { header: 'Genre', accessor: 'genres' },
         ],
         formFields: [
-            { name: 'Name', label: 'Nome', type: 'text', required: true },
+            { name: 'name', label: 'Nome', type: 'text', required: true }, 
             { name: 'genre', label: 'Gênero', type: 'text', required: true },
         ]
     },
@@ -57,9 +57,9 @@ export const ADMIN_CONFIG = {
         singular: 'Álbum',    
         plural: 'Albums',       
         columns: [
-            { header: 'ID', accessor: 'id' },
+            { header: 'ID', accessor: '_id' },
             { header: 'Título', accessor: 'title' },
-            { header: 'Artista ID', accessor: 'artistId' },
+            { header: 'Artista', accessor: 'artists' },
         ],
     
         formFields: [
@@ -69,36 +69,19 @@ export const ADMIN_CONFIG = {
     },
 
     Playlists: {
-        endpoint: 'userPlaylists',   
+        endpoint: 'playlists', 
         singular: 'Playlist',    
         plural: 'Playlists',       
         columns: [
-            { header: 'ID', accessor: 'id' },
+            { header: 'ID', accessor: '_id' }, 
             { header: 'Nome', accessor: 'name' },
-            { header: 'ID do Criador', accessor: 'creatorId' },
-            { header: 'Tipo', accessor: 'type' },
+            { header: 'ID do Criador', accessor: 'userId' }, 
             { header: 'Músicas', accessor: 'songs' },
         ],
     
         formFields: [
             { name: 'name', label: 'Nome', type: 'text', required: true },
             { name: 'userId', label: 'ID do criador', type: 'text', required: true },
-        ]
-    },
-
-    Groups: {
-        endpoint: 'groups',   
-        singular: 'Grupo',    
-        plural: 'Groups',       
-        columns: [
-            { header: 'ID', accessor: 'id' },
-            { header: 'Nome', accessor: 'name' },
-            { header: 'Membros', accessor: 'members' || 'type' || 'N/A' },
-            { header: 'Status', accessor: 'status' },
-        ],
-    
-        formFields: [
-            { name: 'name', label: 'Nome', type: 'text', required: true },
         ]
     },
 };
