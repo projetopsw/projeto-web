@@ -37,7 +37,7 @@ function Player() {
     const {
         currentSong,
         isPlaying,
-        currentTime,
+        currentTime, // Este valor agora vem salvo do localStorage
         duration,
         volume,
         isShuffling,
@@ -50,29 +50,45 @@ function Player() {
     
     const audioRef = useRef(new Audio());
     const [localVolume, setLocalVolume] = useState(volume);
+    
+    // Ref para controlar se é a primeira carga após o refresh
+    const isInitialMount = useRef(true);
 
     useEffect(() => {
         audioRef.current.volume = volume;
         setLocalVolume(volume);
     }, [volume]);
 
+    // --- LÓGICA DE CARREGAMENTO E RESTAURAÇÃO ---
     useEffect(() => {
         const audioSource = currentSong ? (currentSong.caminho || currentSong.audioUrl) : null;
 
         console.log("Música Atual:", currentSong);
-        console.log("Caminho do Áudio (audioSource):", audioSource);
         
         if (currentSong && audioSource) {
-            
+            // Verifica se a fonte mudou
             if (audioRef.current.src !== audioSource) {
                 audioRef.current.src = audioSource;
-                audioRef.current.load();
+                
+                // MÁGICA AQUI: Se for o primeiro load e tivermos um tempo salvo no Redux, restauramos ele.
+                // Se for uma troca normal de música (skipNext), o Redux deve ter zerado o currentTime, então ele começa do 0.
+                if (isInitialMount.current && currentTime > 0) {
+                    audioRef.current.currentTime = currentTime;
+                    isInitialMount.current = false; // Desativa para as próximas músicas
+                } else {
+                     audioRef.current.load();
+                }
             }
             
             if (isPlaying) {
-                 audioRef.current.play().catch(e => {
-                     console.warn("Autoplay bloqueado na troca de faixa:", e);
-                 });
+                 const playPromise = audioRef.current.play();
+                 if (playPromise !== undefined) {
+                     playPromise.catch(e => {
+                         console.warn("Autoplay bloqueado pelo navegador ao recarregar:", e);
+                         // Opcional: Se o navegador bloquear, você pode despachar um pause para sincronizar a UI
+                         // dispatch(togglePlayPause()); 
+                     });
+                 }
             }
         } else {
             audioRef.current.pause();
@@ -80,14 +96,18 @@ function Player() {
             dispatch(setDuration(0));
             dispatch(updateCurrentTime(0));
         }
-    }, [currentSong, dispatch, isPlaying]);
+    // IMPORTANTE: Removemos 'isPlaying' das dependências aqui para evitar loops, 
+    // já que temos um useEffect separado para lidar com play/pause.
+    }, [currentSong, dispatch]); 
 
+    // --- LÓGICA DE PLAY/PAUSE SEPARADA ---
     useEffect(() => {
         if (currentSong) {
             if (isPlaying) {
-                audioRef.current.play().catch(e => {
-                    console.error("Erro ao tentar tocar áudio (autoplay bloqueado?):", e);
-                });
+                const playPromise = audioRef.current.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => console.error("Erro no play:", e));
+                }
             } else {
                 audioRef.current.pause();
             }
@@ -100,7 +120,14 @@ function Player() {
         audioEl.loop = repeatMode === REPEAT_MODES.SONG;
 
         const setAudioData = () => dispatch(setDuration(audioEl.duration));
-        const updateTime = () => dispatch(updateCurrentTime(audioEl.currentTime));
+        
+        // Atualiza o tempo no Redux (para salvar no persist)
+        const updateTime = () => {
+             // Otimização: Só despacha se a diferença for significativa para evitar excesso de renders
+             if (Math.abs(audioEl.currentTime - currentTime) > 0.5) {
+                dispatch(updateCurrentTime(audioEl.currentTime));
+             }
+        };
         
         const handleEnded = () => {
              if (repeatMode !== REPEAT_MODES.SONG) {
@@ -117,8 +144,10 @@ function Player() {
             audioEl.removeEventListener('timeupdate', updateTime);
             audioEl.removeEventListener('ended', handleEnded);
         };
-    }, [dispatch, repeatMode]);
+    }, [dispatch, repeatMode, currentTime]); // Adicionado currentTime nas dependências para a otimização
 
+    // ... (O RESTO DO SEU CÓDIGO PERMANECE IGUAL ABAIXO) ...
+    
     const handlePlayPause = (e) => {
         e.stopPropagation();
         dispatch(togglePlayPause());
@@ -195,14 +224,8 @@ function Player() {
             
             <div className="barra-progresso-container">
                 <span className="current-time">{formatTime(currentTime)}</span>
-                <div
-                    className="barra-progresso"
-                    onClick={handleSeek}
-                >
-                    <div
-                        className="progresso"
-                        style={{ width: `${progress}%` }}
-                    />
+                <div className="barra-progresso" onClick={handleSeek}>
+                    <div className="progresso" style={{ width: `${progress}%` }} />
                 </div>
                 <span className="duration-time">{formatTime(duration)}</span>
             </div>
@@ -226,10 +249,7 @@ function Player() {
                         <i className="fas fa-backward"></i>
                     </button>
                     
-                    <button
-                        className="play-pause-btn"
-                        onClick={handlePlayPause}
-                    >
+                    <button className="play-pause-btn" onClick={handlePlayPause}>
                         <i className={PlayPauseIcon}></i>
                     </button>
                     

@@ -8,7 +8,6 @@ import { fileURLToPath } from 'url';
 
 import albumRoutes from './routes/albumRoutes.js';
 import artistRoutes from './routes/artistRoutes.js';
-import groupRoutes from './routes/groupRoutes.js';
 import songRoutes from './routes/songRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import spotifyAuthRoutes from './routes/spotifyAuthRoutes.js';
@@ -33,7 +32,6 @@ app.use('/api/search', searchRoutes);
 app.use('/songs', songRoutes);
 app.use('/albums', albumRoutes);
 app.use('/artists', artistRoutes);
-app.use('/groups', groupRoutes);
 app.use('/users', userRoutes);
 app.use('/api/auth/spotify', spotifyAuthRoutes);
 app.use('/api/spotify', spotifyRoutes);
