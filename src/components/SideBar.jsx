@@ -169,7 +169,6 @@ function SideBar() {
         { to: '/', label: 'Início', Icon: HomeIcon },
         { to: '/fila', label: 'Fila', Icon: QueueMusicIcon },
         { to: '/playlists', label: 'Playlists', Icon: LibraryMusicIcon },
-        { to: '/grupos', label: 'Grupos', Icon: GroupIcon },
     ];
     
     const DesktopSideBar = () => (
@@ -207,9 +206,6 @@ function SideBar() {
                 <LibraryMusicIcon sx={{ fontSize: '28px' }} />
             </SideButton>
             
-            <SideButton to="/grupos" label="Grupos">
-                <GroupIcon sx={{ fontSize: '28px' }} />
-            </SideButton>
         </Box>
     );
 

@@ -54,7 +54,6 @@ function NavBar({ initialQuery = '' }) {
     { label: 'Início', to: '/' },
     { label: 'Fila', to: '/fila' },
     { label: 'Playlists', to: '/playlists' },
-    { label: 'Grupos', to: '/grupos' },
     { label: 'Conexões', to: '/conexoes' },
   ];
 

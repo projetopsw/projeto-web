@@ -10,8 +10,6 @@ import Pesquisa from './pages/pesquisa/Pesquisa';
 import Login from './pages/login/Login';
 import Cadastro from './pages/cadastro/Cadastro';
 import TelaMusica from './pages/musicas/TelaMusica.jsx';
-import Grupos from './pages/grupos/Grupos.jsx';
-import GrupoDetalhe from './pages/grupos/GrupoDetalhe.jsx';
 import AlbumDetail from './pages/albuns/AlbumDetail';
 import Artist from './pages/artists/Artist';
 import SongDetail from './pages/musicas/SongDetail.jsx';
@@ -60,8 +58,6 @@ function App() {
                         
                         <Route path="/pesquisa" element={<ProtectedRoute><Pesquisa /></ProtectedRoute>} />
                         <Route path="/musica/:id" element={<ProtectedRoute><TelaMusica /></ProtectedRoute>} />
-                        <Route path="/grupos" element={<ProtectedRoute><Grupos /></ProtectedRoute>} />
-                        <Route path="/grupos/:id" element={<ProtectedRoute><GrupoDetalhe /></ProtectedRoute>} />
                         
                         {/* ROTAS DE ÁLBUNS E ARTISTAS PADRONIZADAS */}
                         <Route path="/album/:id" element={<ProtectedRoute><AlbumDetail /></ProtectedRoute>} />

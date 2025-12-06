@@ -82,11 +82,6 @@ function Footer() {
     const [isFooterVisible, setIsFooterVisible] = useState(true);
 
     const path = location.pathname;
-    const isGrupoDetalhe = /^(\/grupos\/[^/]+)$/.test(path);
-
-    if (isGrupoDetalhe) {
-        return null;
-    }
     
     const toggleFooter = () => {
         setIsFooterVisible(prev => !prev);
@@ -179,7 +174,6 @@ function Footer() {
         { to: '/', label: 'Início', Icon: HomeIcon },
         { to: '/fila', label: 'Fila', Icon: QueueMusicIcon },
         { to: '/playlists', label: 'Playlists', Icon: LibraryMusicIcon },
-        { to: '/grupos', label: 'Grupos', Icon: GroupIcon },
     ];
 
 

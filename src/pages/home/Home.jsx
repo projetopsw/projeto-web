@@ -92,19 +92,13 @@ function Home() {
                         let isArtistUpload = false; 
                         let isUserUpload = false; 
 
-                        // ----------------------------------------------------
-                        // LÓGICA CORRIGIDA
-                        // ----------------------------------------------------
                         if (Array.isArray(s.artists) && s.artists.length > 0) {
                             const mainArtist = s.artists[0];
                             artistName = s.artists.map(a => a.name || a.username).join(', ');
                             artistId = mainArtist._id;
                             
-                            // 1. Coerção forçada para booleano:
                             isArtistUpload = !!mainArtist.isArtistUpload;
                             
-                            // 2. Coerção forçada para booleano + checagem de exclusividade:
-                            // É upload de usuário SE uploadedBy existir E NÃO for um upload de artista
                             isUserUpload = !!s.uploadedBy && !isArtistUpload;
 
                         } else if (s.artist) {
