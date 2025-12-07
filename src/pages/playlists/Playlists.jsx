@@ -1,20 +1,22 @@
 // src/pages/Playlists.jsx
+
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
     Modal,
     Box,
     Typography,
     TextField,
     Button,
+    Switch,
+    FormControlLabel,
 } from '@mui/material';
 import api from '../../services/api';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchUserPlaylistsDetail } from '../../redux/loginSlice'; 
 
-// --- Configurações de Playlists Estáticas ---
 const LIKED_SONGS_COVER = '/assets/img/liked_cover_0.png';
-const DEFAULT_PLAYLIST_COVER = '/assets/img/vacateste.jpg';
+const DEFAULT_PLAYLIST_COVER = '/assets/img/vibe_cover_2.png'; 
 
 const LIKED_SONGS_PLAYLIST = {
     id: "0",
@@ -23,7 +25,7 @@ const LIKED_SONGS_PLAYLIST = {
     type: "Playlist Especial",
     description: "Todas as músicas que você curtiu.",
     creator: "Você",
-    songCount: 0, 
+    songCount: 0,
     duration: "0 min",
 };
 
@@ -40,34 +42,36 @@ const ModalStyle = {
     p: 4,
     color: 'var(--text-color)',
 };
-// --- FIM Configurações de Playlists Estáticas ---
 
 
 function Playlists() {
     const dispatch = useDispatch();
     const location = useLocation();
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
 
-    const user = useSelector(state => state.user?.user);
-    const USER_ID = user?.id || user?._id; 
-    const userLikedSongs = user?.likedSongs || []; 
+    const user = useSelector(state => state.user?.user) || useSelector(state => state.auth?.user);
+    const USER_ID = user?.id || user?._id;
+    const userLikedSongs = user?.likedSongs || [];
 
-    const [playlists, setPlaylists] = useState([]); 
+    const [playlists, setPlaylists] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    
     const [newPlaylistName, setNewPlaylistName] = useState('');
-    const [isCreating, setIsCreating] = useState(false); 
+    const [newPlaylistDescription, setNewPlaylistDescription] = useState('');
+    const [newPlaylistCoverUrl, setNewPlaylistCoverUrl] = useState('');
+    const [isPublic, setIsPublic] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
 
-    // --- Lógica de Fetch e Handlers (MANTIDO) ---
+
 
     const fetchPlaylists = async () => {
-        if (!USER_ID) return; 
+        if (!USER_ID) return;
 
         try {
             const userResponse = await api.get(`/users/${USER_ID}`);
             const userData = userResponse.data;
             const userPlaylistsIds = userData.userPlaylists || [];
-            
-            const likedSongsCount = (userData.likedSongs || []).filter(id => id).length; 
+            const likedSongsCount = (userData.likedSongs || []).filter(id => id).length;
 
             const playlistsPromises = userPlaylistsIds.map(async id => {
                 try {
@@ -78,7 +82,7 @@ function Playlists() {
                     return {
                         id: playlistData._id,
                         name: playlistData.title,
-                        img: playlistData.cover || DEFAULT_PLAYLIST_COVER,
+                        img: playlistData.cover || DEFAULT_PLAYLIST_COVER, 
                         description: playlistData.description,
                         creator: playlistData.user?.username || 'Usuário',
                         songCount: songsCount,
@@ -100,17 +104,17 @@ function Playlists() {
             const finalPlaylists = [updatedLikedPlaylist, ...userCustomPlaylists];
             setPlaylists(finalPlaylists);
 
-            dispatch(fetchUserPlaylistsDetail(USER_ID)); 
+            dispatch(fetchUserPlaylistsDetail(USER_ID));
 
         } catch (error) {
             console.error("Erro ao buscar playlists:", error);
-            setPlaylists([LIKED_SONGS_PLAYLIST]); 
+            setPlaylists([LIKED_SONGS_PLAYLIST]);
         }
     };
     
     useEffect(() => {
         fetchPlaylists();
-    }, [USER_ID, userLikedSongs.length]); 
+    }, [USER_ID, userLikedSongs.length]);
 
     useEffect(() => {
         const query = new URLSearchParams(location.search);
@@ -118,11 +122,22 @@ function Playlists() {
             handleOpen();
         }
     }, [location.search]);
+    
 
-    const handleOpen = () => setIsModalOpen(true);
-    const handleClose = () => {
-        setIsModalOpen(false);
+    const handleOpen = () => {
         setNewPlaylistName('');
+        setNewPlaylistDescription('');
+        setNewPlaylistCoverUrl('');
+        setIsPublic(false);
+        setIsModalOpen(true);
+    }
+    
+    const handleClose = () => {
+        setNewPlaylistName('');
+        setNewPlaylistDescription('');
+        setNewPlaylistCoverUrl('');
+        setIsPublic(false);
+        setIsModalOpen(false);
     }
 
     const handleCreatePlaylist = async (e) => {
@@ -137,15 +152,30 @@ function Playlists() {
         if (title) {
             setIsCreating(true);
             try {
+                const coverUrlTrimmed = newPlaylistCoverUrl.trim();
+
+                // ✅ CORREÇÃO CRUCIAL: Se a URL estiver vazia, envia a URL padrão (link externo)
+                const cover = coverUrlTrimmed === '' 
+                    ? DEFAULT_PLAYLIST_COVER 
+                    : coverUrlTrimmed; 
+
                 const newPlaylist = {
                     title,
-                    description: `Playlist criada por ${user?.name || user?.username || 'usuário'}.`,
+                    description: newPlaylistDescription.trim() || `Playlist criada por ${user?.name || user?.username || 'usuário'}.`,
+                    cover: cover,
+                    isPublic: isPublic 
                 };
+
+                const response = await api.post('/playlists', newPlaylist);
+                const createdPlaylistId = response.data.playlist._id;
+
+                // Força a recarga dos dados antes de fechar o modal.
+                await fetchPlaylists();
                 
-                await api.post('/playlists', newPlaylist); 
-                
-                fetchPlaylists(); 
                 handleClose();
+
+                // Redireciona para a nova playlist.
+                navigate(`/playlist/${createdPlaylistId}`);
 
             } catch (error) {
                 console.error("Erro ao criar playlist:", error);
@@ -161,16 +191,15 @@ function Playlists() {
         navigate(`/playlist/${id}`);
     };
 
-    // --- RENDERIZAÇÃO MELHORADA ---
+    // --- RENDERIZAÇÃO ---
 
     return (
         <main className="content-area playlist-page">
             <Typography variant="h1" component="h1" sx={{ 
-                // Usando sx para garantir que o título tenha a cor e tamanho certos
                 color: 'var(--text-color)', 
                 fontSize: '2.5rem', 
                 marginBottom: '40px',
-                paddingLeft: '0px' // O padding será controlado pelo main.playlist-page
+                paddingLeft: '0px'
             }}>Minhas Playlists</Typography>
 
             <Box className="playlists-container"> 
@@ -183,11 +212,9 @@ function Playlists() {
                             : <i className="fas fa-plus" style={{ color: 'var(--text-color)', fontSize: '40px' }}></i>
                         }
                     </button>
-                    {/* Título (Primeiro P) */}
                     <p style={{ color: 'var(--text-color)', marginTop: '10px', fontWeight: 'bold' }}>
                         Nova Playlist
                     </p>
-                    {/* Subtítulo discreto (Segundo P) */}
                     <p style={{ fontSize: '0.9rem', color: 'var(--secondary-text-color)', fontWeight: 'normal' }}>
                         Crie e personalize
                     </p>
@@ -206,12 +233,12 @@ function Playlists() {
                             alt={`Capa Playlist: ${playlist.name}`} 
                         />
                         
-                        {/* Título (Primeiro P - herda bold e text-color) */}
+                        {/* Título (Primeiro P) */}
                         <p title={playlist.name}>
                             {playlist.name}
                         </p>
                         
-                        {/* Sub-texto/Contagem (Segundo P - herda secondary-text-color) */}
+                        {/* Sub-texto/Contagem (Segundo P) */}
                         <p style={{ 
                             fontWeight: 'normal',
                             fontSize: '0.9rem',
@@ -222,7 +249,7 @@ function Playlists() {
                 ))}
             </Box>
 
-            {/* Modal de Criação (MANTIDO) */}
+            {/* Modal de Criação */}
             <Modal
                 open={isModalOpen}
                 onClose={handleClose}
@@ -238,7 +265,35 @@ function Playlists() {
                     >
                         Criar Nova Playlist
                     </Typography>
+                    
+                    {/* Preview e Campo URL da Capa */}
+                    <Box sx={{ display: 'flex', gap: '20px', marginBottom: 2, alignItems: 'center' }}>
+                        <img 
+                            // Preview dinâmico: mostra o que o usuário digitou ou o padrão
+                            src={newPlaylistCoverUrl.trim() || DEFAULT_PLAYLIST_COVER} 
+                            alt="Preview da Capa" 
+                            style={{ 
+                                width: '100px', 
+                                height: '100px', 
+                                objectFit: 'cover', 
+                                borderRadius: '8px', 
+                                border: '1px solid var(--border-color)'
+                            }}
+                        />
+                        <TextField
+                            label="URL da Capa"
+                            value={newPlaylistCoverUrl} 
+                            onChange={(e) => setNewPlaylistCoverUrl(e.target.value)}
+                            fullWidth
+                            margin="none"
+                            sx={{ input: { color: 'var(--text-color)' }, '& .MuiInputLabel-root': { color: 'var(--secondary-text-color)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--border-color)' }, '&:hover fieldset': { borderColor: 'var(--orange)' }, '&.Mui-focused fieldset': { borderColor: 'var(--orange)' }, backgroundColor: 'var(--input-bg)' } }}
+                            disabled={isCreating}
+                            helperText={`Padrão: ${DEFAULT_PLAYLIST_COVER}`}
+                        />
+                    </Box>
 
+
+                    {/* Nome da Playlist */}
                     <TextField
                         autoFocus
                         margin="dense"
@@ -249,13 +304,41 @@ function Playlists() {
                         variant="outlined"
                         value={newPlaylistName}
                         onChange={(e) => setNewPlaylistName(e.target.value)}
-                        InputLabelProps={{ style: { color: 'var(--secondary-text-color)' } }}
-                        InputProps={{ style: { color: 'var(--text-color)', border: '1px solid var(--border-color)' } }}
-                        sx={{ mb: 3 }}
+                        sx={{ input: { color: 'var(--text-color)' }, '& .MuiInputLabel-root': { color: 'var(--secondary-text-color)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--border-color)' }, '&:hover fieldset': { borderColor: 'var(--orange)' }, '&.Mui-focused fieldset': { borderColor: 'var(--orange)' }, backgroundColor: 'var(--input-bg)' } }}
+                        disabled={isCreating}
+                    />
+                    
+                    {/* Descrição */}
+                    <TextField
+                        label="Descrição (Opcional)"
+                        value={newPlaylistDescription}
+                        onChange={(e) => setNewPlaylistDescription(e.target.value)}
+                        fullWidth
+                        multiline
+                        rows={2}
+                        margin="normal"
+                        sx={{ textarea: { color: 'var(--text-color)' }, '& .MuiInputLabel-root': { color: 'var(--secondary-text-color)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--border-color)' }, '&:hover fieldset': { borderColor: 'var(--orange)' }, '&.Mui-focused fieldset': { borderColor: 'var(--orange)' }, backgroundColor: 'var(--input-bg)' } }}
+                        disabled={isCreating}
+                    />
+                    
+                    {/* Switch Pública */}
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={isPublic}
+                                onChange={(e) => setIsPublic(e.target.checked)}
+                                sx={{
+                                    '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--orange)' },
+                                    '& .MuiSwitch-track': { backgroundColor: 'var(--secondary-text-color)' },
+                                }}
+                            />
+                        }
+                        label={<Typography sx={{ color: 'var(--text-color)' }}>Playlist Pública</Typography>}
+                        sx={{ marginTop: 1, marginBottom: 2 }}
                         disabled={isCreating}
                     />
 
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, marginTop: 3 }}>
                         <Button
                             onClick={handleClose}
                             sx={{ color: 'var(--secondary-text-color)' }}

@@ -40,7 +40,8 @@ import api from '../../services/api';
 
 const INACTIVE_ICON_COLOR = 'var(--secondary-text-color)';
 const LIKED_SONGS_COVER = '/assets/img/liked_cover_0.png';
-const DEFAULT_PLAYLIST_COVER = '/assets/img/vibe_cover_2.png';
+// A imagem padrão para playlists customizadas
+const DEFAULT_PLAYLIST_COVER = '/assets/img/vibe_cover_2.png'; 
 
 const ModalStyle = {
     position: 'absolute',
@@ -210,7 +211,7 @@ function PlaylistDetalhe() {
             
             // Verifica se as músicas já vieram populadas
             if (songIds.length > 0 && typeof songIds[0] === 'object' && songIds[0].title) {
-                 songs = songIds;
+                songs = songIds;
             } else { // Caso contrário, buscamos os detalhes de cada ID
                 const songsPromises = songIds.map(songId => api.get(`/songs/${songId}`));
                 const results = await Promise.allSettled(songsPromises);
@@ -234,10 +235,13 @@ function PlaylistDetalhe() {
             setPlaylistDetails(updatedPlaylist);
             setLocalSongs(sortSongs(songs, sortKey));
             
-            // Inicializa os estados de EDIÇÃO
+            // Inicializa os estados de EDIÇÃO usando o valor do backend ou o fallback padrão
             setEditName(updatedPlaylist.name);
             setEditDescription(updatedPlaylist.description || '');
-            setEditImg(updatedPlaylist.img || DEFAULT_PLAYLIST_COVER); // Inicializa com a URL atual (ou fallback)
+            
+            // **CORREÇÃO/CONFIRMAÇÃO:** Usamos o img da playlist, ou o DEFAULT_PLAYLIST_COVER se o campo estiver vazio/nulo.
+            setEditImg(updatedPlaylist.img || DEFAULT_PLAYLIST_COVER); 
+            
             setEditIsPublic(updatedPlaylist.isPublic || false); 
 
         } catch (error) {
@@ -277,7 +281,16 @@ function PlaylistDetalhe() {
         handleSortClose();
     };
     
-    const handleOpenEditModal = () => setIsEditModalOpen(true);
+    const handleOpenEditModal = () => {
+        // Reinicializa os estados do modal antes de abrir, garantindo que o valor atual seja exibido
+        if(playlistDetails) {
+            setEditName(playlistDetails.name);
+            setEditDescription(playlistDetails.description || '');
+            setEditImg(playlistDetails.img || DEFAULT_PLAYLIST_COVER);
+            setEditIsPublic(playlistDetails.isPublic || false); 
+        }
+        setIsEditModalOpen(true);
+    }
     const handleCloseEditModal = () => setIsEditModalOpen(false);
     
     // --- FUNÇÃO CRUCIAL 1: UPDATE (EDIÇÃO COM LINK EXTERNO) ---
@@ -286,8 +299,8 @@ function PlaylistDetalhe() {
         const newTitle = editName.trim(); 
 
         if (!newTitle) {
-             alert("O título é obrigatório.");
-             return;
+            alert("O título é obrigatório.");
+            return;
         }
 
         if (newTitle && id !== "0") {
@@ -296,6 +309,7 @@ function PlaylistDetalhe() {
                 title: newTitle, 
                 description: editDescription,
                 // Mapeamento: FRONTEND (editImg - URL) -> BACKEND (cover)
+                // Usamos o editImg, que pode ser a URL padrão se o usuário apagou o campo.
                 cover: editImg, 
                 isPublic: editIsPublic
             };
@@ -378,13 +392,33 @@ function PlaylistDetalhe() {
                 {/* Imagem da Capa e Botão de Edição */}
                 {isOwner && isCustomPlaylist ? (
                     <Box sx={{ position: 'relative', cursor: 'pointer' }} onClick={handleOpenEditModal}>
-                        <img src={editImg || DEFAULT_PLAYLIST_COVER} alt="Playlist Cover" style={{ width: '250px', height: '250px', borderRadius: '12px', boxShadow: '0 10px 30px var(--shadow-color-dark)', objectFit: 'cover' }}/>
+                        <img 
+                            src={playlistDetails.img || DEFAULT_PLAYLIST_COVER} 
+                            alt="Playlist Cover" 
+                            style={{ 
+                                width: '250px', 
+                                height: '250px', 
+                                borderRadius: '12px', 
+                                boxShadow: '0 10px 30px var(--shadow-color-dark)', 
+                                objectFit: 'cover' 
+                            }}
+                        />
                         <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '12px', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', '&:hover': { opacity: 1 } }}>
                             <EditIcon sx={{ fontSize: '50px', color: 'white' }} />
                         </Box>
                     </Box>
                 ) : (
-                    <img src={playlistDetails.img || DEFAULT_PLAYLIST_COVER} alt="Playlist Cover" style={{ width: '250px', height: '250px', borderRadius: '12px', boxShadow: '0 10px 30px var(--shadow-color-dark)', objectFit: 'cover' }}/>
+                    <img 
+                        src={playlistDetails.img || DEFAULT_PLAYLIST_COVER} 
+                        alt="Playlist Cover" 
+                        style={{ 
+                            width: '250px', 
+                            height: '250px', 
+                            borderRadius: '12px', 
+                            boxShadow: '0 10px 30px var(--shadow-color-dark)', 
+                            objectFit: 'cover' 
+                        }}
+                    />
                 )}
 
                 <Box className="header-info">
@@ -404,7 +438,7 @@ function PlaylistDetalhe() {
                     </Typography>
                 </Box>
             </PlaylistHeaderContainer>
-
+            
             <Box className="actions-bar" sx={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '30px', padding: '0 20px' }}>
                 
                 <PlayButton
@@ -526,7 +560,150 @@ function PlaylistDetalhe() {
             
             {/* Tabela de Músicas (Drag and Drop) - Omitida por brevidade */}
             {/* ... */}
+            
+            <TableContainer sx={{ marginTop: '20px', padding: '0 20px' }}>
+                <Table stickyHeader sx={{ minWidth: 650, borderSpacing: '0 10px', borderCollapse: 'separate' }}>
+                    <TableHead>
+                        <TableRow sx={{ 
+                            '& th': { 
+                                color: 'var(--secondary-text-color)', 
+                                borderBottom: '1px solid var(--border-color)', 
+                                padding: '10px 0', 
+                                backgroundColor: 'var(--main-bg)', 
+                                fontSize: '0.85rem', 
+                                fontWeight: 'bold' 
+                            }
+                        }}>
+                            <TableCell sx={{ width: '40px' }}></TableCell>
+                            <TableCell align="center" sx={{ width: '40px' }}>#</TableCell>
+                            <TableCell>Título</TableCell>
+                            <TableCell>Álbum</TableCell>
+                            <TableCell>Artista</TableCell>
+                            <TableCell align="center" sx={{ width: '40px' }}><AccessTimeIcon sx={{ fontSize: '18px' }} /></TableCell>
+                            <TableCell sx={{ width: '40px' }}></TableCell>
+                        </TableRow>
+                    </TableHead>
 
+                    {/* Mapeamento de Músicas (Adaptado para D&D) */}
+                    {isCustomPlaylist && isOwner && sortKey === 'custom' ? (
+                        <DragDropContext onDragEnd={onDragEnd}>
+                            <Droppable droppableId="songs">
+                                {(droppableProvided) => (
+                                    <TableBody
+                                        {...droppableProvided.droppableProps}
+                                        ref={droppableProvided.innerRef}
+                                    >
+                                        {localSongs.map((song, index) => (
+                                            <Draggable key={song._id || song.id} draggableId={song._id || song.id} index={index}>
+                                                {(draggableProvided) => (
+                                                    <TableRow 
+                                                        ref={draggableProvided.innerRef}
+                                                        {...draggableProvided.draggableProps}
+                                                        sx={{ 
+                                                            cursor: 'pointer', 
+                                                            backgroundColor: hoveredSongId === song.id ? 'var(--card-bg)' : 'transparent',
+                                                            '&:hover': { backgroundColor: 'var(--card-bg)' }
+                                                        }}
+                                                        onMouseEnter={() => setHoveredSongId(song.id)}
+                                                        onMouseLeave={() => setHoveredSongId(null)}
+                                                        onClick={() => handleSongClick(song, index)}
+                                                    >
+                                                        <TableCell sx={{ padding: '8px 0', borderBottom: 'none' }}>
+                                                            <div {...draggableProvided.dragHandleProps} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: INACTIVE_ICON_COLOR }}>
+                                                                <DragIndicatorIcon />
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell align="center" sx={{ padding: '8px 0', borderBottom: 'none', color: (currentSong?.id === song.id && isPlaying) ? 'var(--orange)' : INACTIVE_ICON_COLOR }}>
+                                                            {(currentSong?.id === song.id && isPlaying) ? <i className="fas fa-volume-up" /> : index + 1}
+                                                        </TableCell>
+                                                        <TableCell sx={{ padding: '8px 10px', borderBottom: 'none', color: currentSong?.id === song.id ? 'var(--orange)' : 'var(--text-color)' }}>
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                                <img src={song.cover || '/assets/img/default_song_cover.png'} alt="Cover" style={{ width: '40px', height: '40px', borderRadius: '4px' }} />
+                                                                <Box>
+                                                                    <Typography sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{song.title}</Typography>
+                                                                    <Typography variant="body2" sx={{ color: 'var(--secondary-text-color)' }}>{song.artist}</Typography>
+                                                                </Box>
+                                                            </Box>
+                                                        </TableCell>
+                                                        <TableCell sx={{ padding: '8px 10px', borderBottom: 'none', color: 'var(--secondary-text-color)' }}>
+                                                            <Link to={`/album/${song.albumId}`} style={{ color: 'inherit', textDecoration: 'none' }}>{song.album}</Link>
+                                                        </TableCell>
+                                                        <TableCell sx={{ padding: '8px 10px', borderBottom: 'none', color: 'var(--secondary-text-color)' }}>
+                                                            <Link to={`/artist/${song.artistId}`} style={{ color: 'inherit', textDecoration: 'none' }}>{song.artist}</Link>
+                                                        </TableCell>
+                                                        <TableCell align="center" sx={{ padding: '8px 0', borderBottom: 'none', color: 'var(--secondary-text-color)' }}>
+                                                            {song.duration} 
+                                                        </TableCell>
+                                                        <TableCell sx={{ padding: '8px 0', borderBottom: 'none' }}>
+                                                            {(hoveredSongId === song.id || songOptionsSong?.id === song.id) && (
+                                                                <ActionIcon onClick={(e) => handleSongOptionsClick(e, song)}>
+                                                                    <MoreVertIcon sx={{ fontSize: '18px' }} />
+                                                                </ActionIcon>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </Draggable>
+                                        ))}
+                                        {droppableProvided.placeholder}
+                                    </TableBody>
+                                )}
+                            </Droppable>
+                        </DragDropContext>
+                    ) : (
+                        // Renderização Sem D&D (para Músicas Curtidas ou ordenação não-custom)
+                        <TableBody>
+                            {localSongs.map((song, index) => (
+                                <TableRow 
+                                    key={song._id || song.id}
+                                    sx={{ 
+                                        cursor: 'pointer', 
+                                        backgroundColor: hoveredSongId === song.id ? 'var(--card-bg)' : 'transparent',
+                                        '&:hover': { backgroundColor: 'var(--card-bg)' }
+                                    }}
+                                    onMouseEnter={() => setHoveredSongId(song.id)}
+                                    onMouseLeave={() => setHoveredSongId(null)}
+                                    onClick={() => handleSongClick(song, index)}
+                                >
+                                    <TableCell sx={{ width: '40px', padding: '8px 0', borderBottom: 'none' }}></TableCell>
+                                    <TableCell align="center" sx={{ padding: '8px 0', borderBottom: 'none', color: (currentSong?.id === song.id && isPlaying) ? 'var(--orange)' : INACTIVE_ICON_COLOR }}>
+                                        {(currentSong?.id === song.id && isPlaying) ? <i className="fas fa-volume-up" /> : index + 1}
+                                    </TableCell>
+                                    <TableCell sx={{ padding: '8px 10px', borderBottom: 'none', color: currentSong?.id === song.id ? 'var(--orange)' : 'var(--text-color)' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                            <img src={song.cover || '/assets/img/default_song_cover.png'} alt="Cover" style={{ width: '40px', height: '40px', borderRadius: '4px' }} />
+                                            <Box>
+                                                <Typography sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{song.title}</Typography>
+                                                <Typography variant="body2" sx={{ color: 'var(--secondary-text-color)' }}>{song.artist}</Typography>
+                                            </Box>
+                                        </Box>
+                                    </TableCell>
+                                    <TableCell sx={{ padding: '8px 10px', borderBottom: 'none', color: 'var(--secondary-text-color)' }}>
+                                        <Link to={`/album/${song.albumId}`} style={{ color: 'inherit', textDecoration: 'none' }}>{song.album}</Link>
+                                    </TableCell>
+                                    <TableCell sx={{ padding: '8px 10px', borderBottom: 'none', color: 'var(--secondary-text-color)' }}>
+                                        <Link to={`/artist/${song.artistId}`} style={{ color: 'inherit', textDecoration: 'none' }}>{song.artist}</Link>
+                                    </TableCell>
+                                    <TableCell align="center" sx={{ padding: '8px 0', borderBottom: 'none', color: 'var(--secondary-text-color)' }}>
+                                        {song.duration} 
+                                    </TableCell>
+                                    <TableCell sx={{ padding: '8px 0', borderBottom: 'none' }}>
+                                        {(hoveredSongId === song.id || songOptionsSong?.id === song.id) && (
+                                            <ActionIcon onClick={(e) => handleSongOptionsClick(e, song)}>
+                                                <MoreVertIcon sx={{ fontSize: '18px' }} />
+                                            </ActionIcon>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    )}
+                </Table>
+            </TableContainer>
+
+            {/* Menu de Opções da Música (Song Options Menu) - Omitido por brevidade */}
+            {/* ... */}
+            
             {/* Modal de Edição da Playlist */}
             {isOwner && isCustomPlaylist && (
                 <Modal

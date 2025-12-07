@@ -1,4 +1,3 @@
-// src/models/playlist.model.js
 import mongoose, { Schema } from 'mongoose';
 
 const playlistSchema = new Schema({
@@ -15,9 +14,10 @@ const playlistSchema = new Schema({
     },
     cover: { 
         type: String, 
-        default: '/assets/img/vibe_cover_2.png'
+        // 🚨 NOVO DEFAULT: Caminho para a imagem de capa padrão (sem foto).
+        default: '/assets/img/default_playlist_cover.png'
     },
-    user: { // Usa 'user' para consistência com o seu 'User' Schema (userPlaylists)
+    user: { 
         type: Schema.Types.ObjectId, 
         ref: 'User', 
         required: true,

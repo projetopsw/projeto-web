@@ -1,5 +1,3 @@
-// src/controller/playlistController.js
-
 import Playlist from '../models/playlist.model.js';
 import User from '../models/user.model.js'; 
 import Song from '../models/song.model.js'; 
@@ -15,14 +13,13 @@ const PlaylistController = {
         }
         
         if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-             return res.status(401).json({ message: 'ID de usuário inválido após autenticação. Refaça o login.' });
+              return res.status(401).json({ message: 'ID de usuário inválido após autenticação. Refaça o login.' });
         }
 
         try {
             const coverUrl = req.file 
                 ? `/cover_images/${req.file.filename}` 
-                : (req.body.cover || undefined);
-
+                : (req.body.cover || undefined); 
             const novaPlaylist = new Playlist({
                 title,
                 description,
@@ -47,7 +44,7 @@ const PlaylistController = {
         } catch (error) {
             console.error("Erro ao criar playlist no controller:", error); 
             if (error.name === 'ValidationError') {
-                 return res.status(400).json({ message: 'Dados inválidos para a playlist.', errors: error.errors });
+                  return res.status(400).json({ message: 'Dados inválidos para a playlist.', errors: error.errors });
             }
             res.status(500).json({ message: 'Erro interno do servidor ao criar playlist.', error: error.message });
         }
@@ -93,7 +90,7 @@ const PlaylistController = {
 
     updatePlaylist: async (req, res) => {
         const { id } = req.params;
-        const { title, description, isPublic, cover } = req.body; // Pega 'cover' (que pode ser o link) do body
+        const { title, description, isPublic, cover } = req.body; 
         const userId = (req.user._id || req.user.id)?.toString(); 
 
         try {
@@ -111,18 +108,16 @@ const PlaylistController = {
             if (description !== undefined) updateFields.description = description;
             if (isPublic !== undefined) updateFields.isPublic = isPublic;
             
-            // Aceita o link do body JSON como capa
             if (cover !== undefined) {
-                 updateFields.cover = cover; 
+                  updateFields.cover = cover; 
             }
 
-            // Prioridade ao arquivo de upload (se você usar o middleware de upload)
             if (req.file) { 
                 updateFields.cover = `/cover_images/${req.file.filename}`;
             }
 
             if (Object.keys(updateFields).length === 0) {
-                 return res.status(200).json({ message: 'Nenhuma alteração detectada.', playlist });
+                  return res.status(200).json({ message: 'Nenhuma alteração detectada.', playlist });
             }
 
             const updatedPlaylist = await Playlist.findByIdAndUpdate(
@@ -169,7 +164,7 @@ const PlaylistController = {
         const userId = (req.user._id || req.user.id)?.toString();
 
         if (!mongoose.Types.ObjectId.isValid(songId)) {
-             return res.status(400).json({ message: 'ID de música inválido.' });
+              return res.status(400).json({ message: 'ID de música inválido.' });
         }
 
         try {
@@ -209,7 +204,7 @@ const PlaylistController = {
         const userId = (req.user._id || req.user.id)?.toString();
 
         if (!mongoose.Types.ObjectId.isValid(songId)) {
-             return res.status(400).json({ message: 'ID de música inválido.' });
+              return res.status(400).json({ message: 'ID de música inválido.' });
         }
 
         try {
