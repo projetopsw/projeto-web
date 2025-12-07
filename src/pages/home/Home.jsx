@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-    fetchAlbums,
-} from '../../redux/catalogoSlice';
+import { fetchAlbums } from '../../redux/catalogoSlice';
 import Section from '../../components/Section';
 import SongCard from '../../components/SongCard';
 import AlbumCard from '../../components/AlbumCard';
@@ -13,18 +11,24 @@ import './Home.css';
 import mongoApi from '../../services/mongoApi.js';
 
 const sectionsData = [
-    { "title": "Top Hits do Rebanho", "type": "song", "path":"/songDetail" },
-    { "title": "Artistas mais ouvidos", "type": "artist", "path":"/artistDetail" },
-    { "title": "Playlists em Destaque", "type": "playlist", "path":"/playlistDetail" },
-    { "title": "Acús-ticos do Campo", "type": "song", "path":"/songDetail" },
-    { "title": "Pista de Dança Malhada", "type": "album", "path":"/albumDetail" },
-    { "title": "Sofrência Bovina", "type": "playlist", "path":"/playlistDetail" },
-    { "title": "Pop Leite", "type": "playlist", "path":"/playlistDetail" },
-    { "title": "Rock Berrante", "type": "album", "path":"/albumDetail" },
-]
+    { id: "top_hits", title: "Top Hits do Rebanho", type: "song", criteria: "popularity", path: "/songDetail" },
+    { id: "top_artists", title: "Artistas mais ouvidos", type: "artist", criteria: "random", path: "/artistDetail" },
+    { id: "featured_playlists", title: "Playlists em Destaque", type: "playlist", criteria: "random", path: "/playlistDetail" },
+    { id: "acoustic", title: "Acús-ticos do Campo", type: "song", criteria: "acoustic", path: "/songDetail" },
+    { id: "dance_albums", title: "Pista de Dança Malhada", type: "album", criteria: "random", path: "/albumDetail" },
+    { id: "rock", title: "Rock Berrante", type: "album", criteria: "rock", path: "/albumDetail" },
+];
 
 const navItemsData = ["Tudo", "Playlists", "Músicas", "Álbuns", "Artistas"];
 
+const shuffleArray = (array) => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+};
 
 function Home() {
     const [selectedFilter, setSelectedFilter] = useState('Tudo');
@@ -33,29 +37,12 @@ function Home() {
     const [songsData, setSongsData] = useState([]);
     const [artistsData, setArtistsData] = useState([]);
     const [playlistsData, setPlaylistsData] = useState([]);
+    
     const albumsData = useSelector(state => state.catalog.albums.items);
     const albumsStatus = useSelector(state => state.catalog.albums.status);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    const filterMap = {
-        'Tudo': null,
-        'Músicas': 'song',
-        'Artistas': 'artist',
-        'Playlists': 'playlist',
-        'Álbuns': 'album',
-    };
-
-    const filteredSections = sectionsData.filter(section => {
-        if (selectedFilter === 'Tudo') return true;
-        return section.type === filterMap[selectedFilter];
-    });
-
-    const visibleAlbums = albumsData.filter(album => {
-        const hasCover = album.cover || album.image; 
-        return hasCover && hasCover !== '';
-    });
 
     useEffect(() => {
         let isMounted = true;
@@ -78,12 +65,19 @@ function Home() {
                     const rawSongs = songsResult.value.data;
                     
                     const validSongs = rawSongs.filter(s => {
-                         const capa = s.cover || s.album?.cover;
-                         if (!capa || capa === '') return false;
-                         
-                         if (s.popularity !== undefined && s.popularity < 5) return false;
-                         
-                         return true;
+                        const isLocalUpload = s.uploadedBy || s.isArtistUpload || !s.spotifyId; 
+                        if (isLocalUpload) return true;
+
+                        const capa = s.cover || s.album?.cover;
+                        if (!capa || capa === '') return false;
+
+                        if (s.popularity !== undefined && s.popularity < 10) return false;
+
+                        const titleLower = s.title ? s.title.toLowerCase() : "";
+                        const blockedKeywords = ["karaoke", "tribute to", "ringtone", "instrumental version", "originally performed by"];
+                        if (blockedKeywords.some(term => titleLower.includes(term))) return false;
+
+                        return true;
                     });
 
                     const normSongs = validSongs.map(s => {
@@ -91,16 +85,14 @@ function Home() {
                         let artistId = null; 
                         let isArtistUpload = false; 
                         let isUserUpload = false; 
+                        let genre = s.genre || '';
 
                         if (Array.isArray(s.artists) && s.artists.length > 0) {
                             const mainArtist = s.artists[0];
                             artistName = s.artists.map(a => a.name || a.username).join(', ');
                             artistId = mainArtist._id;
-                            
                             isArtistUpload = !!mainArtist.isArtistUpload;
-                            
                             isUserUpload = !!s.uploadedBy && !isArtistUpload;
-
                         } else if (s.artist) {
                             artistName = typeof s.artist === 'string' ? s.artist : s.artist.name || s.artist.username;
                             artistId = typeof s.artist === 'object' ? s.artist._id : null;
@@ -108,13 +100,9 @@ function Home() {
                             isUserUpload = !!s.uploadedBy && !isArtistUpload;
                         }
 
-                        // 3. REGRA DE FALLBACK FORTE:
-                        // Se temos um ID de artista, mas a flag é false (porque o MongoDB não a incluiu)
-                        // E não é um upload de usuário, forçamos isArtistUpload para true.
                         if (artistId && !isArtistUpload && !isUserUpload) {
-                             isArtistUpload = true;
+                            isArtistUpload = true;
                         }
-                        // ----------------------------------------------------
                         
                         return {
                             id: s._id,
@@ -124,6 +112,8 @@ function Home() {
                             artistId: artistId, 
                             isArtistUpload: isArtistUpload, 
                             isUserUpload: isUserUpload,     
+                            popularity: s.popularity || 0,
+                            genre: genre.toLowerCase(),
                             fullSongData: s,
                         };
                     });
@@ -132,18 +122,19 @@ function Home() {
 
                 if (artistsResult.status === 'fulfilled') {
                     const rawArtists = artistsResult.value.data;
-
                     const validArtists = rawArtists.filter(a => {
+                        if (a.isArtistUpload) return true; 
                         const img = a.cover || a.image;
-                        return img && img !== '';
+                        if (!img || img === '') return false;
+                        if (a.popularity !== undefined && a.popularity < 10) return false;
+                        return true;
                     });
-
                     const normArtists = validArtists.map(a => ({
                         id: a._id || a.spotifyId,
                         image: a.cover || a.image,
                         name: a.name,
+                        popularity: a.popularity || 0
                     }));
-                    
                     setArtistsData(normArtists);
                 }
 
@@ -152,6 +143,7 @@ function Home() {
                         id: p._id,
                         cover: p.img || '/assets/img/vacateste.jpg',
                         title: p.name,
+                        description: p.description || ''
                     }));
                     setPlaylistsData(normPlaylists);
                 }
@@ -173,6 +165,67 @@ function Home() {
         }
     }, [albumsStatus, dispatch]);
 
+    const getSectionContent = (section) => {
+        let content = [];
+        
+        switch(section.type) {
+            case 'song':
+                content = [...songsData];
+                break;
+            case 'artist':
+                content = [...artistsData];
+                break;
+            case 'playlist':
+                content = [...playlistsData];
+                break;
+            case 'album':
+                content = albumsData.filter(a => a.cover || a.image).map(a => ({...a, id: a._id || a.id}));
+                break;
+            default:
+                content = [];
+        }
+
+
+        if (section.type === 'playlist') {
+            return shuffleArray(content);
+        }
+     
+        if (section.criteria === 'popularity') {
+            return content.sort((a, b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 15);
+        }
+        
+        if (section.criteria === 'rock') {
+            const rocks = content.filter(item => 
+                (item.genre && item.genre.includes('rock')) || 
+                (item.title && item.title.toLowerCase().includes('rock'))
+            );
+            return rocks.length > 0 ? rocks.slice(0, 15) : shuffleArray(content).slice(0, 15);
+        }
+
+        if (section.criteria === 'acoustic') {
+            const acoustic = content.filter(item => 
+                (item.title && item.title.toLowerCase().includes('acústico')) ||
+                (item.title && item.title.toLowerCase().includes('ao vivo'))
+            );
+            return acoustic.length > 0 ? acoustic.slice(0, 15) : shuffleArray(content).slice(0, 15);
+        }
+
+        return shuffleArray(content).slice(0, 15);
+    };
+
+    const filterMap = {
+        'Tudo': null,
+        'Músicas': 'song',
+        'Artistas': 'artist',
+        'Playlists': 'playlist',
+        'Álbuns': 'album',
+    };
+
+    const filteredSections = sectionsData.filter(section => {
+        if (selectedFilter === 'Tudo') return true;
+        return section.type === filterMap[selectedFilter];
+    });
+
     if (loading) return <main><h1 className='pagina-inicial'>Carregando catálogo...</h1></main>;
     if (error) return <main><h1 className='pagina-inicial'>{error}</h1></main>;
 
@@ -186,11 +239,15 @@ function Home() {
                 setSelectedItem={setSelectedFilter}
             />
 
-            {filteredSections.map((section) => (
-                <Section key={section.title} title={section.title} className="card-container">
-                    
-                    {section.type === 'song' && songsData.map((song) => {                        
-                        return (
+            {filteredSections.map((section) => {
+                const sectionItems = getSectionContent(section);
+
+                if (sectionItems.length === 0) return null;
+
+                return (
+                    <Section key={section.title} title={section.title} className="card-container">
+                        
+                        {section.type === 'song' && sectionItems.map((song) => (
                             <SongCard
                                 key={song.id}
                                 id={song.id}
@@ -201,49 +258,48 @@ function Home() {
                                 isArtistUpload={song.isArtistUpload}
                                 isUserUpload={song.isUserUpload}
                             />
-                        );
-                    })}
+                        ))}
 
-                    {section.type === 'artist' && artistsData.map((artist) => (
-                        <ArtistCircle
-                            key={artist.id}
-                            id={artist.id}
-                            image={artist.image}
-                            name={artist.name}
-                        />
-                    ))}
-
-                    {section.type === 'playlist' && playlistsData.map((playlist) => (
-                        <PlaylistCard
-                            key={playlist.id}
-                            id={playlist.id}
-                            cover={playlist.cover}
-                            title={playlist.title}
-                        />
-                    ))}
-
-                    {section.type === 'album' && visibleAlbums.map((album) => {
-                        let artistName = 'Desconhecido';
-                        if (album.artists && Array.isArray(album.artists) && album.artists.length > 0) {
-                            artistName = album.artists.map(a => a.name).join(', ');
-                        } else if (album.artist) {
-                            artistName = typeof album.artist === 'string' 
-                                ? album.artist 
-                                : album.artist.name || 'Desconhecido';
-                        }
-
-                        return (
-                            <AlbumCard
-                                key={album._id || album.id}
-                                id={album._id || album.id}
-                                cover={album.cover || album.image} 
-                                title={album.title}
-                                artist={artistName} 
+                        {section.type === 'artist' && sectionItems.map((artist) => (
+                            <ArtistCircle
+                                key={artist.id}
+                                id={artist.id}
+                                image={artist.image}
+                                name={artist.name}
                             />
-                        );
-                    })}     
-                </Section>
-            ))}
+                        ))}
+
+                        {section.type === 'playlist' && sectionItems.map((playlist) => (
+                            <PlaylistCard
+                                key={playlist.id}
+                                id={playlist.id}
+                                cover={playlist.cover}
+                                title={playlist.title}
+                            />
+                        ))}
+
+                        {section.type === 'album' && sectionItems.map((album) => {
+                            let artistName = 'Desconhecido';
+                            if (album.artists && Array.isArray(album.artists) && album.artists.length > 0) {
+                                artistName = album.artists.map(a => a.name).join(', ');
+                            } else if (album.artist) {
+                                artistName = typeof album.artist === 'string' 
+                                    ? album.artist 
+                                    : album.artist.name || 'Desconhecido';
+                            }
+                            return (
+                                <AlbumCard
+                                    key={album.id}
+                                    id={album.id}
+                                    cover={album.cover || album.image} 
+                                    title={album.title}
+                                    artist={artistName} 
+                                />
+                            );
+                        })}     
+                    </Section>
+                );
+            })}
         </main>
     );
 }

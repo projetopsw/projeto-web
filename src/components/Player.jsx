@@ -37,7 +37,7 @@ function Player() {
     const {
         currentSong,
         isPlaying,
-        currentTime, // Este valor agora vem salvo do localStorage
+        currentTime,
         duration,
         volume,
         isShuffling,
@@ -50,8 +50,6 @@ function Player() {
     
     const audioRef = useRef(new Audio());
     const [localVolume, setLocalVolume] = useState(volume);
-    
-    // Ref para controlar se é a primeira carga após o refresh
     const isInitialMount = useRef(true);
 
     useEffect(() => {
@@ -59,22 +57,16 @@ function Player() {
         setLocalVolume(volume);
     }, [volume]);
 
-    // --- LÓGICA DE CARREGAMENTO E RESTAURAÇÃO ---
     useEffect(() => {
         const audioSource = currentSong ? (currentSong.caminho || currentSong.audioUrl) : null;
-
-        console.log("Música Atual:", currentSong);
         
         if (currentSong && audioSource) {
-            // Verifica se a fonte mudou
             if (audioRef.current.src !== audioSource) {
                 audioRef.current.src = audioSource;
                 
-                // MÁGICA AQUI: Se for o primeiro load e tivermos um tempo salvo no Redux, restauramos ele.
-                // Se for uma troca normal de música (skipNext), o Redux deve ter zerado o currentTime, então ele começa do 0.
                 if (isInitialMount.current && currentTime > 0) {
                     audioRef.current.currentTime = currentTime;
-                    isInitialMount.current = false; // Desativa para as próximas músicas
+                    isInitialMount.current = false; 
                 } else {
                      audioRef.current.load();
                 }
@@ -84,9 +76,7 @@ function Player() {
                  const playPromise = audioRef.current.play();
                  if (playPromise !== undefined) {
                      playPromise.catch(e => {
-                         console.warn("Autoplay bloqueado pelo navegador ao recarregar:", e);
-                         // Opcional: Se o navegador bloquear, você pode despachar um pause para sincronizar a UI
-                         // dispatch(togglePlayPause()); 
+                         console.warn("Autoplay bloqueado:", e);
                      });
                  }
             }
@@ -96,11 +86,8 @@ function Player() {
             dispatch(setDuration(0));
             dispatch(updateCurrentTime(0));
         }
-    // IMPORTANTE: Removemos 'isPlaying' das dependências aqui para evitar loops, 
-    // já que temos um useEffect separado para lidar com play/pause.
     }, [currentSong, dispatch]); 
 
-    // --- LÓGICA DE PLAY/PAUSE SEPARADA ---
     useEffect(() => {
         if (currentSong) {
             if (isPlaying) {
@@ -116,14 +103,11 @@ function Player() {
 
     useEffect(() => {
         const audioEl = audioRef.current;
-
         audioEl.loop = repeatMode === REPEAT_MODES.SONG;
 
         const setAudioData = () => dispatch(setDuration(audioEl.duration));
         
-        // Atualiza o tempo no Redux (para salvar no persist)
         const updateTime = () => {
-             // Otimização: Só despacha se a diferença for significativa para evitar excesso de renders
              if (Math.abs(audioEl.currentTime - currentTime) > 0.5) {
                 dispatch(updateCurrentTime(audioEl.currentTime));
              }
@@ -144,10 +128,8 @@ function Player() {
             audioEl.removeEventListener('timeupdate', updateTime);
             audioEl.removeEventListener('ended', handleEnded);
         };
-    }, [dispatch, repeatMode, currentTime]); // Adicionado currentTime nas dependências para a otimização
+    }, [dispatch, repeatMode, currentTime]); 
 
-    // ... (O RESTO DO SEU CÓDIGO PERMANECE IGUAL ABAIXO) ...
-    
     const handlePlayPause = (e) => {
         e.stopPropagation();
         dispatch(togglePlayPause());
@@ -157,7 +139,6 @@ function Player() {
         if (event) event.stopPropagation();
         const newVolume = parseFloat(event.target.value);
         setLocalVolume(newVolume);
-        
         audioRef.current.volume = newVolume;
         dispatch(setVolume(newVolume));
     };
@@ -165,14 +146,11 @@ function Player() {
     const handleSeek = (event) => {
         if (event) event.stopPropagation();
         if (!duration) return;
-    
         const bar = event.currentTarget;
         const clickPosition = event.clientX - bar.getBoundingClientRect().left;
         const clickPercent = clickPosition / bar.offsetWidth;
         const newTime = clickPercent * duration;
-        
         audioRef.current.currentTime = newTime;
-        
         dispatch(updateCurrentTime(newTime));
     };
     
@@ -200,22 +178,35 @@ function Player() {
 
     const getRepeatIcon = () => {
         switch (repeatMode) {
-            case REPEAT_MODES.QUEUE:
-                return <RepeatIcon />;
-            case REPEAT_MODES.SONG:
-                return <RepeatOneIcon />;
-            case REPEAT_MODES.OFF:
-            default:
-                return <RepeatIcon />;
+            case REPEAT_MODES.QUEUE: return <RepeatIcon />;
+            case REPEAT_MODES.SONG: return <RepeatOneIcon />;
+            case REPEAT_MODES.OFF: default: return <RepeatIcon />;
         }
     };
 
     const progress = (currentTime / duration) * 100 || 0;
     
     const songDisplay = selectedSongInfo || currentSong; 
-    const songName = songDisplay ? `${songDisplay.title} - ${songDisplay.artist}` : " ";
-    const detailRoute = songDisplay ? `${MUSIC_DETAIL_PATH_BASE}${songDisplay._id}` : MUSIC_DETAIL_PATH_BASE;
     
+    // --- CORREÇÃO DO NOME DO ARTISTA ---
+    const getArtistName = (song) => {
+        if (!song) return "";
+        // 1. Verifica se tem lista de artistas (comum no Spotify/Mongo Populado)
+        if (song.artists && Array.isArray(song.artists) && song.artists.length > 0) {
+            return song.artists.map(a => a.name || a).join(', ');
+        }
+        // 2. Verifica se tem artista único
+        if (song.artist) {
+             return typeof song.artist === 'string' ? song.artist : song.artist.name;
+        }
+        return "Desconhecido";
+    };
+
+    const artistName = getArtistName(songDisplay);
+    const songName = songDisplay ? `${songDisplay.title} - ${artistName}` : " ";
+    // ------------------------------------
+
+    const detailRoute = songDisplay ? `${MUSIC_DETAIL_PATH_BASE}${songDisplay._id || songDisplay.id}` : MUSIC_DETAIL_PATH_BASE;
     const PlayPauseIcon = isPlaying ? "fas fa-pause" : "fas fa-play";
     const VolumeIcon = localVolume === 0 ? "fas fa-volume-mute" : localVolume < 0.5 ? "fas fa-volume-down" : "fas fa-volume-up";
 
@@ -232,91 +223,33 @@ function Player() {
 
             <div className="player">
                 <div className="controle-musica">
-                    
-                    <IconButton
-                        className="controle-btn"
-                        onClick={handleToggleShuffle}
-                        disabled={queue.length <= 1}
-                        sx={{
-                            color: isShuffling ? 'var(--orange)' : 'var(--secondary-text-color)',
-                            '&:hover': { color: 'var(--text-color)' }
-                        }}
-                    >
+                    <IconButton className="controle-btn" onClick={handleToggleShuffle} disabled={queue.length <= 1} sx={{ color: isShuffling ? 'var(--orange)' : 'var(--secondary-text-color)', '&:hover': { color: 'var(--text-color)' } }}>
                         <ShuffleIcon />
                     </IconButton>
-                    
                     <button className="controle-btn" onClick={handleSkipPrevious}>
                         <i className="fas fa-backward"></i>
                     </button>
-                    
                     <button className="play-pause-btn" onClick={handlePlayPause}>
                         <i className={PlayPauseIcon}></i>
                     </button>
-                    
                     <button className="controle-btn" onClick={handleSkipNext}>
                         <i className="fas fa-forward"></i>
                     </button>
-                    
-                    <IconButton 
-                        className="controle-btn" 
-                        onClick={handleToggleRepeat}
-                        sx={{ 
-                            color: repeatMode !== REPEAT_MODES.OFF ? 'var(--orange)' : 'var(--secondary-text-color)',
-                            '&:hover': { color: 'var(--text-color)' },
-                            ...(repeatMode === REPEAT_MODES.SONG && { 
-                                '& .MuiSvgIcon-root': { position: 'relative' },
-                                '& .MuiSvgIcon-root:after': {
-                                    content: '""',
-                                    position: 'absolute',
-                                    bottom: '0px',
-                                    right: '0px',
-                                    width: '4px',
-                                    height: '4px',
-                                    borderRadius: '50%',
-                                    backgroundColor: 'var(--orange)',
-                                }
-                            })
-                        }}
-                    >
+                    <IconButton className="controle-btn" onClick={handleToggleRepeat} sx={{ color: repeatMode !== REPEAT_MODES.OFF ? 'var(--orange)' : 'var(--secondary-text-color)', '&:hover': { color: 'var(--text-color)' }, ...(repeatMode === REPEAT_MODES.SONG && { '& .MuiSvgIcon-root': { position: 'relative' }, '& .MuiSvgIcon-root:after': { content: '""', position: 'absolute', bottom: '0px', right: '0px', width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--orange)', } }) }}>
                         {getRepeatIcon()}
                     </IconButton>
-
                 </div>
 
                 <p className="song-info">{songName}</p>
                 
                 <div className="volume-control">
                     <i className={VolumeIcon}></i>
-                    <input
-                        type="range"
-                        min="0" max="1" step="0.01"
-                        value={localVolume}
-                        onChange={handleVolumeChange}
-                        className="volume-slider"
-                        onClick={(e) => e.stopPropagation()}
-                    />
+                    <input type="range" min="0" max="1" step="0.01" value={localVolume} onChange={handleVolumeChange} className="volume-slider" onClick={(e) => e.stopPropagation()} />
                 </div>
             </div>
 
-            <Link
-                to={detailRoute}
-                style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    zIndex: 10,
-                }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                <IconButton
-                    aria-label="Abrir página da música"
-                    disabled={!songDisplay}
-                    sx={{
-                        color: 'var(--orange)',
-                        '&:hover': { backgroundColor: 'rgba(255, 117, 51, 0.1)' }
-                    }}
-                >
+            <Link to={detailRoute} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }} onClick={(e) => e.stopPropagation()}>
+                <IconButton aria-label="Abrir página da música" disabled={!songDisplay} sx={{ color: 'var(--orange)', '&:hover': { backgroundColor: 'rgba(255, 117, 51, 0.1)' } }}>
                     <AlbumIcon sx={{ fontSize: '30px' }} />
                 </IconButton>
             </Link>
