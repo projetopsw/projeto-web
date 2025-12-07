@@ -23,6 +23,7 @@ const DATA_API_URL = 'http://localhost:3001';
 const USER_API_URL = 'http://localhost:3000'; 
 const DEFAULT_USER_IMAGE = 'https://placehold.co/400x400?text=User'; 
 
+
 const fetchTargetUser = async (targetId) => {
     if (!targetId || targetId === 'undefined') {
         throw new Error('ID do usuário inválido ou ausente.');
@@ -39,7 +40,6 @@ const fetchTargetUser = async (targetId) => {
     }
 };
 
-// Nova função auxiliar para isolar erros em fetches secundários (evitar 500s de quebrarem o Promise.all)
 const fetchJsonOrEmptyArray = async (url) => {
     if (!url) return [];
     try {
@@ -55,6 +55,7 @@ const fetchJsonOrEmptyArray = async (url) => {
     }
 };
 
+
 export default function Perfil() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -65,7 +66,8 @@ export default function Perfil() {
     const { 
         friends: loggedInFriends, 
         sentRequests: loggedInSentRequests,
-        pendingRequests: loggedInPendingRequests
+        pendingRequests: loggedInPendingRequests,
+        status: connectionsStatus
     } = useSelector((state) => state.connections);
 
     const [targetUser, setTargetUser] = useState(null);
@@ -84,13 +86,27 @@ export default function Perfil() {
     const { items: followedArtistsRedux } = useSelector(state => state.catalog?.followedArtists || { items: [] });
     const { items: likedSongsDetailsRedux } = useSelector(state => state.catalog?.likedSongsDetails || { items: [] });
 
-    // Garante que o ID do alvo é uma string consistente
     const targetUserIdStr = String(targetUser?._id || targetUser?.id);
     
     const currentIsFriend = loggedInFriends.some(f => String(f.id) === targetUserIdStr);
     const currentHasRequested = loggedInSentRequests.some(req => String(req.id) === targetUserIdStr);
     const currentHasReceivedRequest = loggedInPendingRequests.some(req => String(req.id) === targetUserIdStr);
     
+    useEffect(() => {
+        if (userLogado?.id || userLogado?._id) {
+            const loggedId = String(userLogado.id || userLogado._id);
+            
+            if (connectionsStatus === 'idle' || connectionsStatus === 'refetching' || connectionsStatus === 'failed') {
+                dispatch(fetchConnectionsData(loggedId));
+            }
+        }
+    }, [
+        dispatch, 
+        userLogado?.id, 
+        userLogado?._id,
+        connectionsStatus
+    ]);
+
     useEffect(() => {
         if (!targetId) {
             setIsLoading(false);
@@ -100,75 +116,86 @@ export default function Perfil() {
         const loadProfileData = async () => {
             setIsLoading(true);
             
+            setTargetUser(null);
+            setTargetPlaylists([]);
+            setTargetFriendsDetails([]);
+            setTargetLikedSongsDetails([]);
+            setTargetFollowedArtistsDetails([]);
+            
             let finalUserData;
 
             if (isOwner) {
                 finalUserData = userLogado;
+                dispatch(fetchPlaylistsByUserId(targetId));
+                dispatch(fetchArtistsByIds(userLogado.following || []));
+                dispatch(fetchSongsByIds(userLogado.likedSongs || []));
             } else {
                 finalUserData = await fetchTargetUser(targetId);
+                
+                if (finalUserData) {
+                    console.log(`%c[DIAG] Dados do Perfil de ${finalUserData.name || 'Alvo'}:`, 'color: #1E90FF; font-weight: bold;');
+                    console.log(`%cAmigos IDs:`, 'color: #3CB371;', finalUserData.friends);
+                    console.log(`%cMúsicas Curtidas IDs:`, 'color: #FF8C00;', finalUserData.likedSongs);
+                }
             }
             
             if (finalUserData) {
                 setTargetUser(finalUserData);
                 
-                const userIdToUse = finalUserData._id || finalUserData.id; 
-
-                if (isOwner) {
-                    dispatch(fetchPlaylistsByUserId(userIdToUse));
-                    dispatch(fetchArtistsByIds(finalUserData.following || []));
-                    dispatch(fetchSongsByIds(finalUserData.likedSongs || []));
-                    dispatch(fetchConnectionsData(userIdToUse));
-                } else {
+                if (!isOwner) {
                     const fetchDetailsForFriend = async (user) => {
-                    const [playlists, friendsDetails, songsDetails, artistsDetails] = await Promise.all([
+                        const [playlists, friendsDetails, songsDetails, artistsDetails] = await Promise.all([
+                            fetchJsonOrEmptyArray(`${DATA_API_URL}/userPlaylists?creatorId=${user.id}`), 
+                            
+                            user.friends?.length 
+                                ? fetchJsonOrEmptyArray(`${USER_API_URL}/users?${user.friends.map(id => `id=${id}`).join('&')}`)
+                                : [],
+                        
+                            user.likedSongs?.length 
+                                ? fetchJsonOrEmptyArray(`${DATA_API_URL}/songs?${user.likedSongs.map(id => `id=${id}`).join('&')}`) 
+                                : [], 
+                            
+                            user.following?.length 
+                                ? fetchJsonOrEmptyArray(`${DATA_API_URL}/artists?${user.following.map(id => `id=${id}`).join('&')}`) 
+                                : []
+                        ]);
+                        
+                        console.log(`%c[DIAG] Nomes de Amigos Buscados:`, 'color: #3CB371;', friendsDetails.map(f => f.name || f.username));
 
-                        fetchJsonOrEmptyArray(`${DATA_API_URL}/userPlaylists?creatorId=${user.id}`), 
-                        
-                        user.friends?.length 
-                            ? fetchJsonOrEmptyArray(`${USER_API_URL}/users?${user.friends.map(id => `id=${id}`).join('&')}`)
-                            : [],
-                    
-                        user.likedSongs?.length 
-                            ? fetchJsonOrEmptyArray(`${DATA_API_URL}/songs?${user.likedSongs.map(id => `id=${id}`).join('&')}`) 
-                            : [], 
-                        
-                        user.following?.length 
-                            ? fetchJsonOrEmptyArray(`${DATA_API_URL}/artists?${user.following.map(id => `id=${id}`).join('&')}`) 
-                            : []
-                    ]);
-                    setTargetPlaylists(playlists.filter(p => p)); 
-                    setTargetFriendsDetails(friendsDetails.filter(f => f));
-                    setTargetLikedSongsDetails(songsDetails.filter(s => s));
-                    setTargetFollowedArtistsDetails(artistsDetails.filter(a => a));
+                        setTargetPlaylists(playlists.filter(p => p)); 
+                        setTargetFriendsDetails(friendsDetails.filter(f => f));
+                        setTargetLikedSongsDetails(songsDetails.filter(s => s));
+                        setTargetFollowedArtistsDetails(artistsDetails.filter(a => a));
+                    }
+                    fetchDetailsForFriend(finalUserData);
                 }
-                fetchDetailsForFriend(finalUserData);
-            }
             } else {
                 setTargetUser(null);
             }
             
             setIsLoading(false);
         };
+        
+        if (isOwner && !userLogado) {
+             setIsLoading(false);
+             return;
+        }
+
         loadProfileData();
     }, [
         targetId, 
         isOwner, 
         dispatch, 
         userLogado, 
-        loggedInFriends.length, 
-        loggedInSentRequests.length, 
-        loggedInPendingRequests.length,
     ]); 
 
 
-    // 💡 CORREÇÃO APLICADA AQUI: Normalizando IDs para as actions de Redux
     const handleToggleAction = async () => {
         if (!userLogado || !targetUser) return;
         
         const currentUserIdStr = String(userLogado.id || userLogado._id);
         const targetIdCorrect = String(targetUser._id || targetUser.id);
 
-        // Cria um objeto de usuário alvo consistente para as thunks
         const cleanTargetUser = {
             ...targetUser,
             id: targetIdCorrect,
@@ -176,34 +203,21 @@ export default function Perfil() {
         };
 
         if (currentIsFriend) {
-            // Remover Amigo
             dispatch(removeFriend({ currentUserId: currentUserIdStr, targetUserId: targetIdCorrect }));
-            alert(`Você removeu ${targetUser.name || targetUser.username} de seus amigos.`);
-
         } else if (currentHasReceivedRequest) {
-            // Aceitar Pedido
             dispatch(acceptFriendRequest({ accepterId: currentUserIdStr, requester: cleanTargetUser }));
-            alert(`Você aceitou o pedido de ${targetUser.name || targetUser.username}!`);
-
         } else {
-            // Enviar/Cancelar Pedido (toggleFriendRequest)
-            const isPending = currentHasRequested; 
-            
-            // Esta chamada AGORA usa os IDs normalizados e deve funcionar corretamente:
             dispatch(toggleFriendRequest({ 
                 currentUserId: currentUserIdStr, 
-                targetUser: cleanTargetUser // Usa o objeto limpo e consistente
+                targetUser: cleanTargetUser
             }));
-            
-            alert(isPending 
-                ? `Pedido para ${targetUser.name || targetUser.username} cancelado.`
-                : `Pedido para ${targetUser.name || targetUser.username} enviado!`);
         }
     };
 
     const handleFriendClick = (id) => navigate(`/perfil/${id}`);
     const handleViewFriends = () => navigate('/conexoes'); 
     const handleEditProfile = () => navigate('/perfil/editar');
+    
     
     if (isLoading) {
         return <main><Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box></main>;
@@ -214,13 +228,18 @@ export default function Perfil() {
     }
 
     const displayedPlaylists = isOwner ? userPlaylistsRedux : targetPlaylists;
-    const allFriends = isOwner ? friendDetailsRedux : targetFriendsDetails;
+    const allFriends = isOwner ? loggedInFriends : targetFriendsDetails;
     const limitedDisplayedFriends = allFriends.slice(0, 6); 
 
-    const displayedLikedSongs = isOwner ? likedSongsDetailsRedux : targetLikedSongsDetails;
+    const MAX_LIKED_SONGS_TO_SHOW = 10; 
+    const allLikedSongs = isOwner ? likedSongsDetailsRedux : targetLikedSongsDetails;
+    const displayedLikedSongs = allLikedSongs.slice(0, MAX_LIKED_SONGS_TO_SHOW);
+    
     const displayedFollowedArtists = isOwner ? followedArtistsRedux : targetFollowedArtistsDetails;
 
-    const totalFriendCount = targetUser.friends?.length || 0;
+    const totalFriendCount = isOwner 
+        ? loggedInFriends.length 
+        : targetUser.friends?.length || 0;
     
     const finalImage = targetUser.img || targetUser.image || DEFAULT_USER_IMAGE;
     
@@ -276,7 +295,7 @@ export default function Perfil() {
                     onEditClick={isOwner ? handleEditProfile : null} 
                     onFriendsClick={isOwner ? handleViewFriends : null} 
                     isOwner={isOwner}
-                    onFriendAction={!isOwner ? handleToggleAction : null} // Chama a função corrigida
+                    onFriendAction={!isOwner ? handleToggleAction : null} 
                     friendActionText={friendButtonText}
                     friendButtonVariant={friendButtonVariant}
                     isFriendActionDisabled={isFriendButtonDisabled}
