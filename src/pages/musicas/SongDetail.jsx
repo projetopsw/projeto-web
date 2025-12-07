@@ -53,6 +53,9 @@ export default function SongDetail({ songID }) {
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [relatedSongs, setRelatedSongs] = useState([]); 
+    
+    // NOVO ESTADO: Para guardar a imagem que vamos buscar separadamente
+    const [artistImageFromApi, setArtistImageFromApi] = useState(null);
 
     const { details: song, status: songStatus } = useSelector((state) => state.catalog.selectedSong);
     const { items: artistAlbums, status: artistAlbumsStatus } = useSelector((state) => state.catalog.albumsByArtist);
@@ -70,11 +73,33 @@ export default function SongDetail({ songID }) {
     useEffect(() => {
         if (song) {
             const currentSongArtistIds = getArtistIds(song);
-            
             const mainArtistId = currentSongArtistIds[0];
 
             if (mainArtistId) {
                 dispatch(fetchAlbumsByArtist(mainArtistId));
+
+                // --- SOLUÇÃO: Busca os dados do artista para pegar a imagem ---
+                // Verifica se já não pegamos a imagem pelo song.owner (upload de usuário)
+                const isUserUpload = song.owner && (song.owner._id === mainArtistId || song.owner.id === mainArtistId);
+                
+                if (!isUserUpload) {
+                    const fetchArtistData = async () => {
+                        try {
+                            // Tenta buscar no endpoint de artista pelo ID
+                            // Ajuste a rota '/artists/' se o seu backend usar outro nome (ex: /artist)
+                            const response = await mongoApi.get(`/artists/${mainArtistId}`);
+                            if (response.data) {
+                                // Tenta todas as variações de nome de imagem
+                                const img = response.data.image || response.data.picture || response.data.avatar || response.data.img;
+                                setArtistImageFromApi(img);
+                            }
+                        } catch (error) {
+                            console.log("Não foi possível buscar detalhes extras do artista (imagem).");
+                        }
+                    };
+                    fetchArtistData();
+                }
+                // -------------------------------------------------------------
 
                 const fetchRelatedSongs = async () => {
                     try {
@@ -83,9 +108,7 @@ export default function SongDetail({ songID }) {
                         
                         const filtered = allSongs.filter(candidateSong => {
                             if ((candidateSong._id || candidateSong.id) === (song._id || song.id)) return false;
-
                             const candidateIds = getArtistIds(candidateSong);
-
                             return currentSongArtistIds.some(currentId => candidateIds.includes(currentId));
                         });
                         
@@ -131,6 +154,10 @@ export default function SongDetail({ songID }) {
     if (songStatus === 'failed' || !song) return <main><h1>Música não encontrada 😥</h1></main>;
 
     let finalArtistName = 'Desconhecido';
+    
+    // Começa nulo, vamos tentar preencher abaixo
+    let finalArtistImage = null; 
+    
     let isArtistUpload = false;
     let isUserUpload = false;
     let mainArtistId = null;
@@ -141,14 +168,28 @@ export default function SongDetail({ songID }) {
             mainArtistId = mainArtist._id || mainArtist.id;
             isArtistUpload = !!mainArtist.isArtistUpload;
             finalArtistName = song.artists.map(a => a.name || a.username).join(', ');
+            
+            // Tenta pegar do objeto (se existir)
+            finalArtistImage = mainArtist.image || mainArtist.picture || mainArtist.avatar; 
+
         } else if (song.owner) {
             mainArtistId = song.owner._id || song.owner.id;
             isUserUpload = true;
             finalArtistName = song.owner.username || song.owner.name;
+            
+            finalArtistImage = song.owner.avatar || song.owner.image; 
         }
-        
+
         if (mainArtistId && !isUserUpload) isArtistUpload = true;
+        
+        if (!finalArtistImage && song.artist && typeof song.artist === 'object') {
+             finalArtistImage = song.artist.image || song.artist.picture;
+        }
     }
+  
+    const displayImage = finalArtistImage || artistImageFromApi;
+
+    console.log(`Imagem Final para Header: ${displayImage}`); 
     
     const isOwner = currentUserId && (
         (isArtistUpload && mainArtistId === currentUserId) || 
@@ -161,13 +202,10 @@ export default function SongDetail({ songID }) {
     const musicCover = song.cover || null; 
     
     const currentAlbumId = song.album?._id || song.album?.id;
-    
     const currentSongIdsForCheck = getArtistIds(song);
     
     const filteredAlbums = artistAlbums.filter(album => {
-    
         if ((album._id || album.id) === currentAlbumId) return false;
-
         const albumArtistIds = getArtistIds(album);
         return currentSongIdsForCheck.some(id => albumArtistIds.includes(id));
     });
@@ -181,6 +219,7 @@ export default function SongDetail({ songID }) {
                 title={song.title} 
                 artist={finalArtistName}
                 artistId={mainArtistId} 
+                artistImg={displayImage}
                 artistLinkPrefix={artistLinkPrefix} 
                 year={song.releaseDate ? new Date(song.releaseDate).getFullYear() : ""}
                 duration={"1 música, " + formatTime(song.duration)}

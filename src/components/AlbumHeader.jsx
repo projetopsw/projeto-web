@@ -20,7 +20,7 @@ export default function AlbumHeader( {cover, songCover, type, title, artistImg =
                     <div className="album-details flex">
 
                         <div className="artist-logo-container">
-                            <img className="artist-logo" src={artistImg} alt="Logo do Artista"/>
+                            <img className="artist-logo" src={artistImg} alt="Logo do Artista" style={{width: '1.875em', height: '1.875em'}}/>
                         </div>
                         <Link to={`${artistLinkPrefix}${artistId}`} className="artist-link">
                             <span>{artist}</span>

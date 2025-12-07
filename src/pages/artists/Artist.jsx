@@ -25,18 +25,15 @@ export default function Artist({ artistID }) {
 
   useEffect(() => {
     if (effectiveId) {
-      // 1. Redux (Dados do Artista)
       dispatch(fetchArtistById(effectiveId));
 
-      // 2. Discografia
       setLoadingAlbums(true);
       api.get(`/artists/${effectiveId}/albums`)
          .then(res => setArtistAlbums(res.data))
          .catch(err => console.error("Erro álbuns", err))
          .finally(() => setLoadingAlbums(false));
 
-      // 3. Sucessos
-      setLoadingTracks(true);
+         setLoadingTracks(true);
       api.get(`/artists/${effectiveId}/top-tracks`)
           .then(res => setTopTracks(res.data))
           .catch(err => console.error("Erro top tracks", err))
@@ -57,7 +54,6 @@ export default function Artist({ artistID }) {
       <ArtistHeader artist={artist} />
       
       <div className="artist-song">
-        {/* Sucessos do Vaqueiro */}
         {loadingTracks ? (
             <p style={{color:'white', padding:'20px'}}>Carregando sucessos...</p>
         ) : (
@@ -67,7 +63,6 @@ export default function Artist({ artistID }) {
             />
         )}
 
-        {/* Discografia */}
         <Section key={"Discografia"} title={"Discografia"}>
           {loadingAlbums ? <p style={{color:'white'}}>Carregando discografia...</p> : 
             artistAlbums.map((album) => {
