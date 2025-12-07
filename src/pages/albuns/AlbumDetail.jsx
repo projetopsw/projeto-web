@@ -7,7 +7,6 @@ import SongList from "../../components/SongList.jsx";
 import ReleaseInfo from "../../components/ReleaseInfo.jsx";
 import Section from '../../components/Section.jsx';
 import AlbumCard from '../../components/AlbumCard'; 
-import SongCard from '../../components/SongCard';   
 import '../musicas/css/SongAlbumDetail.css';
 import api from "../../services/api.js";
 
@@ -41,7 +40,8 @@ export default function AlbumDetail({ albumID }) {
   const dispatch = useDispatch();
   
   const [album, setAlbum] = useState(null);
-  const [relatedAlbums, setRelatedAlbums] = useState([]);
+  const [relatedAlbums, setRelatedAlbums] = useState([]); 
+  const [artistImage, setArtistImage] = useState(null); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -50,6 +50,9 @@ export default function AlbumDetail({ albumID }) {
     api.get(`/albums/${effectiveId}`)
       .then((res) => {
         setAlbum(res.data);
+        if (res.data.artists && res.data.artists[0] && res.data.artists[0].image) {
+            setArtistImage(res.data.artists[0].image);
+        }
         setLoading(false);
       })
       .catch((err) => {  
@@ -64,6 +67,14 @@ export default function AlbumDetail({ albumID }) {
         const mainArtistId = album.artists?.[0]?._id || album.artists?.[0]?.id;
         
         if (mainArtistId) {
+            api.get(`/artists/${mainArtistId}`)
+                .then(res => {
+                    if (res.data.image || res.data.cover) {
+                        setArtistImage(res.data.image || res.data.cover);
+                    }
+                })
+                .catch(err => console.error("Erro ao buscar imagem do artista:", err));
+
             api.get(`/artists/${mainArtistId}/albums`)
                 .then(res => {
                     const albumsList = res.data.items || res.data || [];
@@ -108,12 +119,11 @@ export default function AlbumDetail({ albumID }) {
       const currentId = album._id || album.id;
       
       if (relId === currentId) return false;
-      
       if (!relAlbum.cover && !relAlbum.image) return false;
       if (isGarbage(relAlbum.title || relAlbum.name)) return false;
 
       return true;
-  }).slice(0, 10); 
+  }).slice(0, 10);
 
   return (
       <main>
@@ -123,6 +133,7 @@ export default function AlbumDetail({ albumID }) {
             title={album.title} 
             artist={artistNames}  
             artistId={mainArtistId}
+            artistImg={artistImage} 
             year={releaseYear}  
             duration={calculateTotalDuration(album.songs)} 
             onPlay={handlePlayAlbum}
