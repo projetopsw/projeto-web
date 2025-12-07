@@ -16,7 +16,6 @@ const sectionsData = [
     { id: "featured_playlists", title: "Playlists em Destaque", type: "playlist", criteria: "random", path: "/playlistDetail" },
     { id: "acoustic", title: "Acús-ticos do Campo", type: "song", criteria: "acoustic", path: "/songDetail" },
     { id: "dance_albums", title: "Pista de Dança Malhada", type: "album", criteria: "random", path: "/albumDetail" },
-    { id: "rock", title: "Rock Berrante", type: "album", criteria: "rock", path: "/albumDetail" },
 ];
 
 const navItemsData = ["Tudo", "Playlists", "Músicas", "Álbuns", "Artistas"];
@@ -28,6 +27,17 @@ const shuffleArray = (array) => {
         [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
     }
     return newArray;
+};
+
+const isGarbage = (text) => {
+    if (!text) return false;
+    const lower = text.toLowerCase();
+    const blockedKeywords = [
+        "karaoke", "tribute to", "ringtone", "instrumental version", 
+        "originally performed by", "made famous by", "cover band", 
+        "backing track", "silent track"
+    ];
+    return blockedKeywords.some(term => lower.includes(term));
 };
 
 function Home() {
@@ -73,9 +83,14 @@ function Home() {
 
                         if (s.popularity !== undefined && s.popularity < 10) return false;
 
-                        const titleLower = s.title ? s.title.toLowerCase() : "";
-                        const blockedKeywords = ["karaoke", "tribute to", "ringtone", "instrumental version", "originally performed by"];
-                        if (blockedKeywords.some(term => titleLower.includes(term))) return false;
+                        if (isGarbage(s.title)) return false;
+
+                        let artistNameCheck = "";
+                        if (Array.isArray(s.artists) && s.artists.length > 0) artistNameCheck = s.artists[0].name;
+                        else if (s.artist && typeof s.artist === 'object') artistNameCheck = s.artist.name;
+                        else if (typeof s.artist === 'string') artistNameCheck = s.artist;
+                        
+                        if (isGarbage(artistNameCheck)) return false;
 
                         return true;
                     });
@@ -124,9 +139,14 @@ function Home() {
                     const rawArtists = artistsResult.value.data;
                     const validArtists = rawArtists.filter(a => {
                         if (a.isArtistUpload) return true; 
+                        
                         const img = a.cover || a.image;
                         if (!img || img === '') return false;
-                        if (a.popularity !== undefined && a.popularity < 10) return false;
+                        
+                        if (a.popularity !== undefined && a.popularity < 10 ) return false;
+                     
+                        if (isGarbage(a.name)) return false;
+
                         return true;
                     });
                     const normArtists = validArtists.map(a => ({
@@ -179,7 +199,11 @@ function Home() {
                 content = [...playlistsData];
                 break;
             case 'album':
-                content = albumsData.filter(a => a.cover || a.image).map(a => ({...a, id: a._id || a.id}));
+                content = albumsData.filter(a => {
+                    if (!a.cover && !a.image) return false;
+                    if (isGarbage(a.title)) return false;
+                    return true;
+                }).map(a => ({...a, id: a._id || a.id}));
                 break;
             default:
                 content = [];
@@ -192,14 +216,6 @@ function Home() {
      
         if (section.criteria === 'popularity') {
             return content.sort((a, b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 15);
-        }
-        
-        if (section.criteria === 'rock') {
-            const rocks = content.filter(item => 
-                (item.genre && item.genre.includes('rock')) || 
-                (item.title && item.title.toLowerCase().includes('rock'))
-            );
-            return rocks.length > 0 ? rocks.slice(0, 15) : shuffleArray(content).slice(0, 15);
         }
 
         if (section.criteria === 'acoustic') {

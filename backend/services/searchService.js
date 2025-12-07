@@ -16,12 +16,20 @@ class SearchService {
         };
     }
 
+    static isGarbage(text) {
+        if (!text) return false;
+        const lower = text.toLowerCase();
+        return lower.includes('karaoke') || 
+               lower.includes('tribute') || 
+               lower.includes('made famous by') ||
+               lower.includes('instrumental version') ||
+               lower.includes('cover band');
+    }
+
     static async executeSearch(query, category) {
         const regex = new RegExp(query, 'i');
         let response = this.getEmptyResult();
 
-        // 1. BUSCA LOCAL
-        // Tenta buscar no banco de dados primeiro
         const [localSongs, localArtists, localAlbums, localUsers] = await Promise.all([
             Song.find({ title: regex }).limit(5).populate('artists').populate('album'),
             Artist.find({ name: regex }).limit(5),
@@ -34,10 +42,9 @@ class SearchService {
         response.albuns.priority = localAlbums;
         response.usuarios.priority = localUsers;
 
-        // 2. BUSCA SPOTIFY (Se tiver poucos resultados locais)
         const totalLocalResults = localSongs.length + localArtists.length + localAlbums.length;
 
-        if (totalLocalResults < 3 && category !== 'usuario' && category !== 'playlist') {
+        if (totalLocalResults < 5 && category !== 'usuario' && category !== 'playlist') { 
             console.log(`Buscando "${query}" no Spotify...`);
             
             let spotifyTypes = 'track,artist,album';
@@ -45,13 +52,17 @@ class SearchService {
             if (category === 'artista') spotifyTypes = 'artist';
             if (category === 'album') spotifyTypes = 'album';
 
-            const spotifyData = await searchSpotify(query, spotifyTypes, 15);
+            const spotifyData = await searchSpotify(query, spotifyTypes, 20); 
 
             if (spotifyData) {
-                
-                // --- Processar Artistas ---
+       
                 if (spotifyData.artists) {
-                    const savedArtists = await Promise.all(spotifyData.artists.items.map(async (item) => {
+                    const validArtists = spotifyData.artists.items.filter(item => 
+                        item.images && item.images.length > 0 && 
+                        item.popularity > 5 
+                    );
+
+                    const savedArtists = await Promise.all(validArtists.slice(0, 6).map(async (item) => {
                         return await Artist.findOneAndUpdate(
                             { spotifyId: item.id },
                             {
@@ -66,13 +77,14 @@ class SearchService {
                     }));
                     response.artistas.priority = savedArtists;
 
-                    // Relacionados
                     if (savedArtists.length > 0) {
                         try {
                             const mainArtist = savedArtists[0];
                             const relatedData = await getRelatedArtists(mainArtist.spotifyId);
                             if (relatedData && relatedData.length > 0) {
-                                const savedRelated = await Promise.all(relatedData.slice(0, 5).map(async (item) => {
+                                const validRelated = relatedData.filter(item => item.images && item.images.length > 0);
+                                
+                                const savedRelated = await Promise.all(validRelated.slice(0, 5).map(async (item) => {
                                     return await Artist.findOneAndUpdate(
                                         { spotifyId: item.id },
                                         {
@@ -86,16 +98,17 @@ class SearchService {
                                 }));
                                 response.artistas.related = savedRelated;
                             }
-                        } catch (error) {
-                            console.log("Erro ao buscar relacionados (ignorado):", error.message);
-                        }
+                        } catch (e) { /* ignore */ }
                     }
                 }
 
-                // --- Processar Álbuns ---
                 if (spotifyData.albums) {
-                    const savedAlbums = await Promise.all(spotifyData.albums.items.map(async (item) => {
-                        // 1. Salva/Atualiza artistas do álbum primeiro para garantir que temos os IDs
+                    const validAlbums = spotifyData.albums.items.filter(item => 
+                        item.images && item.images.length > 0 &&
+                        !this.isGarbage(item.name)
+                    );
+
+                    const savedAlbums = await Promise.all(validAlbums.slice(0, 6).map(async (item) => {
                         const artistPromises = item.artists.map(a => Artist.findOneAndUpdate(
                             { spotifyId: a.id },
                             { name: a.name, spotifyId: a.id },
@@ -106,7 +119,6 @@ class SearchService {
 
                         const artistName = item.artists[0]?.name || "Vários Artistas";
 
-                        // 2. Salva o álbum com os IDs
                         return await Album.findOneAndUpdate(
                             { spotifyId: item.id },
                             {
@@ -114,39 +126,38 @@ class SearchService {
                                 cover: item.images?.[0]?.url || '',
                                 releaseDate: item.release_date,
                                 spotifyId: item.id,
-                                artists: artistIds, // Salva os IDs (Link para a tabela Artistas)
-                                artist: artistName, // Salva o nome como texto (Backup)
+                                artists: artistIds,
+                                artist: artistName,
                                 type: item.album_type
                             },
                             { upsert: true, new: true, setDefaultsOnInsert: true }
-                        )
-                        .populate('artists'); // <--- AQUI ESTÁ A MÁGICA QUE FALTAVA!
+                        ).populate('artists');
                     }));
                     response.albuns.priority = savedAlbums;
                 }
 
-                // --- Processar Músicas (CORRIGIDO) ---
                 if (spotifyData.tracks) {
-                    const savedSongs = await Promise.all(spotifyData.tracks.items.map(async (item) => {
+                    const validTracks = spotifyData.tracks.items.filter(item => {
+                        if (!item.album || !item.album.images || item.album.images.length === 0) return false;
+                        if (this.isGarbage(item.name)) return false;
+                        if (item.artists[0] && this.isGarbage(item.artists[0].name)) return false;
+                        return true;
+                    });
+
+                    const savedSongs = await Promise.all(validTracks.slice(0, 8).map(async (item) => {
                         
-                        // 1. Resolver Artistas (Salvar no banco -> Pegar ID)
                         const artistPromises = item.artists.map(async (artistItem) => {
                             return await Artist.findOneAndUpdate(
                                 { spotifyId: artistItem.id },
-                                {
-                                    name: artistItem.name,
-                                    spotifyId: artistItem.id
-                                },
+                                { name: artistItem.name, spotifyId: artistItem.id },
                                 { upsert: true, new: true, setDefaultsOnInsert: true }
                             );
                         });
                         const resolvedArtists = await Promise.all(artistPromises);
                         const mongoArtistIds = resolvedArtists.map(a => a._id);
 
-                        // 2. Resolver Álbum (Salvar no banco -> Pegar ID)
                         let mongoAlbumId = null;
                         if (item.album) {
-                            // Salva o álbum simples
                             const savedAlbum = await Album.findOneAndUpdate(
                                 { spotifyId: item.album.id },
                                 {
@@ -160,25 +171,19 @@ class SearchService {
                             mongoAlbumId = savedAlbum._id;
                         }
 
-                        // 3. Salvar Música com os IDs corretos
                         return await Song.findOneAndUpdate(
                             { spotifyId: item.id },
                             {
                                 title: item.name,
                                 duration: item.duration_ms / 1000,
-                                cover: item.album?.images?.[0]?.url || '', // Fallback de imagem
+                                cover: item.album?.images?.[0]?.url || '',
                                 spotifyId: item.id,
-                                
-                                // AQUI O SEGREDO: Usamos os IDs gerados acima
                                 artists: mongoArtistIds, 
                                 albumId: mongoAlbumId,
-                                
-                                // Campos de texto simples para backup
                                 artist: item.artists.map(a => a.name).join(', '), 
                             },
                             { upsert: true, new: true, setDefaultsOnInsert: true }
                         )
-                        // Populamos para garantir que o front receba o objeto completo na resposta imediata
                         .populate('artists')
                         .populate('album');
                     }));
@@ -188,7 +193,6 @@ class SearchService {
             }
         }
 
-        // Filtragem final para retornar apenas a categoria pedida se necessário
         if (category !== 'tudo') {
             const mapCategory = {
                 'musica': 'musicas',

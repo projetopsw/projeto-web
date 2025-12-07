@@ -14,7 +14,6 @@ import api from '../../services/api.js';
 
 const navItemsData = ["Tudo", "Usuários", "Playlists", "Músicas", "Álbuns", "Artistas"];
 
-// Mapeia o filtro visual para o parâmetro da API
 const CATEGORY_MAP = {
     "Tudo": "tudo",
     "Músicas": "musica",
@@ -24,7 +23,16 @@ const CATEGORY_MAP = {
     "Usuários": "usuario"
 };
 
-// --- Funções Auxiliares e Mappers ---
+const isGarbage = (text) => {
+    if (!text) return false;
+    const lower = text.toLowerCase();
+    const blockedKeywords = [
+        "karaoke", "tribute to", "ringtone", "instrumental version", 
+        "originally performed by", "made famous by", "cover band", 
+        "backing track", "silent track"
+    ];
+    return blockedKeywords.some(term => lower.includes(term));
+};
 
 const getRandomItems = (data, count = 5) => {
     if (!data || data.length === 0) return [];
@@ -37,7 +45,6 @@ const getCombinedResults = (data) => {
     return [...(data.priority || []), ...(data.related || [])];
 };
 
-// Mapper seguro para Usuários
 const mapUser = (user) => ({
     ...user,
     id: user._id || user.id,
@@ -45,25 +52,37 @@ const mapUser = (user) => ({
     image: user.image || user.avatar || ''
 });
 
-// Mapper seguro para Playlists
 const mapPlaylist = (playlist) => ({
     ...playlist,
     id: playlist._id || playlist.id,
     image: playlist.cover || playlist.image || (playlist.images && playlist.images[0]?.url)
 });
 
-// Mapper seguro para Artistas
-const mapArtist = (artist) => ({
-    id: artist._id || artist.id, 
-    name: artist.name,
-    image: artist.image || artist.cover || (artist.images && artist.images[0]?.url)
-});
+const mapArtist = (artist) => {
+    if (!artist) return null;
+    
+    if (isGarbage(artist.name)) return null;
 
-// Mapper seguro para Álbuns
+    const image = artist.image || artist.cover || (artist.images && artist.images[0]?.url);
+    if (!image || image === '') return null;
+
+    return {
+        id: artist._id || artist.id, 
+        name: artist.name,
+        image: image
+    };
+};
+
 const mapAlbum = (album) => {
+    if (!album) return null;
+
+    if (isGarbage(album.name || album.title)) return null;
+
+    const cover = album.cover || (album.images && album.images[0]?.url) || album.image;
+    if (!cover || cover === '') return null;
+
     let artistNames = 'Vários Artistas';
 
-    // Mesma lógica blindada da música
     if (Array.isArray(album.artists) && album.artists.length > 0) {
         artistNames = album.artists.map(a => a.name).join(', ');
     } 
@@ -77,77 +96,65 @@ const mapAlbum = (album) => {
     return {
         ...album,
         id: album._id || album.id, 
-        name: album.name || album.title, // Garante nome do álbum
+        name: album.name || album.title, 
         artist: artistNames, 
-        cover: album.cover || (album.images && album.images[0]?.url) || album.image
+        cover: cover
     };
 };
 
-// Mapper seguro para Músicas (Tracks)
 const mapTrack = (track) => {
-    if (track.name === 'ANTIFRAGILE' || track.title === 'ANTIFRAGILE') {
-        console.log("DADOS QUE CHEGARAM DA API (ANTIFRAGILE):", track);
-    }
     if (!track) return null; 
 
-    // Vamos descobrir onde o nome do artista está escondido
+    if (isGarbage(track.name || track.title)) return null;
+
     let artistNames = 'Desconhecido';
 
-    // VERIFICAÇÃO 1: Array 'artists' (Padrão Spotify)
     if (Array.isArray(track.artists) && track.artists.length > 0) {
-        // Verifica se é um array de Objetos (ex: [{name: 'X'}]) ou Strings (ex: ['X'])
         if (typeof track.artists[0] === 'string') {
             artistNames = track.artists.join(', ');
         } else if (track.artists[0].name) {
             artistNames = track.artists.map(a => a.name).join(', ');
         }
     } 
-    // VERIFICAÇÃO 2: Objeto 'artist' único (Mongoose population)
     else if (track.artist && typeof track.artist === 'object' && track.artist.name) {
         artistNames = track.artist.name;
     }
-    // VERIFICAÇÃO 3: String direta (Dados normalizados)
     else if (typeof track.artist === 'string' && track.artist.trim() !== '') {
         artistNames = track.artist;
     }
-    // VERIFICAÇÃO 4: Caso esteja dentro de 'owner' (comum em uploads de usuários)
     else if (track.owner && (track.owner.name || track.owner.username)) {
         artistNames = track.owner.name || track.owner.username;
     }
-    // VERIFICAÇÃO 5: Salvação final - olhar dentro do album
     else if (track.album && Array.isArray(track.album.artists) && track.album.artists.length > 0) {
          if (track.album.artists[0].name) {
             artistNames = track.album.artists.map(a => a.name).join(', ');
          }
     }
 
-    // Tratamento de Imagem (já estava correto, mas mantendo a segurança)
+    if (isGarbage(artistNames)) return null;
+
     const imageCover = track.cover || 
                        track.image ||
                        (track.album && track.album.cover) || 
                        (track.album && track.album.images && track.album.images[0]?.url) ||
-                       ''; // string vazia caso não tenha imagem
+                       ''; 
+
+    if (!imageCover || imageCover === '') return null;
 
     return {
         ...track,
         id: track._id || track.id, 
         title: track.title || track.name,
         artist: artistNames, 
-        // DICA: Muitos Cards usam 'subtitle' em vez de 'artist'. 
-        // Adicionamos as duas propriedades para garantir que o Card leia corretamente.
         subtitle: artistNames, 
         image: imageCover
     };
 };
-// --- Lógica de Adaptação dos Dados ---
 
-/**
- * Normaliza qualquer resposta do backend para o formato { priority: [], related: [] }
- */
+
 const normalizeSectionData = (rawData) => {
     if (!rawData) return { priority: [], related: [] };
     
-    // Se o backend já devolve separado
     if (rawData.priority || rawData.related) {
         return {
             priority: rawData.priority || [],
@@ -155,7 +162,6 @@ const normalizeSectionData = (rawData) => {
         };
     }
     
-    // Se o backend devolve apenas um array (comportamento antigo ou filtro específico)
     if (Array.isArray(rawData)) {
         return { priority: rawData, related: [] };
     }
@@ -163,11 +169,7 @@ const normalizeSectionData = (rawData) => {
     return { priority: [], related: [] };
 };
 
-/**
- * Adapta a resposta completa da API para o estado do componente
- */
 const adaptResults = (data, categoryFilter) => {
-    // Estado inicial vazio
     const emptyState = {
         artists: { priority: [], related: [] },
         albums: { priority: [], related: [] },
@@ -178,7 +180,6 @@ const adaptResults = (data, categoryFilter) => {
 
     if (!data) return emptyState;
 
-    // Se a busca é "Tudo", o backend retorna chaves no plural (artistas, albuns...)
     if (categoryFilter === 'tudo') {
         return {
             artists: normalizeSectionData(data.artistas),
@@ -189,8 +190,6 @@ const adaptResults = (data, categoryFilter) => {
         };
     } 
     
-    // Se a busca é específica, preenchemos apenas a chave relevante
-    // Note que o backend pode retornar { priority: [], related: [] } direto na raiz ou um array
     const normalized = normalizeSectionData(data);
     
     switch (categoryFilter) {
@@ -203,14 +202,11 @@ const adaptResults = (data, categoryFilter) => {
     }
 };
 
-// --- Componente Principal ---
-
 function Pesquisa() {
     const [selectedFilter, setSelectedFilter] = useState('Tudo');
     const [searchParams] = useSearchParams();
     const query = searchParams.get('q'); 
 
-    // Estado unificado dos resultados
     const [results, setResults] = useState({
         artists: { priority: [], related: [] }, 
         albums: { priority: [], related: [] }, 
@@ -240,35 +236,27 @@ function Pesquisa() {
                 }
             });
 
-            // O backend deve retornar algo dentro de data.results ou data diretamente
             const rawData = response.data.results || response.data; 
-            
-            // Adaptamos os dados usando a função centralizada
             const finalResults = adaptResults(rawData, backendCategory);
-            
             setResults(finalResults);
 
         } catch (err) {
             console.error("Erro na busca:", err);
             setError("Não foi possível realizar a busca. Tente novamente.");
-            // Limpa resultados em caso de erro
             setResults(adaptResults(null));
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Efeito para disparar a busca
     useEffect(() => {
         if (!query || query.trim() === "") {
-            setResults(adaptResults(null)); // Reseta
+            setResults(adaptResults(null));
             return;
         }
-        // Debounce opcional poderia ser adicionado aqui
         fetchResults(query, selectedFilter);
     }, [query, selectedFilter]);
 
-    // Efeito para sugestões aleatórias (quando não há resultados)
     useEffect(() => {
         const totalCount = 
             getCombinedResults(results.tracks).length + 
@@ -277,7 +265,6 @@ function Pesquisa() {
             getCombinedResults(results.playlists).length + 
             getCombinedResults(results.users).length;
         
-        // Só busca sugestões se a busca terminou, tem query, mas zero resultados
         if (query && totalCount === 0 && !isLoading) {
             const loadSuggestions = async () => {
                 try {
@@ -306,7 +293,6 @@ function Pesquisa() {
         setSelectedFilter(item);
     };
     
-    // Cálculo do total de resultados para controle de exibição
     const totalMainResults = 
         getCombinedResults(results.tracks).length + 
         getCombinedResults(results.artists).length + 
@@ -314,7 +300,6 @@ function Pesquisa() {
         getCombinedResults(results.playlists).length + 
         getCombinedResults(results.users).length;
     
-    // Configuração das seções para renderização
     const sectionsData = [
         { title: "Músicas", type: "musica", data: results.tracks, mapFn: mapTrack, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Álbuns", type: "album", data: results.albums, mapFn: mapAlbum, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
@@ -333,11 +318,9 @@ function Pesquisa() {
         const dataKey = isPriority ? 'priority' : 'related';
         const rawDataArray = (section.data && section.data[dataKey]) || [];
 
-        // Filtra visualmente se necessário (embora a API já deva ter filtrado, isso garante a UI limpa)
         const shouldShow = selectedFilter === 'Tudo' || selectedFilter === section.title;
 
         if (rawDataArray.length > 0 && shouldShow) {
-            // Aplica o mapper específico da seção
             const finalData = rawDataArray.map(section.mapFn).filter(item => item !== null);
 
             if (finalData.length === 0) return null;
@@ -373,17 +356,14 @@ function Pesquisa() {
                 
                 {error && <p style={{ color: 'var(--text-error, red)', textAlign: 'center', marginTop: '20px' }}>{error}</p>}
                 
-                {/* Exibição dos Resultados da Busca */}
                 {!isLoading && !error && totalMainResults > 0 && (
                     <>
                         {query && <h1 className='search-subtitle'>Resultados para "{query}"</h1>}
                         
-                        {/* Seção Prioritária (Exatos) */}
                         <div className="search-priority-section">
                             {sectionsData.map((section) => renderResultsSection(section, true))}
                         </div>
                         
-                        {/* Seção Relacionados - Só exibe o título se houver algum item relacionado */}
                         {sectionsData.some(s => s.data.related && s.data.related.length > 0 && (selectedFilter === 'Tudo' || selectedFilter === s.title)) && (
                             <h2 className='search-related-title'>Relacionados</h2>
                         )}
@@ -394,7 +374,6 @@ function Pesquisa() {
                     </>
                 )}
 
-                {/* Exibição de Sem Resultados + Sugestões */}
                 {!isLoading && !error && query && totalMainResults === 0 && (
                     <div style={{ marginTop: '20px' }}>
                         <p style={{ marginBottom: '40px', fontSize: '1.2rem', color: 'var(--text-color)', textAlign:'center' }}>
@@ -405,7 +384,6 @@ function Pesquisa() {
 
                         {randomSections.map((section) => {
                             if (section.data && section.data.length > 0) {
-                                // Mapeia os dados aleatórios também
                                 const mappedData = section.data.map(section.mapFn).filter(Boolean);
                                 return (
                                     <Section key={section.title + '-random'} title={section.title}>
