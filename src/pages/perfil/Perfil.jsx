@@ -84,6 +84,7 @@ export default function Perfil() {
     const { items: followedArtistsRedux } = useSelector(state => state.catalog?.followedArtists || { items: [] });
     const { items: likedSongsDetailsRedux } = useSelector(state => state.catalog?.likedSongsDetails || { items: [] });
 
+    // Garante que o ID do alvo é uma string consistente
     const targetUserIdStr = String(targetUser?._id || targetUser?.id);
     
     const currentIsFriend = loggedInFriends.some(f => String(f.id) === targetUserIdStr);
@@ -126,7 +127,7 @@ export default function Perfil() {
                         user.friends?.length 
                             ? fetchJsonOrEmptyArray(`${USER_API_URL}/users?${user.friends.map(id => `id=${id}`).join('&')}`)
                             : [],
-            
+                    
                         user.likedSongs?.length 
                             ? fetchJsonOrEmptyArray(`${DATA_API_URL}/songs?${user.likedSongs.map(id => `id=${id}`).join('&')}`) 
                             : [], 
@@ -160,20 +161,40 @@ export default function Perfil() {
     ]); 
 
 
+    // 💡 CORREÇÃO APLICADA AQUI: Normalizando IDs para as actions de Redux
     const handleToggleAction = async () => {
         if (!userLogado || !targetUser) return;
         
-        const targetIdCorrect = targetUser._id || targetUser.id;
+        const currentUserIdStr = String(userLogado.id || userLogado._id);
+        const targetIdCorrect = String(targetUser._id || targetUser.id);
+
+        // Cria um objeto de usuário alvo consistente para as thunks
+        const cleanTargetUser = {
+            ...targetUser,
+            id: targetIdCorrect,
+            _id: targetIdCorrect
+        };
 
         if (currentIsFriend) {
-            dispatch(removeFriend({ currentUserId: userLogado.id, targetUserId: targetIdCorrect }));
+            // Remover Amigo
+            dispatch(removeFriend({ currentUserId: currentUserIdStr, targetUserId: targetIdCorrect }));
             alert(`Você removeu ${targetUser.name || targetUser.username} de seus amigos.`);
+
         } else if (currentHasReceivedRequest) {
-            dispatch(acceptFriendRequest({ accepterId: userLogado.id, requester: targetUser }));
+            // Aceitar Pedido
+            dispatch(acceptFriendRequest({ accepterId: currentUserIdStr, requester: cleanTargetUser }));
             alert(`Você aceitou o pedido de ${targetUser.name || targetUser.username}!`);
+
         } else {
+            // Enviar/Cancelar Pedido (toggleFriendRequest)
             const isPending = currentHasRequested; 
-            dispatch(toggleFriendRequest({ currentUserId: userLogado.id, targetUser }));
+            
+            // Esta chamada AGORA usa os IDs normalizados e deve funcionar corretamente:
+            dispatch(toggleFriendRequest({ 
+                currentUserId: currentUserIdStr, 
+                targetUser: cleanTargetUser // Usa o objeto limpo e consistente
+            }));
+            
             alert(isPending 
                 ? `Pedido para ${targetUser.name || targetUser.username} cancelado.`
                 : `Pedido para ${targetUser.name || targetUser.username} enviado!`);
@@ -255,7 +276,7 @@ export default function Perfil() {
                     onEditClick={isOwner ? handleEditProfile : null} 
                     onFriendsClick={isOwner ? handleViewFriends : null} 
                     isOwner={isOwner}
-                    onFriendAction={!isOwner ? handleToggleAction : null} 
+                    onFriendAction={!isOwner ? handleToggleAction : null} // Chama a função corrigida
                     friendActionText={friendButtonText}
                     friendButtonVariant={friendButtonVariant}
                     isFriendActionDisabled={isFriendButtonDisabled}
