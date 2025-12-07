@@ -12,11 +12,18 @@ const LOCAL_STORAGE_KEY = 'loggedUser';
 const loadUserFromStorage = () => {
     try {
         const serializedUser = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (serializedUser === null) {
+        if (serializedUser === null || serializedUser === 'undefined' || serializedUser === 'null') { 
             return null;
         }
-        return JSON.parse(serializedUser);
+        const user = JSON.parse(serializedUser);
+        
+        if (!user || (!user.id && !user._id)) {
+             localStorage.removeItem(LOCAL_STORAGE_KEY); 
+             return null;
+        }
+        return user;
     } catch (e) {
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
         return null;
     }
 };
@@ -31,6 +38,8 @@ const saveUserToStorage = (user) => {
 
 const initialState = {
     user: loadUserFromStorage(), 
+    status: loadUserFromStorage() ? 'succeeded' : 'idle',
+    error: null,
 };
 
 const userSlice = createSlice({
@@ -41,19 +50,26 @@ const userSlice = createSlice({
             const serverUser = action.payload;
 
             const finalId = serverUser._id || serverUser.id;
-            const tokenToUse = serverUser.token || (state.user ? state.user.token : null);
+            
+            // 💡 CORREÇÃO ROBUSTA: Se o payload do servidor tem um token VÁLIDO, use-o. 
+            // Senão, MANTENHA o token existente no estado, ignorando 'null' ou 'undefined' do servidor.
+            const tokenToUse = serverUser.token 
+                ? serverUser.token 
+                : (state.user ? state.user.token : null);
 
             let finalUser = {
                 ...serverUser,
-                _id: finalId,
-                id: finalId,
+                _id: finalId, 
+                id: finalId, 
                 username: serverUser.username || serverUser.name,
                 name: serverUser.username || serverUser.name,
-                token: tokenToUse,
+                token: tokenToUse, // Usa o token preservado
             };
             
             state.user = finalUser;
             saveUserToStorage(finalUser);
+            state.status = 'succeeded'; 
+            state.error = null;
         },
 
         updateProfile: (state, action) => {
@@ -88,22 +104,33 @@ const userSlice = createSlice({
 
         logoutUser: (state) => {
             state.user = null;
+            state.status = 'idle'; 
+            state.error = null;
             localStorage.removeItem(LOCAL_STORAGE_KEY);
         },
     },
     extraReducers: (builder) => {
         
+        builder.addCase(loginUserAsync.pending, (state) => {
+            state.status = 'loading';
+            state.error = null;
+        });
         builder.addCase(loginUserAsync.fulfilled, (state, action) => {
-            // O thunk retorna { userWithToken }
             const userWithToken = action.payload?.userWithToken;
             if (userWithToken) {
-                userSlice.caseReducers.setUserData(state, { payload: userWithToken });
+                userSlice.caseReducers.setUserData(state, { payload: userWithToken }); 
+            } else {
+                 state.status = 'failed';
+                 state.error = 'Falha ao receber dados do usuário após o login.';
             }
+        });
+        builder.addCase(loginUserAsync.rejected, (state, action) => {
+            state.status = 'failed';
+            state.error = action.error.message || 'Erro ao realizar login.';
         });
 
         builder.addCase(handleSpotifyCallback.fulfilled, (state, action) => {
-            // O thunk retorna apenas { token } e já despacha setUserData com o usuário completo antes.
-            // Nada adicional é necessário aqui.
+            // ...
         });
 
         builder.addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
