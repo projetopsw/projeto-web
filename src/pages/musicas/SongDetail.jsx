@@ -20,6 +20,31 @@ const formatTime = (seconds) => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 };
 
+const getArtistIds = (item) => {
+    const ids = [];
+    if (!item) return ids;
+
+    if (item.artists && Array.isArray(item.artists)) {
+        item.artists.forEach(a => {
+            const id = a._id || a.id;
+            if (id) ids.push(String(id));
+        });
+    } 
+    else if (item.artist && typeof item.artist === 'object') {
+        const id = item.artist._id || item.artist.id;
+        if (id) ids.push(String(id));
+    } 
+    else if (item.artist && typeof item.artist === 'string') {
+        ids.push(String(item.artist));
+    }
+    else if (item.owner) {
+        const id = item.owner._id || item.owner.id;
+        if (id) ids.push(String(id));
+    }
+    
+    return ids;
+};
+
 export default function SongDetail({ songID }) {
     const { id: routeId } = useParams();
     const effectiveId = songID || routeId;
@@ -36,20 +61,6 @@ export default function SongDetail({ songID }) {
     const currentUserId = currentUser?._id || currentUser?.id;
     const isAdmin = currentUser?.role === 'admin'; 
 
-    const getMainArtistId = (song) => {
-        if (!song) return null;
-        if (Array.isArray(song.artists) && song.artists.length > 0) {
-            return song.artists[0]._id || song.artists[0].id;
-        }
-        if (song.owner) {
-            return song.owner._id || song.owner.id;
-        }
-        if (song.artist && typeof song.artist === 'object') {
-             return song.artist._id || song.artist.id;
-        }
-        return null;
-    };
-
     useEffect(() => {
         if (effectiveId) {
             dispatch(fetchSongById(effectiveId));
@@ -57,26 +68,34 @@ export default function SongDetail({ songID }) {
     }, [effectiveId, dispatch]);
 
     useEffect(() => {
-        const artistId = getMainArtistId(song);
-        if (song && artistId) {
-            dispatch(fetchAlbumsByArtist(artistId));
+        if (song) {
+            const currentSongArtistIds = getArtistIds(song);
+            
+            const mainArtistId = currentSongArtistIds[0];
 
-            const fetchRelatedSongs = async () => {
-                try {
-                    const response = await mongoApi.get('/songs');
-                    const allSongs = response.data;
-                    
-                    const filtered = allSongs.filter(s => {
-                        const sArtistId = getMainArtistId(s);
-                        return sArtistId === artistId && s._id !== song._id;
-                    });
-                    
-                    setRelatedSongs(filtered.slice(0, 6));
-                } catch (error) {
-                    console.error("Erro ao buscar músicas relacionadas:", error);
-                }
-            };
-            fetchRelatedSongs();
+            if (mainArtistId) {
+                dispatch(fetchAlbumsByArtist(mainArtistId));
+
+                const fetchRelatedSongs = async () => {
+                    try {
+                        const response = await mongoApi.get('/songs');
+                        const allSongs = response.data;
+                        
+                        const filtered = allSongs.filter(candidateSong => {
+                            if ((candidateSong._id || candidateSong.id) === (song._id || song.id)) return false;
+
+                            const candidateIds = getArtistIds(candidateSong);
+
+                            return currentSongArtistIds.some(currentId => candidateIds.includes(currentId));
+                        });
+                        
+                        setRelatedSongs(filtered.slice(0, 6));
+                    } catch (error) {
+                        console.error("Erro ao buscar músicas relacionadas:", error);
+                    }
+                };
+                fetchRelatedSongs();
+            }
         }
     }, [song, dispatch]); 
 
@@ -142,7 +161,16 @@ export default function SongDetail({ songID }) {
     const musicCover = song.cover || null; 
     
     const currentAlbumId = song.album?._id || song.album?.id;
-    const filteredAlbums = artistAlbums.filter(a => (a._id || a.id) !== currentAlbumId);
+    
+    const currentSongIdsForCheck = getArtistIds(song);
+    
+    const filteredAlbums = artistAlbums.filter(album => {
+    
+        if ((album._id || album.id) === currentAlbumId) return false;
+
+        const albumArtistIds = getArtistIds(album);
+        return currentSongIdsForCheck.some(id => albumArtistIds.includes(id));
+    });
 
     return (
         <main>
@@ -192,7 +220,6 @@ export default function SongDetail({ songID }) {
             <Section title={`Mais de ${finalArtistName}`} className="section-mais-do-artista">
                 {artistAlbumsStatus === 'loading' && <p>Carregando...</p>}
                 
-                {/* Lógica Inteligente: Mostra álbuns SE tiver, senão mostra outras músicas */}
                 {filteredAlbums.length > 0 ? (
                     filteredAlbums.map((album) => {
                         let albArtist = 'Desconhecido';
@@ -221,7 +248,7 @@ export default function SongDetail({ songID }) {
                         />
                     ))
                 ) : (
-                    <p style={{ opacity: 0.6 }}>Nenhum outro conteúdo encontrado para este artista.</p>
+                    <p style={{ opacity: 0.6 }}>Nenhum outro conteúdo encontrado.</p>
                 )}
             </Section>
             
