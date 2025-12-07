@@ -179,8 +179,8 @@ const MusicaController = {
             }
             
             let novaCapaFile = req.files && req.files.coverImage && req.files.coverImage[0] 
-                               ? req.files.coverImage[0] 
-                               : null;
+                                        ? req.files.coverImage[0] 
+                                        : null;
             
             if (!novaCapaFile && req.file && req.file.fieldname === 'coverImage') {
                 novaCapaFile = req.file;
@@ -259,13 +259,13 @@ const MusicaController = {
             res.status(500).json({ message: 'Falha ao deletar música.', error: error.message });
         }
     },
-    
+        
     getVoteStatus: async (req, res) => {
-        const { musicaId } = req.params;
+        const { songId } = req.params;
         const { userId } = req.query;
 
         try {
-            const musica = await Musica.findById(musicaId).select('likes dislikes');
+            const musica = await Musica.findById(songId).select('likes dislikes');
 
             if (!musica) {
                 return res.status(404).json({ message: "Música não encontrada." }); 
@@ -292,7 +292,7 @@ const MusicaController = {
     },
 
     toggleLikeDislike: async (req, res) => {
-        const { musicaId } = req.params;
+        const { songId } = req.params;
         const { userId, action } = req.body; 
 
         if (!['like', 'dislike'].includes(action)) {
@@ -300,7 +300,7 @@ const MusicaController = {
         }
 
         try {
-            const musica = await Musica.findById(musicaId); 
+            const musica = await Musica.findById(songId); 
             if (!musica) {
                 return res.status(404).json({ message: "Música não encontrada." });
             }
@@ -330,7 +330,7 @@ const MusicaController = {
             }
             
             const updatedMusica = await Musica.findByIdAndUpdate(
-                musicaId,
+                songId,
                 update,
                 { new: true, select: 'likes dislikes' } 
             );

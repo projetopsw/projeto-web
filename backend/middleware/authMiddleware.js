@@ -4,10 +4,17 @@ import User from '../models/user.model.js';
 
 export const verifyToken = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
+    
     if (!token) return res.status(401).json({ message: 'Token não fornecido' });
 
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+        console.error("JWT_SECRET não está definido nas variáveis de ambiente!");
+        return res.status(500).json({ message: 'Erro de configuração do servidor.' });
+    }
+
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'defaultsecret');
+        const decoded = jwt.verify(token, jwtSecret); 
         req.user = decoded;
         next();
     } catch (error) {

@@ -3,6 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchSongById, fetchAlbumsByArtist } from '../../redux/catalogoSlice';
 import { playSong } from '../../redux/playerSlice.js';
+
+import { fetchVotes, toggleVote } from '../../redux/votesSlice'; 
+import BarraLikes from '../../components/BarraLikes'; 
+import Comentarios from '../../components/Comentarios'; 
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import ThumbDownIcon from '@mui/icons-material/ThumbDown';
+import { Box, Typography, Stack, IconButton } from '@mui/material';
+
 import AlbumHeader from '../../components/AlbumHeader.jsx';
 import SongList from '../../components/SongList.jsx';
 import Section from '../../components/Section.jsx';
@@ -12,6 +20,7 @@ import ReleaseInfo from '../../components/ReleaseInfo.jsx';
 import DeleteConfirmationModal from '../../components/DeleteMusica.jsx';
 import mongoApi from '../../services/mongoApi.js';
 import './css/SongAlbumDetail.css';
+
 
 const formatTime = (seconds) => {
     if (!seconds) return "0:00";
@@ -59,15 +68,56 @@ export default function SongDetail({ songID }) {
     const { details: song, status: songStatus } = useSelector((state) => state.catalog.selectedSong);
     const { items: artistAlbums, status: artistAlbumsStatus } = useSelector((state) => state.catalog.albumsByArtist);
     
-    const currentUser = useSelector(state => state.auth.user); 
-    const currentUserId = currentUser?._id || currentUser?.id;
+    const currentUser = useSelector(state => state.user.user); 
+    const currentUserId = currentUser?._id || currentUser?.id || "USUARIO_PADRAO";
     const isAdmin = currentUser?.role === 'admin'; 
+    const token = useSelector(state => state.auth.token); 
 
+    const voteStatus = useSelector(state => state.votes[effectiveId]) || {
+        likes: 0,
+        dislikes: 0,
+        userAction: null, 
+        status: 'idle',
+        error: null,
+    };
+    
+    const { likes, dislikes, userAction } = voteStatus;
+    const totalVotes = likes + dislikes;
+    const likePercentage = totalVotes > 0 ? (likes / totalVotes) * 100 : 50;
+
+    const handleLike = () => {
+        if (!token || currentUserId === "USUARIO_PADRAO") {
+            console.error("Usuário não autenticado. Faça login para votar.");
+            alert("Você precisa estar logado para votar.");
+            return;
+        }
+        const newAction = userAction === 'like' ? null : 'like';
+        if (effectiveId) {
+            dispatch(toggleVote({ songId: effectiveId, userId: currentUserId, action: newAction, token })); 
+        }
+    };
+
+    const handleDislike = () => {
+        if (!token || currentUserId === "USUARIO_PADRAO") {
+            console.error("Usuário não autenticado. Faça login para votar.");
+            alert("Você precisa estar logado para votar.");
+            return;
+        }
+        const newAction = userAction === 'dislike' ? null : 'dislike';
+        if (effectiveId) {
+            dispatch(toggleVote({ songId: effectiveId, userId: currentUserId, action: newAction, token })); 
+        }
+    };
+    
     useEffect(() => {
         if (effectiveId) {
             dispatch(fetchSongById(effectiveId));
+            
+            if (currentUserId !== "USUARIO_PADRAO") {
+                   dispatch(fetchVotes({ songId: effectiveId, userId: currentUserId })); 
+            }
         }
-    }, [effectiveId, dispatch]);
+    }, [effectiveId, currentUserId, dispatch]);
 
     useEffect(() => {
         if (song) {
@@ -177,7 +227,7 @@ export default function SongDetail({ songID }) {
              finalArtistImage = song.artist.image || song.artist.picture;
         }
     }
-  
+ 
     const displayImage = finalArtistImage || artistImageFromApi;
 
     const isOwner = currentUserId && (
@@ -199,6 +249,40 @@ export default function SongDetail({ songID }) {
         return currentSongIdsForCheck.some(id => albumArtistIds.includes(id));
     });
 
+    const LikeDislikeBar = () => (
+        <Box sx={{ p: 2, mb: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <IconButton 
+                        onClick={handleLike} 
+                        aria-label="like" 
+                        disabled={voteStatus.status === 'loading' && userAction !== 'like'} 
+                        sx={{ color: userAction === 'like' ? 'var(--orange, #ff7533)' : 'var(--text-color, white)', '&:hover': { color: 'var(--orange, #ff7533)' } }}
+                    >
+                        <ThumbUpIcon />
+                    </IconButton>
+                    <Typography variant="body1" sx={{ color: 'var(--text-color, white)', minWidth: '20px' }}>{likes}</Typography>
+                </Box>
+
+                <Box sx={{ flexGrow: 1 }}>
+                    <BarraLikes likePercentage={likePercentage} />
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body1" sx={{ color: 'var(--text-color, white)', minWidth: '20px', textAlign: 'right' }}>{dislikes}</Typography>
+                    <IconButton 
+                        onClick={handleDislike} 
+                        aria-label="dislike" 
+                        disabled={voteStatus.status === 'loading' && userAction !== 'dislike'}
+                        sx={{ color: userAction === 'dislike' ? 'var(--orange, #ff7533)' : 'var(--text-color, white)', '&:hover': { color: 'var(--orange, #ff7533)' } }}
+                    >
+                        <ThumbDownIcon />
+                    </IconButton>
+                </Box>
+            </Stack>
+        </Box>
+    );
+
     return (
         <main>
             <AlbumHeader 
@@ -217,17 +301,17 @@ export default function SongDetail({ songID }) {
             >
                 {canDelete && (
                      <div className="options-menu" style={{ position: 'relative' }}>
-                         <button 
-                             className="more-options-button"
-                             onClick={() => setShowDeleteModal(true)}
-                             style={{ background: 'none', border: '1px solid white', color: 'white', padding: '8px 15px', borderRadius: '20px', cursor: 'pointer', marginTop: '10px' }}
-                         >
-                             ... Deletar Música
-                         </button>
+                          <button 
+                              className="more-options-button"
+                              onClick={() => setShowDeleteModal(true)}
+                              style={{ background: 'none', border: '1px solid white', color: 'white', padding: '8px 15px', borderRadius: '20px', cursor: 'pointer', marginTop: '10px' }}
+                          >
+                              ... Deletar Música
+                          </button>
                      </div>
                 )}
             </AlbumHeader> 
-            
+
             <div className="song-list-container"> 
                 <SongList tracksArr={[song]} onTrackClick={handlePlaySong} />
             </div>
@@ -238,7 +322,7 @@ export default function SongDetail({ songID }) {
                     <pre className="song-lyrics-text">{song.lyrics}</pre>
                 </div>
             )}
-
+            
             <ReleaseInfo
                 releaseDate={song.releaseDate} 
                 recordLabel={song.album?.recordLabel || song.recordLabel || 'Não informada'} 
@@ -279,6 +363,13 @@ export default function SongDetail({ songID }) {
                     <p style={{ opacity: 0.6 }}>Nenhum outro conteúdo encontrado.</p>
                 )}
             </Section>
+            
+            <LikeDislikeBar />
+            
+            <div className="section-comentarios" style={{ padding: '0 20px', margin: '30px 0' }}>
+                <h2>Comentários 💬</h2>
+                <Comentarios musicaId={effectiveId} />
+            </div>
             
             <div className="margin-bottom-large"></div>
             

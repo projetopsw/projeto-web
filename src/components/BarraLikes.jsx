@@ -1,19 +1,18 @@
 import React from 'react';
 import { Box } from '@mui/material';
 
-/**
- * Componente de barra visual para mostrar a proporção de likes.
- * @param {number} likePercentage 
- */
 function BarraLikes({ likePercentage }) {
-    const dislikePercentage = 100 - likePercentage;
+    const safeLikePercentage = isNaN(likePercentage) || likePercentage === null || likePercentage === undefined
+        ? 0
+        : likePercentage;
+    const effectiveLikePercentage = Math.max(0, Math.min(100, safeLikePercentage));
 
     return (
         <Box 
             sx={{
-                width: '100%',
+                width: '100%', 
                 height: 8, 
-                backgroundColor: '#555',
+                backgroundColor: '#555', 
                 borderRadius: 4,
                 overflow: 'hidden',
                 mt: 1, 
@@ -21,7 +20,7 @@ function BarraLikes({ likePercentage }) {
         >
             <Box
                 sx={{
-                    width: `${likePercentage}%`,
+                    width: `${effectiveLikePercentage}%`,
                     height: '100%',
                     backgroundColor: '#ff7533', 
                     transition: 'width 0.3s ease-in-out',

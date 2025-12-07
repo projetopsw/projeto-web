@@ -18,7 +18,7 @@ import {
     setVolume,
 } from '../redux/playerSlice';
 
-const MUSIC_DETAIL_PATH_BASE = '/musica/';
+const MUSIC_DETAIL_PATH_BASE = '/song/';
 
 const REPEAT_MODES = {
     OFF: 0,

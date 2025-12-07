@@ -1,13 +1,10 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
-
-const API_URL = 'http://localhost:3000/musicas'; 
-
+const API_URL = 'http://localhost:3000/songs';
 
 const initialSongState = {
     likes: 0,
     dislikes: 0,
-    userVoted: false, 
     userAction: null, 
     status: 'idle',
     error: null,
@@ -15,20 +12,19 @@ const initialSongState = {
 
 const initialState = {};
 
-
 export const fetchVotes = createAsyncThunk(
     'votes/fetchVotes',
-    async ({ musicaId, userId }, { rejectWithValue }) => {
+    async ({ songId, userId }, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_URL}/${musicaId}/status-voto?userId=${userId}`); 
+            const response = await fetch(`${API_URL}/${songId}/status-voto?userId=${userId}`); 
             
             if (!response.ok) {
-                if (response.status === 404) return { musicaId, likes: 0, dislikes: 0, userAction: null };
+                if (response.status === 404) return { songId, likes: 0, dislikes: 0, userAction: null };
                 throw new Error('Falha ao buscar votos.');
             }
             
             const data = await response.json();
-            return { musicaId, ...data };
+            return { songId, ...data };
 
         } catch (error) {
             return rejectWithValue(error.message);
@@ -36,14 +32,16 @@ export const fetchVotes = createAsyncThunk(
     }
 );
 
-
 export const toggleVote = createAsyncThunk(
     'votes/toggleVote',
-    async ({ musicaId, userId, action }, { rejectWithValue }) => {
+    async ({ songId, userId, action, token }, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_URL}/${musicaId}/interacao`, {
+            const response = await fetch(`${API_URL}/${songId}/interacao`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ userId, action }),
             });
 
@@ -53,14 +51,13 @@ export const toggleVote = createAsyncThunk(
             }
 
             const data = await response.json();
-            return { musicaId, ...data }; 
+            return { songId, ...data }; 
             
         } catch (error) {
             return rejectWithValue(error.message);
         }
     }
 );
-
 
 export const votesSlice = createSlice({
     name: 'votes',
@@ -70,16 +67,16 @@ export const votesSlice = createSlice({
     extraReducers: (builder) => {
         builder
             .addCase(fetchVotes.pending, (state, action) => {
-                const musicaId = action.meta.arg.musicaId;
-                if (!state[musicaId]) {
-                    state[musicaId] = { ...initialSongState, status: 'loading' };
+                const songId = action.meta.arg.songId;
+                if (!state[songId]) {
+                    state[songId] = { ...initialSongState, status: 'loading' };
                 } else {
-                    state[musicaId].status = 'loading';
+                    state[songId].status = 'loading';
                 }
             })
             .addCase(fetchVotes.fulfilled, (state, action) => {
-                const { musicaId, likes, dislikes, userAction } = action.payload;
-                state[musicaId] = {
+                const { songId, likes, dislikes, userAction } = action.payload;
+                state[songId] = {
                     ...initialSongState,
                     likes: likes || 0,
                     dislikes: dislikes || 0,
@@ -90,23 +87,37 @@ export const votesSlice = createSlice({
                 };
             })
             .addCase(fetchVotes.rejected, (state, action) => {
-                const musicaId = action.meta.arg.musicaId;
-                if (!state[musicaId]) {
-                    state[musicaId] = { ...initialSongState, status: 'failed', error: action.payload };
+                const songId = action.meta.arg.songId;
+                if (!state[songId]) {
+                    state[songId] = { ...initialSongState, status: 'failed', error: action.payload };
                 } else {
-                    state[musicaId].status = 'failed';
-                    state[musicaId].error = action.payload;
+                    state[songId].status = 'failed';
+                    state[songId].error = action.payload;
                 }
             })
 
-            .addCase(toggleVote.fulfilled, (state, action) => {
-                const { musicaId, likes, dislikes, userAction } = action.payload;
-                state[musicaId].status = 'succeeded';
-                state[musicaId].likes = likes;
-                state[musicaId].dislikes = dislikes;
-                state[musicaId].userAction = userAction;
-                state[musicaId].userVoted = !!userAction; 
+            .addCase(toggleVote.pending, (state, action) => {
+                const songId = action.meta.arg.songId;
+                if (state[songId]) {
+                    state[songId].status = 'loading';
+                    state[songId].error = null;
+                }
             })
+            .addCase(toggleVote.fulfilled, (state, action) => {
+                const { songId, likes, dislikes, userAction } = action.payload;
+                state[songId].status = 'succeeded';
+                state[songId].likes = likes;
+                state[songId].dislikes = dislikes;
+                state[songId].userAction = userAction;
+                state[songId].userVoted = !!userAction; 
+            })
+            .addCase(toggleVote.rejected, (state, action) => {
+                const songId = action.meta.arg.songId;
+                if (state[songId]) {
+                    state[songId].status = 'failed';
+                    state[songId].error = action.payload;
+                }
+            });
     },
 });
 

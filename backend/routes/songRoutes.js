@@ -11,7 +11,7 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 const checkObjectId = (req, res, next) => {
-    const idToCheck = req.params.id || req.params.musicaId;
+    const idToCheck = req.params.id || req.params.songId; 
     if (!mongoose.Types.ObjectId.isValid(idToCheck)) {
         return res.status(404).json({ message: 'ID de música inválido.' });
     }
@@ -84,6 +84,8 @@ router.patch('/:id',
 
 router.delete('/:id', verifyToken, checkObjectId, MusicaController.deleteMusica);
 
-router.post('/:id/interacao', verifyToken, MusicaController.toggleLikeDislike);
+router.get('/:songId/status-voto', checkObjectId, MusicaController.getVoteStatus);
+
+router.post('/:songId/interacao', verifyToken, checkObjectId, MusicaController.toggleLikeDislike);
 
 export default router;

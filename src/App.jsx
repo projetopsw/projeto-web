@@ -9,7 +9,6 @@ import PlaylistDetalhe from './pages/playlists/PlaylistDetalhe';
 import Pesquisa from './pages/pesquisa/Pesquisa';
 import Login from './pages/login/Login';
 import Cadastro from './pages/cadastro/Cadastro';
-import TelaMusica from './pages/musicas/TelaMusica.jsx';
 import AlbumDetail from './pages/albuns/AlbumDetail';
 import Artist from './pages/artists/Artist';
 import SongDetail from './pages/musicas/SongDetail.jsx';
@@ -57,7 +56,6 @@ function App() {
                         {/* REMOVIDA A ROTA DUPLICADA: /playlists/:id */}
                         
                         <Route path="/pesquisa" element={<ProtectedRoute><Pesquisa /></ProtectedRoute>} />
-                        <Route path="/musica/:id" element={<ProtectedRoute><TelaMusica /></ProtectedRoute>} />
                         
                         {/* ROTAS DE ÁLBUNS E ARTISTAS PADRONIZADAS */}
                         <Route path="/album/:id" element={<ProtectedRoute><AlbumDetail /></ProtectedRoute>} />
