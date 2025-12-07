@@ -9,8 +9,6 @@ const getAuthHeaders = (token) => ({
 });
 
 
-// --- THUNKS DE DADOS ---
-
 const fetchConnectionsData = createAsyncThunk( 
     'connections/fetchData',
     async (currentUserId, { rejectWithValue, getState }) => {
@@ -76,8 +74,6 @@ const fetchConnectionsData = createAsyncThunk(
     }
 );
 
-// --- THUNKS DE AÇÃO ---
-
 const toggleFriendRequest = createAsyncThunk(
     'connections/toggleRequest',
     async ({ currentUserId, targetUser }, { dispatch, rejectWithValue, getState }) => {
@@ -90,13 +86,11 @@ const toggleFriendRequest = createAsyncThunk(
         const authHeaders = getAuthHeaders(userToken);
 
         try {
-            // Busca o estado atual dos usuários para manipulação de arrays
             const [currentUserRes, targetUserRes] = await Promise.all([
                 fetch(`${API_URL}/${currentUserIdStr}`, { headers: { 'Authorization': `Bearer ${userToken}` } }),
                 fetch(`${API_URL}/${targetUserIdStr}`, { headers: { 'Authorization': `Bearer ${userToken}` } })
             ]);
 
-            const currentUser = await currentUserRes.json();
             const target = await targetUserRes.json();
 
             const targetRequests = target.friendshipRequests || [];
@@ -106,16 +100,13 @@ const toggleFriendRequest = createAsyncThunk(
             let finalMessage;
 
             if (isRequestSent) {
-                // Cancelar pedido
                 updatedTargetRequests = targetRequests.filter(id => String(id) !== currentUserIdStr);
                 finalMessage = `Pedido cancelado para ${targetUser.name || targetUser.username}.`;
             } else {
-                // Enviar pedido
                 updatedTargetRequests = [...targetRequests.map(String), currentUserIdStr];
                 finalMessage = `Pedido enviado para ${targetUser.name || targetUser.username}.`;
             }
 
-            // Atualiza o usuário alvo (adiciona/remove o ID do usuário logado dos pedidos)
             const patchRes = await fetch(`${API_URL}/${targetUserIdStr}`, {
                 method: 'PATCH',
                 headers: authHeaders,
@@ -124,9 +115,6 @@ const toggleFriendRequest = createAsyncThunk(
 
             if (!patchRes.ok) throw new Error('Falha ao atualizar o pedido no servidor.');
             
-            // O setUserData não é chamado aqui, pois não alteramos o usuário logado diretamente.
-            // O componente Conexoes.jsx dispara o re-fetch se houver mudança nos estados de conexões.
-
             return { targetId: targetUserIdStr, isCancelled: isRequestSent, message: finalMessage };
 
         } catch (error) {
@@ -145,11 +133,10 @@ const acceptFriendRequest = createAsyncThunk(
         if (!userToken) return rejectWithValue('Token de autenticação não encontrado.');
 
         const accepterIdStr = String(accepterId);
-        const requesterIdStr = String(requester.id || requester._id); // Garante a consistência do ID
+        const requesterIdStr = String(requester.id || requester._id); 
         const authHeaders = getAuthHeaders(userToken);
         
         try {
-            // 1. Atualiza o aceitador (adiciona o amigo, remove o pedido)
             const accepterResponse = await fetch(`${API_URL}/${accepterIdStr}`, { headers: { 'Authorization': `Bearer ${userToken}` } });
             const accepter = await accepterResponse.json();
 
@@ -164,7 +151,6 @@ const acceptFriendRequest = createAsyncThunk(
             });
             const freshAccepter = await resAccepter.json();
             
-            // 2. Atualiza o requisitante (adiciona o amigo)
             const requesterResponse = await fetch(`${API_URL}/${requesterIdStr}`, { headers: { 'Authorization': `Bearer ${userToken}` } });
             const freshRequester = await requesterResponse.json();
             
@@ -177,13 +163,10 @@ const acceptFriendRequest = createAsyncThunk(
                 body: JSON.stringify(updatedRequester),
             });
             
-            // 3. Atualiza o estado global com o usuário logado que aceitou o pedido
-            // Isso aciona a atualização de estado, e o useEffect em Conexoes.jsx fará o fetch
             dispatch(setUserData(freshAccepter));
             
-            // 💡 CORREÇÃO APLICADA: Não há chamada imediata para fetchConnectionsData aqui.
-
-            return requester; 
+            return { acceptedUserId: requesterIdStr }; 
+            
         } catch (error) { 
             console.error("[ERRO NO ACCEPT REQUEST]:", error.message);
             return rejectWithValue(error.message || 'Falha ao aceitar pedido.');
@@ -203,7 +186,6 @@ const declineFriendRequest = createAsyncThunk(
         const authHeaders = getAuthHeaders(userToken);
         
         try {
-            // Remove o ID do requerente da lista de pedidos de amizade do recipiente
             const recipientResponse = await fetch(`${API_URL}/${recipientIdStr}`, { headers: { 'Authorization': `Bearer ${userToken}` } });
             const recipient = await recipientResponse.json(); 
 
@@ -217,8 +199,6 @@ const declineFriendRequest = createAsyncThunk(
             const freshRecipient = await response.json();
             
             dispatch(setUserData(freshRecipient));
-            
-            // 💡 CORREÇÃO APLICADA: Não há chamada imediata para fetchConnectionsData aqui.
             
             return { declinedRequestId: requesterIdStr };
         } catch (error) {
@@ -239,7 +219,6 @@ const removeFriend = createAsyncThunk(
         const authHeaders = getAuthHeaders(userToken);
 
         try {
-            // 1. Atualiza o usuário logado (remove o amigo)
             const currentUserRes = await fetch(`${API_URL}/${currentUserIdStr}`, { headers: { 'Authorization': `Bearer ${userToken}` } });
             const currentUser = await currentUserRes.json();
             const updatedFriendsUser = (currentUser.friends || []).filter(id => String(id) !== targetUserIdStr);
@@ -251,7 +230,6 @@ const removeFriend = createAsyncThunk(
             });
             const freshCurrentUser = await patchUserRes.json();
 
-            // 2. Atualiza o usuário alvo (remove o amigo)
             const targetUserRes = await fetch(`${API_URL}/${targetUserIdStr}`, { headers: { 'Authorization': `Bearer ${userToken}` } });
             const targetUser = await targetUserRes.json();
             const updatedFriendsTarget = (targetUser.friends || []).filter(id => String(id) !== currentUserIdStr);
@@ -262,11 +240,8 @@ const removeFriend = createAsyncThunk(
                 body: JSON.stringify({ friends: updatedFriendsTarget }),
             });
 
-            // 3. Atualiza o estado global com o usuário logado que removeu o amigo
             dispatch(setUserData(freshCurrentUser));
             
-            // 💡 CORREÇÃO APLICADA: Não há chamada imediata para fetchConnectionsData aqui.
-
             return { removedFriendId: targetUserIdStr };
         } catch (error) {
             return rejectWithValue(error.message || 'Falha ao remover amigo.');
@@ -275,8 +250,6 @@ const removeFriend = createAsyncThunk(
 );
 
 
-// --- SLICE E EXPORTS ---
-
 const connectionsSlice = createSlice({
     name: 'connections',
     initialState: {
@@ -284,13 +257,12 @@ const connectionsSlice = createSlice({
         pendingRequests: [],
         sentRequests: [],
         suggestions: [],
-        status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
+        status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed' | 'refetching'
         error: null,
     },
     reducers: {},
     extraReducers: (builder) => {
         builder
-            // --- Handlers de fetchConnectionsData ---
             .addCase(fetchConnectionsData.pending, (state) => {
                 state.status = 'loading';
             })
@@ -305,30 +277,46 @@ const connectionsSlice = createSlice({
             .addCase(fetchConnectionsData.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.payload;
-                // Limpa os dados em caso de falha de autenticação
                 state.friends = [];
                 state.pendingRequests = [];
                 state.sentRequests = [];
                 state.suggestions = [];
             })
 
+            
             .addCase(toggleFriendRequest.pending, (state) => { state.status = 'loading'; })
+            .addCase(acceptFriendRequest.pending, (state) => { state.status = 'loading'; })
+            .addCase(declineFriendRequest.pending, (state) => { state.status = 'loading'; })
+            .addCase(removeFriend.pending, (state) => { state.status = 'loading'; })
+
             .addCase(toggleFriendRequest.fulfilled, (state) => { 
-                state.status = 'idle'; // Volta para idle, o useEffect fará o re-fetch
+                state.status = 'refetching';
             })
+            .addCase(acceptFriendRequest.fulfilled, (state) => { 
+                state.status = 'refetching';
+            })
+            .addCase(declineFriendRequest.fulfilled, (state) => { 
+                state.status = 'refetching';
+            })
+            .addCase(removeFriend.fulfilled, (state) => { 
+                state.status = 'refetching';
+            })
+
             .addCase(toggleFriendRequest.rejected, (state, action) => { 
                 state.status = 'failed'; 
                 state.error = action.payload; 
             })
-
-            .addCase(acceptFriendRequest.fulfilled, (state) => { 
-                state.status = 'idle'; 
+            .addCase(acceptFriendRequest.rejected, (state, action) => { 
+                state.status = 'failed'; 
+                state.error = action.payload; 
             })
-            .addCase(declineFriendRequest.fulfilled, (state) => { 
-                state.status = 'idle'; 
+            .addCase(declineFriendRequest.rejected, (state, action) => { 
+                state.status = 'failed'; 
+                state.error = action.payload; 
             })
-            .addCase(removeFriend.fulfilled, (state) => { 
-                state.status = 'idle'; 
+            .addCase(removeFriend.rejected, (state, action) => { 
+                state.status = 'failed'; 
+                state.error = action.payload; 
             });
     },
 });

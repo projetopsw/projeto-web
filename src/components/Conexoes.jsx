@@ -41,12 +41,13 @@ export default function Conexoes() {
     
     const handleUserClick = (id) => navigate(`/perfil/${id}`);
 
-    // 💡 Correção 1: Garante que só tentamos buscar dados se o ID existir e o usuário não estiver em estado de erro
     useEffect(() => {
         if (currentUserId && userStatus !== 'failed') {
-            dispatch(fetchConnectionsData(String(currentUserId))); 
+            if (connectionsStatus === 'idle' || connectionsStatus === 'refetching' || connectionsStatus === 'failed') {
+                dispatch(fetchConnectionsData(String(currentUserId))); 
+            }
         } 
-    }, [dispatch, currentUserId, userStatus]); 
+    }, [dispatch, currentUserId, userStatus, connectionsStatus]);
     
     
     const handleToggleRequest = (targetUser) => {
@@ -55,39 +56,36 @@ export default function Conexoes() {
             return;
         }
         
-        const isSent = sentRequests.some(req => String(req.id) === String(targetUser.id));
         const isFriend = friends.some(f => String(f.id) === String(targetUser.id));
         
         if (isFriend) {
             dispatch(removeFriend({ currentUserId, targetUserId: targetUser.id }));
-            alert(`Você removeu ${targetUser.name || targetUser.username} de seus amigos.`);
+            alert(`Processando remoção de ${targetUser.name || targetUser.username}...`);
         } else {
             dispatch(toggleFriendRequest({ currentUserId, targetUser }));
-            alert(`Pedido de amizade processado para ${targetUser.name || targetUser.username}.`);
+            alert(`Processando pedido de amizade para ${targetUser.name || targetUser.username}.`);
         }
     };
 
     const handleAcceptRequest = (requester) => {
         if (!currentUserId) return;
         dispatch(acceptFriendRequest({ accepterId: currentUserId, requester: requester }));
-        alert(`Você agora está conectado com ${requester.name || requester.username}!`);
+        alert(`Aceitando pedido de ${requester.name || requester.username}...`);
     };
 
     const handleDeclineRequest = (requester) => {
         if (!currentUserId) return;
         dispatch(declineFriendRequest({ recipientId: currentUserId, requesterId: requester.id }));
-        alert(`Pedido de ${requester.name || requester.username} recusado.`);
+        alert(`Recusando pedido de ${requester.name || requester.username}...`);
     };
 
 
     const renderContent = () => {
         
-        // 1. Condição de Carregamento/Espera (inclui o 'loading' do user e 'connections')
-        if (connectionsStatus === 'loading' || userStatus === 'loading') {
+        if (connectionsStatus === 'loading' || connectionsStatus === 'refetching' || userStatus === 'loading') {
             return <CircularProgress sx={{ mt: 3, color: 'var(--orange)' }} />;
         }
         
-        // 2. Condição de Falha no Fetch de Conexões (Autenticação 401 que não leva ao deslogue)
         if (connectionsStatus === 'failed' && connectionsError !== 'Token de autenticação não encontrado. Usuário não está logado.') {
             const errorMessage = connectionsError || "Erro ao carregar as conexões.";
             return (
@@ -97,15 +95,10 @@ export default function Conexoes() {
             );
         }
 
-        // 💡 Correção 2: Condição de Não Logado (Estado Final)
-        // Só mostra a mensagem de login se não houver currentUserId E o status do usuário for idle ou failed.
-        // Se o status for 'succeeded' e currentUserId sumiu, algo está errado, mas não devemos mostrar a tela de login.
         if (!currentUserId && (userStatus === 'idle' || userStatus === 'failed')) {
             return <Typography sx={{ mt: 3, color: 'var(--text-primary)' }}>Por favor, faça login para ver suas conexões.</Typography>;
         }
         
-        // Se chegamos aqui, o usuário está logado (currentUserId existe) e/ou o status é succeeded.
-
         switch (selectedFilter) {
             case 'Amigos':
                 return (
@@ -193,12 +186,24 @@ export default function Conexoes() {
                                             isUser={true} 
                                         />
                                         <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                                            <Button variant="contained" size="small" sx={{ bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } }}
-                                                onClick={() => handleAcceptRequest(request)} >
+                                            <Button 
+                                                variant="contained" 
+                                                size="small" 
+                                                sx={{ bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } }}
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    handleAcceptRequest(request);
+                                                }} >
                                                 Aceitar
                                             </Button>
-                                            <Button variant="outlined" size="small" sx={{ color: 'var(--text-primary)', borderColor: 'var(--text-primary)' }}
-                                                onClick={() => handleDeclineRequest(request)} >
+                                            <Button 
+                                                variant="outlined" 
+                                                size="small" 
+                                                sx={{ color: 'var(--text-primary)', borderColor: 'var(--text-primary)' }}
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    handleDeclineRequest(request);
+                                                }} >
                                                 Recusar
                                             </Button>
                                         </Box>

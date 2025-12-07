@@ -18,8 +18,8 @@ const loadUserFromStorage = () => {
         const user = JSON.parse(serializedUser);
         
         if (!user || (!user.id && !user._id)) {
-             localStorage.removeItem(LOCAL_STORAGE_KEY); 
-             return null;
+            localStorage.removeItem(LOCAL_STORAGE_KEY); 
+            return null;
         }
         return user;
     } catch (e) {
@@ -49,21 +49,23 @@ const userSlice = createSlice({
         setUserData: (state, action) => {
             const serverUser = action.payload;
 
-            const finalId = serverUser._id || serverUser.id;
+            if (!serverUser || (Object.keys(serverUser).length === 0 && !state.user)) {
+                state.status = 'succeeded';
+                state.error = null;
+                return;
+            }
             
-            // 💡 CORREÇÃO ROBUSTA: Se o payload do servidor tem um token VÁLIDO, use-o. 
-            // Senão, MANTENHA o token existente no estado, ignorando 'null' ou 'undefined' do servidor.
-            const tokenToUse = serverUser.token 
-                ? serverUser.token 
-                : (state.user ? state.user.token : null);
+            const existingToken = state.user ? state.user.token : null;
+            const finalId = serverUser._id || serverUser.id || state.user?._id || state.user?.id;
 
             let finalUser = {
+                ...state.user, 
                 ...serverUser,
                 _id: finalId, 
                 id: finalId, 
-                username: serverUser.username || serverUser.name,
-                name: serverUser.username || serverUser.name,
-                token: tokenToUse, // Usa o token preservado
+                token: serverUser.token || existingToken, 
+                username: serverUser.username || serverUser.name || state.user?.username,
+                name: serverUser.name || serverUser.username || state.user?.name,
             };
             
             state.user = finalUser;
@@ -95,7 +97,7 @@ const userSlice = createSlice({
                 updatedUser.img = newImage;
                 updatedUser.image = newImage;
             } else if (updatedUser.img === undefined && state.user && state.user.img !== undefined) {
-                 updatedUser.img = state.user.img;
+                updatedUser.img = state.user.img;
             }
             
             state.user = updatedUser;
@@ -120,8 +122,8 @@ const userSlice = createSlice({
             if (userWithToken) {
                 userSlice.caseReducers.setUserData(state, { payload: userWithToken }); 
             } else {
-                 state.status = 'failed';
-                 state.error = 'Falha ao receber dados do usuário após o login.';
+                state.status = 'failed';
+                state.error = 'Falha ao receber dados do usuário após o login.';
             }
         });
         builder.addCase(loginUserAsync.rejected, (state, action) => {
@@ -130,7 +132,6 @@ const userSlice = createSlice({
         });
 
         builder.addCase(handleSpotifyCallback.fulfilled, (state, action) => {
-            // ...
         });
 
         builder.addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
@@ -146,6 +147,7 @@ const userSlice = createSlice({
                 saveUserToStorage(state.user); 
             }
         });
+        
     },
 });
 
