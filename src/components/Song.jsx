@@ -36,28 +36,57 @@ const formatTime = (seconds) => {
 export default function Song({ song }) {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    
+    // Garante que pegamos o ID independente do formato
     const songId = song._id || song.id;
-
     const title = song.title || "Sem título";
 
+    // --- LÓGICA ROBUSTA PARA ARTISTA (Prioriza o Artista Principal) ---
     let artistDisplay = "Desconhecido";
     let mainArtistId = null;
 
+    // 1. Array de artistas (ex: [Lady Gaga, Bruno Mars]) -> Pega o índice 0 como principal
     if (song.artists && Array.isArray(song.artists) && song.artists.length > 0) {
         artistDisplay = song.artists.map(a => a.name).join(', ');
+        // O primeiro da lista é considerado o principal para navegação
         mainArtistId = song.artists[0]._id || song.artists[0].id;
-    } else if (song.artist) {
-        artistDisplay = typeof song.artist === 'string' ? song.artist : song.artist.name;
-        mainArtistId = song.artistId || (song.artist._id);
+    } 
+    // 2. Objeto único
+    else if (song.artist && typeof song.artist === 'object') {
+        artistDisplay = song.artist.name || "Desconhecido";
+        mainArtistId = song.artist._id || song.artist.id;
+    } 
+    // 3. String simples
+    else if (song.artist) {
+        artistDisplay = song.artist; 
+        mainArtistId = song.artistId || null;
     }
 
-    const albumId = song.album?._id || song.album?.id || song.albumId || songId; 
+    // --- LÓGICA ROBUSTA PARA ÁLBUM E TIPO SINGLE ---
+    let albumId = null;
+    let isSingle = false; // Flag para controlar se é single
+
+    if (song.album && typeof song.album === 'object') {
+        albumId = song.album._id || song.album.id;
+        
+        // Verifica se o tipo é single (case insensitive)
+        const type = song.album.type || song.album.album_type || "";
+        if (type.toLowerCase() === 'single') {
+            isSingle = true;
+        }
+    } else if (song.albumId) {
+        albumId = song.albumId;
+    }
+    
+    // Fallback: às vezes a info do single está na raiz da música
+    if (song.albumType && song.albumType.toLowerCase() === 'single') {
+        isSingle = true;
+    }
 
     const durationDisplay = formatTime(song.duration);
 
     const user = useSelector(state => state.user?.user);
-    const currentUserId = user?._id || user?.id;
-    const isAdmin = user?.role === 'admin';
+    const isAdmin = user?.role === 'admin'; 
     const userPlaylistsDetail = useSelector(state => state.auth?.userPlaylistsDetail || []);
 
     const userLikedSongs = user?.likedSongs || [];
@@ -72,19 +101,13 @@ export default function Song({ song }) {
     const [playlistAnchorEl, setPlaylistAnchorEl] = useState(null);
     const [shareModalOpen, setShareModalOpen] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false); // NOVO ESTADO
+    const [showEditModal, setShowEditModal] = useState(false); 
     const [copied, setCopied] = useState(false);
     
     const aberto = Boolean(anchorEl);
     const playlistMenuAberto = Boolean(playlistAnchorEl);
     
-    const songOwnerId = song.owner?._id || song.owner?.id;
-    const songMainArtistId = song.artists?.[0]?._id || song.artists?.[0]?.id;
-    
-    const isOwner = currentUserId && (
-        songOwnerId === currentUserId || songMainArtistId === currentUserId
-    );
-    const canManage = isAdmin || isOwner; // Usado para editar/deletar
+    const canManage = isAdmin; 
 
     const handleMenuClose = () => {
         setAnchorEl(null);
@@ -99,14 +122,9 @@ export default function Song({ song }) {
         if (!songId) return;
 
         try {
-            // Usa mongoApi para endpoints que exigem autenticação
             await mongoApi.delete(`/songs/${songId}`); 
-            
             alert(`Música "${title}" deletada com sucesso!`); 
-            
-            // Simplesmente recarrega a página para atualizar listas
             window.location.reload(); 
-
         } catch (error) {
             console.error('Erro ao deletar a música:', error);
             alert('Falha ao deletar a música. Tente novamente.');
@@ -115,14 +133,10 @@ export default function Song({ song }) {
         }
     };
 
-    // Função de callback para o modal de edição
     const handleUpdateSuccess = (updatedSongData) => {
-        // Recarrega a página para que as listas e detalhes sejam atualizados
         window.location.reload(); 
         setShowEditModal(false);
     }
-    
-    // ... (restante das funções: handleLikeClick, handlePlayPauseClick, handleMenuClick, etc., permanecem as mesmas)
 
     const handleLikeClick = async (e) => {
         e.stopPropagation();
@@ -144,14 +158,12 @@ export default function Song({ song }) {
             try {
                 dispatch(fetchUserPlaylistsDetail(user.id || user._id));
             } catch (e) {
-                console.warn('Não foi possível atualizar as playlists do usuário após like.', e);
+                console.warn('Playlist update warning', e);
             }
 
             if (!wasLiked) {
-                
                 try {
                     const prefResponse = await api.post('/users/like', { songId: songId });
-                    
                     if (prefResponse.data.analyzed) {
                         alert(`Parabéns! Suas preferências musicais foram analisadas e salvas!`);
                     } else if (prefResponse.data.count) {
@@ -160,10 +172,8 @@ export default function Song({ song }) {
                         alert(`"${title}" foi curtida com sucesso!`);
                     }
                 } catch (prefError) {
-                    console.warn("Aviso: Falha na análise de preferências. Continuando com o like padrão.");
                     alert(`"${title}" foi curtida com sucesso!`);
                 }
-                
             } else {
                 alert(`"${title}" foi removida das Músicas Curtidas.`);
             }
@@ -256,6 +266,7 @@ export default function Song({ song }) {
         });
     };
 
+    // --- MONTAGEM DO MENU ---
     const baseMenuOptions = [
         { 
             icon: <AddIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
@@ -263,16 +274,20 @@ export default function Song({ song }) {
             action: handleAddPlaylistClick, 
             requiresEvent: true 
         }, 
-        { 
+        // Lógica Artista: Se tiver mainArtistId (que já pegamos o index 0 acima), mostra a opção
+        ...(mainArtistId ? [{ 
             icon: <PersonIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Ir para o artista', 
             action: () => { handleMenuClose(); navigate(`/artista/${mainArtistId}`); } 
-        },
-        { 
+        }] : []),
+        
+        // Lógica Álbum: Só mostra se tiver ID E NÃO for single (!isSingle)
+        ...(albumId && !isSingle ? [{ 
             icon: <AlbumIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Ir para o álbum', 
             action: () => { handleMenuClose(); navigate(`/album/${albumId}`) } 
-        }, 
+        }] : []), 
+        
         { 
             icon: <QueueIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Adicionar à fila', 
@@ -300,14 +315,12 @@ export default function Song({ song }) {
 
     const menuOptions = [...baseMenuOptions, ...managementOptions];
 
-
     const corIcone = isLiked ? COR_LARANJA : 'var(--secondary-text-color)';
     
     return (
         <>
             <div className="song flex">
                 <div className="song-detail flex">
-                
                     <div onClick={handlePlayPauseClick} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                         {isThisSongPlaying ? (
                             <PauseIcon
@@ -367,7 +380,6 @@ export default function Song({ song }) {
                                 option.action(e.currentTarget);
                             } else {
                                 option.action();
-                                // Certifique-se de que o menu principal feche, exceto se for o AddPlaylistClick, que abre outro menu.
                                 if (option.label !== 'Adicionar à playlist') {
                                     handleMenuClose();
                                 }
@@ -500,7 +512,6 @@ export default function Song({ song }) {
                 itemTitle={title}
             />
             
-            {/* NOVO MODAL DE EDIÇÃO */}
             {song && (
                 <EditMusicaModal
                     show={showEditModal}

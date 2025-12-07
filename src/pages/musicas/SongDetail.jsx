@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchSongById, fetchAlbumsByArtist } from '../../redux/catalogoSlice';
 import { playSong } from '../../redux/playerSlice.js';
@@ -7,6 +7,7 @@ import AlbumHeader from '../../components/AlbumHeader.jsx';
 import SongList from '../../components/SongList.jsx';
 import Section from '../../components/Section.jsx';
 import AlbumCard from '../../components/AlbumCard.jsx';
+import SongCard from '../../components/SongCard.jsx'; 
 import ReleaseInfo from '../../components/ReleaseInfo.jsx';
 import DeleteConfirmationModal from '../../components/DeleteMusica.jsx';
 import mongoApi from '../../services/mongoApi.js';
@@ -26,6 +27,7 @@ export default function SongDetail({ songID }) {
     const navigate = useNavigate();
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [relatedSongs, setRelatedSongs] = useState([]); 
 
     const { details: song, status: songStatus } = useSelector((state) => state.catalog.selectedSong);
     const { items: artistAlbums, status: artistAlbumsStatus } = useSelector((state) => state.catalog.albumsByArtist);
@@ -34,13 +36,16 @@ export default function SongDetail({ songID }) {
     const currentUserId = currentUser?._id || currentUser?.id;
     const isAdmin = currentUser?.role === 'admin'; 
 
-    const mainArtistIdForFetch = (song) => {
+    const getMainArtistId = (song) => {
         if (!song) return null;
         if (Array.isArray(song.artists) && song.artists.length > 0) {
             return song.artists[0]._id || song.artists[0].id;
         }
         if (song.owner) {
             return song.owner._id || song.owner.id;
+        }
+        if (song.artist && typeof song.artist === 'object') {
+             return song.artist._id || song.artist.id;
         }
         return null;
     };
@@ -50,33 +55,37 @@ export default function SongDetail({ songID }) {
             dispatch(fetchSongById(effectiveId));
         }
     }, [effectiveId, dispatch]);
-    
-    useEffect(() => {
-        if (song) {
-            console.log("--- DEBUG CAPAS ---");
-            console.log("Capa da Música (song.cover):", song.cover);
-            console.log("Capa do Álbum (song.album?.cover):", song.album?.cover);
-            console.log("Objeto song.album:", song.album);
-            console.log("-------------------");
-        }
-    }, [song]);
 
     useEffect(() => {
-        const idToFetch = mainArtistIdForFetch(song);
-        if (song && idToFetch) {
-            dispatch(fetchAlbumsByArtist(idToFetch));
+        const artistId = getMainArtistId(song);
+        if (song && artistId) {
+            dispatch(fetchAlbumsByArtist(artistId));
+
+            const fetchRelatedSongs = async () => {
+                try {
+                    const response = await mongoApi.get('/songs');
+                    const allSongs = response.data;
+                    
+                    const filtered = allSongs.filter(s => {
+                        const sArtistId = getMainArtistId(s);
+                        return sArtistId === artistId && s._id !== song._id;
+                    });
+                    
+                    setRelatedSongs(filtered.slice(0, 6));
+                } catch (error) {
+                    console.error("Erro ao buscar músicas relacionadas:", error);
+                }
+            };
+            fetchRelatedSongs();
         }
     }, [song, dispatch]); 
 
     const handleDeleteSong = async () => {
         if (!song || !effectiveId) return;
-
         try {
             await mongoApi.delete(`/songs/${effectiveId}`);
-            
             alert('Música deletada com sucesso!'); 
             navigate('/'); 
-
         } catch (error) {
             console.error('Erro ao deletar a música:', error);
             alert('Falha ao deletar a música. Tente novamente.');
@@ -85,7 +94,7 @@ export default function SongDetail({ songID }) {
     
     const handlePlaySong = () => {
         if (song) {
-            const artistForPlayer = Array.isArray(song.artists) && song.artists.length > 0 
+             const artistForPlayer = Array.isArray(song.artists) && song.artists.length > 0 
                 ? song.artists.map(a => a.name || a.username).join(', ') 
                 : (song.owner ? song.owner.username : (song.artist || 'Desconhecido'));
 
@@ -99,71 +108,41 @@ export default function SongDetail({ songID }) {
         }
     };
 
-    if (songStatus === 'loading') {
-        return <main><h1>Carregando... 🎧</h1></main>;
-    }
+    if (songStatus === 'loading') return <main><h1>Carregando... 🎧</h1></main>;
+    if (songStatus === 'failed' || !song) return <main><h1>Música não encontrada 😥</h1></main>;
 
-    if (songStatus === 'failed' || !song) {
-        return <main><h1>Música não encontrada 😥</h1></main>;
-    }
-
-    let effectiveArtistId = null; 
-    let isArtistUpload = false; 
-    let isUserUpload = false; 
-    const s = song;
     let finalArtistName = 'Desconhecido';
+    let isArtistUpload = false;
+    let isUserUpload = false;
+    let mainArtistId = null;
 
-    if (s) {
-        if (Array.isArray(s.artists) && s.artists.length > 0) {
-            const mainArtist = s.artists[0];
-            effectiveArtistId = mainArtist._id || mainArtist.id;
+    if (song) {
+        if (Array.isArray(song.artists) && song.artists.length > 0) {
+            const mainArtist = song.artists[0];
+            mainArtistId = mainArtist._id || mainArtist.id;
             isArtistUpload = !!mainArtist.isArtistUpload;
-            finalArtistName = s.artists.map(a => a.name || a.username || 'Artista Desconhecido').join(', ');
-            
-        } else if (s.owner) {
-            effectiveArtistId = s.owner._id || s.owner.id;
+            finalArtistName = song.artists.map(a => a.name || a.username).join(', ');
+        } else if (song.owner) {
+            mainArtistId = song.owner._id || song.owner.id;
             isUserUpload = true;
-            finalArtistName = s.owner.username || s.owner.name || 'Proprietário Desconhecido';
+            finalArtistName = song.owner.username || song.owner.name;
         }
-
-        if (effectiveArtistId && !isUserUpload) {
-             isArtistUpload = true; 
-             isUserUpload = false;
-        } else if (isUserUpload) {
-             isArtistUpload = false;
-        }
+        
+        if (mainArtistId && !isUserUpload) isArtistUpload = true;
     }
     
     const isOwner = currentUserId && (
-        (isArtistUpload && effectiveArtistId === currentUserId) || 
-        (isUserUpload && s.owner?._id === currentUserId)
+        (isArtistUpload && mainArtistId === currentUserId) || 
+        (isUserUpload && song.owner?._id === currentUserId)
     );
     const canDelete = isAdmin || isOwner;
 
-
-    let artistLinkPrefix = '/perfil/';
-    if (isArtistUpload) {
-        artistLinkPrefix = '/artista/';
-    } else if (isUserUpload) {
-         artistLinkPrefix = '/perfil/';
-    }
-
-    const mainArtistId = effectiveArtistId;
-    const artistName = finalArtistName;
-    const linkPath = artistLinkPrefix;
-
-    const ownerName = song.owner 
-        ? (song.owner.name || song.owner.username || 'Proprietário Desconhecido')
-        : null;
-        
-    const ownerId = song.owner 
-        ? (song.owner._id || song.owner.id) 
-        : null;
-        
-    const label = song.album?.recordLabel || song.recordLabel || 'Não informada';
-    
+    let artistLinkPrefix = isArtistUpload ? '/artist/' : '/perfil/';
     const albumCover = song.album?.cover || null; 
     const musicCover = song.cover || null; 
+    
+    const currentAlbumId = song.album?._id || song.album?.id;
+    const filteredAlbums = artistAlbums.filter(a => (a._id || a.id) !== currentAlbumId);
 
     return (
         <main>
@@ -172,9 +151,9 @@ export default function SongDetail({ songID }) {
                 songCover={musicCover} 
                 type={'Single'} 
                 title={song.title} 
-                artist={artistName}
+                artist={finalArtistName}
                 artistId={mainArtistId} 
-                artistLinkPrefix={linkPath} 
+                artistLinkPrefix={artistLinkPrefix} 
                 year={song.releaseDate ? new Date(song.releaseDate).getFullYear() : ""}
                 duration={"1 música, " + formatTime(song.duration)}
                 genres={song.genres} 
@@ -185,15 +164,7 @@ export default function SongDetail({ songID }) {
                          <button 
                              className="more-options-button"
                              onClick={() => setShowDeleteModal(true)}
-                             style={{ 
-                                 background: 'none', 
-                                 border: '1px solid white', 
-                                 color: 'white', 
-                                 padding: '8px 15px', 
-                                 borderRadius: '20px',
-                                 cursor: 'pointer',
-                                 marginTop: '10px' 
-                             }}
+                             style={{ background: 'none', border: '1px solid white', color: 'white', padding: '8px 15px', borderRadius: '20px', cursor: 'pointer', marginTop: '10px' }}
                          >
                              ... Deletar Música
                          </button>
@@ -202,10 +173,7 @@ export default function SongDetail({ songID }) {
             </AlbumHeader> 
             
             <div className="song-list-container"> 
-                <SongList 
-                    tracksArr={[song]} 
-                    onTrackClick={handlePlaySong}
-                />
+                <SongList tracksArr={[song]} onTrackClick={handlePlaySong} />
             </div>
             
             {song.lyrics && (
@@ -217,17 +185,19 @@ export default function SongDetail({ songID }) {
 
             <ReleaseInfo
                 releaseDate={song.releaseDate} 
-                recordLabel={label} 
+                recordLabel={song.album?.recordLabel || song.recordLabel || 'Não informada'} 
                 genres={song.genres && song.genres.length > 0 ? song.genres.join(', ') : 'N/A'}
             />
 
-            <Section title={`Mais de ${artistName}`} className="section-mais-do-artista">
-                {artistAlbumsStatus === 'loading' && <p>Carregando álbuns...</p>}
-                {artistAlbums.length > 0 ? (
-                    artistAlbums.map((album) => {
+            <Section title={`Mais de ${finalArtistName}`} className="section-mais-do-artista">
+                {artistAlbumsStatus === 'loading' && <p>Carregando...</p>}
+                
+                {/* Lógica Inteligente: Mostra álbuns SE tiver, senão mostra outras músicas */}
+                {filteredAlbums.length > 0 ? (
+                    filteredAlbums.map((album) => {
                         let albArtist = 'Desconhecido';
                         if (album.artists && Array.isArray(album.artists)) {
-                            albArtist = album.artists.map(a => a.name || a.username || 'Desconhecido').join(', ');
+                            albArtist = album.artists.map(a => a.name).join(', ');
                         }
                         return (
                             <AlbumCard
@@ -239,8 +209,19 @@ export default function SongDetail({ songID }) {
                             />
                         );
                     })
+                ) : relatedSongs.length > 0 ? (
+                    relatedSongs.map((relatedSong) => (
+                        <SongCard 
+                            key={relatedSong._id}
+                            id={relatedSong._id}
+                            title={relatedSong.title}
+                            artist={finalArtistName}
+                            cover={relatedSong.cover || relatedSong.album?.cover}
+                            artistId={mainArtistId}
+                        />
+                    ))
                 ) : (
-                    <p>Nenhum outro álbum encontrado para este artista.</p>
+                    <p style={{ opacity: 0.6 }}>Nenhum outro conteúdo encontrado para este artista.</p>
                 )}
             </Section>
             
