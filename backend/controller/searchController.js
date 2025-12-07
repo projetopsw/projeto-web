@@ -1,62 +1,50 @@
+// controllers/SearchController.js
 import SearchService from '../services/searchService.js';
 
 class SearchController {
     static async index(req, res) {
         let { query, category } = req.query;
 
-        if (!query && req.query.q) {
-            query = req.query.q;
-        }
+        // Fallback para 'q' se 'query' não vier
+        if (!query && req.query.q) query = req.query.q;
 
         if (!query) {
-             return res.status(400).json({ 
-                 error: 'O parâmetro "query" é obrigatório.' 
-             });
+             return res.status(400).json({ error: 'O parâmetro "query" é obrigatório.' });
         }
         
-        if (!category) {
-            category = 'tudo'; 
-        }
+        if (!category) category = 'tudo';
 
         try {
+            // A mágica acontece aqui dentro
             const results = await SearchService.executeSearch(query, category);
 
+            // Função auxiliar para contar resultados (mantive a sua lógica)
             const calculateTotalCount = (resObj) => {
-                if (Array.isArray(resObj)) {
-                    return resObj.length;
+                let total = 0;
+                // Se for resultado específico (ex: só musicas)
+                if (resObj.priority || resObj.related) {
+                     return (resObj.priority?.length || 0) + (resObj.related?.length || 0);
                 }
-                
-                if (resObj && resObj.priority && resObj.related) {
-                    return resObj.priority.length + resObj.related.length;
-                }
-
-                let totalCount = 0;
+                // Se for 'tudo'
                 for (const key in resObj) {
-                    const categoryResults = resObj[key];
-                    if (categoryResults && categoryResults.priority && categoryResults.related) {
-                        totalCount += categoryResults.priority.length + categoryResults.related.length;
-                    }
+                    if (resObj[key]?.priority) total += resObj[key].priority.length;
+                    if (resObj[key]?.related) total += resObj[key].related.length;
                 }
-                return totalCount;
+                return total;
             };
 
-            const totalCount = calculateTotalCount(results);
+            const count = calculateTotalCount(results);
 
             return res.status(200).json({ 
-                category: category,
-                query: query,
-                results: results,
-                count: totalCount
+                category,
+                query,
+                results,
+                count
             });
 
         } catch (error) {
-            console.error('Erro ao processar pesquisa:', error);
-            if (error.message.includes('Categoria inválida')) {
-                return res.status(404).json({ error: error.message });
-            }
-            return res.status(500).json({ 
-                error: 'Erro interno do servidor ao buscar resultados.' 
-            });
+            console.error('Erro no SearchController:', error);
+            return res.status(500).json({ error: 'Erro interno ao processar a busca.' });
         }
     }
 }

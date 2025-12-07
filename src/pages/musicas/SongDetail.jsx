@@ -54,7 +54,6 @@ export default function SongDetail({ songID }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [relatedSongs, setRelatedSongs] = useState([]); 
     
-    // NOVO ESTADO: Para guardar a imagem que vamos buscar separadamente
     const [artistImageFromApi, setArtistImageFromApi] = useState(null);
 
     const { details: song, status: songStatus } = useSelector((state) => state.catalog.selectedSong);
@@ -78,18 +77,13 @@ export default function SongDetail({ songID }) {
             if (mainArtistId) {
                 dispatch(fetchAlbumsByArtist(mainArtistId));
 
-                // --- SOLUÇÃO: Busca os dados do artista para pegar a imagem ---
-                // Verifica se já não pegamos a imagem pelo song.owner (upload de usuário)
                 const isUserUpload = song.owner && (song.owner._id === mainArtistId || song.owner.id === mainArtistId);
                 
                 if (!isUserUpload) {
                     const fetchArtistData = async () => {
                         try {
-                            // Tenta buscar no endpoint de artista pelo ID
-                            // Ajuste a rota '/artists/' se o seu backend usar outro nome (ex: /artist)
                             const response = await mongoApi.get(`/artists/${mainArtistId}`);
                             if (response.data) {
-                                // Tenta todas as variações de nome de imagem
                                 const img = response.data.image || response.data.picture || response.data.avatar || response.data.img;
                                 setArtistImageFromApi(img);
                             }
@@ -99,7 +93,6 @@ export default function SongDetail({ songID }) {
                     };
                     fetchArtistData();
                 }
-                // -------------------------------------------------------------
 
                 const fetchRelatedSongs = async () => {
                     try {
@@ -155,7 +148,6 @@ export default function SongDetail({ songID }) {
 
     let finalArtistName = 'Desconhecido';
     
-    // Começa nulo, vamos tentar preencher abaixo
     let finalArtistImage = null; 
     
     let isArtistUpload = false;
@@ -169,7 +161,6 @@ export default function SongDetail({ songID }) {
             isArtistUpload = !!mainArtist.isArtistUpload;
             finalArtistName = song.artists.map(a => a.name || a.username).join(', ');
             
-            // Tenta pegar do objeto (se existir)
             finalArtistImage = mainArtist.image || mainArtist.picture || mainArtist.avatar; 
 
         } else if (song.owner) {
@@ -189,8 +180,6 @@ export default function SongDetail({ songID }) {
   
     const displayImage = finalArtistImage || artistImageFromApi;
 
-    console.log(`Imagem Final para Header: ${displayImage}`); 
-    
     const isOwner = currentUserId && (
         (isArtistUpload && mainArtistId === currentUserId) || 
         (isUserUpload && song.owner?._id === currentUserId)

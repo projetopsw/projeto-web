@@ -1,73 +1,72 @@
 import axios from 'axios';
+import qs from 'querystring';
 
-const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
-const SPOTIFY_API_BASE = process.env.SPOTIFY_API_BASE || 'https://api.spotify.com/v1';
+const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
+const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
-let appToken = {
-  access_token: null,
-  expires_at: 0,
+const getAppToken = async () => {
+    try {
+        const tokenUrl = 'https://accounts.spotify.com/api/token'; 
+        const data = qs.stringify({ grant_type: 'client_credentials' });
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': 'Basic ' + Buffer.from(CLIENT_ID + ':' + CLIENT_SECRET).toString('base64')
+        };
+
+        const response = await axios.post(tokenUrl, data, { headers });
+        return response.data.access_token;
+    } catch (error) {
+        console.error("Erro CRÍTICO ao autenticar no Spotify:", error.message);
+        return null;
+    }
 };
 
-async function fetchAppToken() {
-  const clientId = process.env.SPOTIFY_CLIENT_ID;
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-  if (!clientId || !clientSecret) {
-    throw new Error('SPOTIFY_CLIENT_ID/SECRET não configurados no ambiente');
-  }
+export const spotifyGet = async (endpoint) => {
+    const token = await getAppToken();
+    if (!token) throw new Error("Token do Spotify não gerado.");
 
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
-  }).toString();
+    try {
+        const url = endpoint.startsWith('http') 
+            ? endpoint 
+            : `https://api.spotify.com/v1${endpoint}`;
 
-  const res = await axios.post(SPOTIFY_TOKEN_URL, body, {
-    headers: {
-      'Authorization': 'Basic ' + Buffer.from(clientId + ':' + clientSecret).toString('base64'),
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-  });
-
-  const now = Math.floor(Date.now() / 1000);
-  appToken = {
-    access_token: res.data.access_token,
-    expires_at: now + (res.data.expires_in - 30), 
-  };
-  return appToken.access_token;
-}
-
-export async function getAppToken() {
-  const now = Math.floor(Date.now() / 1000);
-  if (!appToken.access_token || appToken.expires_at <= now) {
-    return await fetchAppToken();
-  }
-  return appToken.access_token;
-}
-
-export async function spotifyGet(path, params = {}) {
-  const token = await getAppToken();
-  try {
-    const res = await axios.get(`${SPOTIFY_API_BASE}${path}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      params,
-    });
-    return res.data;
-  } catch (err) {
-    if (err.response?.status === 401) {
-      await fetchAppToken();
-      const res = await axios.get(`${SPOTIFY_API_BASE}${path}`, {
-        headers: { Authorization: `Bearer ${appToken.access_token}` },
-        params,
-      });
-      return res.data;
+        const response = await axios.get(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    if (err.response?.status === 429) {
-      const retryAfter = parseInt(err.response.headers['retry-after'] || '1', 10) * 1000;
-      await new Promise(r => setTimeout(r, retryAfter));
-      const res = await axios.get(`${SPOTIFY_API_BASE}${path}`, {
-        headers: { Authorization: `Bearer ${appToken.access_token}` },
-        params,
-      });
-      return res.data;
+};
+
+export const searchSpotify = async (query, types = 'track,album,artist', limit = 15) => {
+    const token = await getAppToken();
+    if (!token) return null;
+
+    try {
+        const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${types}&limit=${limit}&market=BR`;
+        const response = await axios.get(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Erro na busca do Spotify:", error.message);
+        return null;
     }
-    throw err;
-  }
-}
+};
+
+export const getRelatedArtists = async (artistId) => {
+    const token = await getAppToken();
+    if (!token) return [];
+
+    try {
+        const url = `https://api.spotify.com/v1/artists/${artistId}/related-artists`;
+        const response = await axios.get(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        return response.data.artists || [];
+    } catch (error) {
+        console.error("Erro ao buscar artistas relacionados:", error.message);
+        return [];
+    }
+};

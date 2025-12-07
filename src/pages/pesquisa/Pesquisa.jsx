@@ -14,6 +14,7 @@ import api from '../../services/api.js';
 
 const navItemsData = ["Tudo", "Usuários", "Playlists", "Músicas", "Álbuns", "Artistas"];
 
+// Mapeia o filtro visual para o parâmetro da API
 const CATEGORY_MAP = {
     "Tudo": "tudo",
     "Músicas": "musica",
@@ -23,6 +24,8 @@ const CATEGORY_MAP = {
     "Usuários": "usuario"
 };
 
+// --- Funções Auxiliares e Mappers ---
+
 const getRandomItems = (data, count = 5) => {
     if (!data || data.length === 0) return [];
     const shuffled = [...data].sort(() => 0.5 - Math.random());
@@ -30,84 +33,184 @@ const getRandomItems = (data, count = 5) => {
 };
 
 const getCombinedResults = (data) => {
-    if (!data || (!data.priority && !data.related)) {
-        return [];
-    }
+    if (!data) return [];
     return [...(data.priority || []), ...(data.related || [])];
 };
 
+// Mapper seguro para Usuários
 const mapUser = (user) => ({
     ...user,
     id: user._id || user.id,
+    name: user.name || user.username || 'Usuário',
+    image: user.image || user.avatar || ''
 });
 
+// Mapper seguro para Playlists
 const mapPlaylist = (playlist) => ({
     ...playlist,
     id: playlist._id || playlist.id,
+    image: playlist.cover || playlist.image || (playlist.images && playlist.images[0]?.url)
 });
 
+// Mapper seguro para Artistas
 const mapArtist = (artist) => ({
     id: artist._id || artist.id, 
     name: artist.name,
-    image: artist.image
+    image: artist.image || artist.cover || (artist.images && artist.images[0]?.url)
 });
 
+// Mapper seguro para Álbuns
 const mapAlbum = (album) => {
-    const artistNames = Array.isArray(album.artists) 
-        ? album.artists.map(a => a.name).join(', ') 
-        : (typeof album.artist === 'string' ? album.artist : 'Vários Artistas');
+    let artistNames = 'Vários Artistas';
+
+    // Mesma lógica blindada da música
+    if (Array.isArray(album.artists) && album.artists.length > 0) {
+        artistNames = album.artists.map(a => a.name).join(', ');
+    } 
+    else if (album.artist && typeof album.artist === 'object' && album.artist.name) {
+        artistNames = album.artist.name;
+    }
+    else if (typeof album.artist === 'string' && album.artist.trim() !== '') {
+        artistNames = album.artist;
+    }
 
     return {
         ...album,
         id: album._id || album.id, 
+        name: album.name || album.title, // Garante nome do álbum
         artist: artistNames, 
-        cover: album.cover || (album.images && album.images[0]?.url)
+        cover: album.cover || (album.images && album.images[0]?.url) || album.image
     };
 };
 
+// Mapper seguro para Músicas (Tracks)
 const mapTrack = (track) => {
-    const artistNames = Array.isArray(track.artists)
-        ? track.artists.map(a => a.name).join(', ')
-        : 'Desconhecido';
+    if (track.name === 'ANTIFRAGILE' || track.title === 'ANTIFRAGILE') {
+        console.log("DADOS QUE CHEGARAM DA API (ANTIFRAGILE):", track);
+    }
+    if (!track) return null; 
+
+    // Vamos descobrir onde o nome do artista está escondido
+    let artistNames = 'Desconhecido';
+
+    // VERIFICAÇÃO 1: Array 'artists' (Padrão Spotify)
+    if (Array.isArray(track.artists) && track.artists.length > 0) {
+        // Verifica se é um array de Objetos (ex: [{name: 'X'}]) ou Strings (ex: ['X'])
+        if (typeof track.artists[0] === 'string') {
+            artistNames = track.artists.join(', ');
+        } else if (track.artists[0].name) {
+            artistNames = track.artists.map(a => a.name).join(', ');
+        }
+    } 
+    // VERIFICAÇÃO 2: Objeto 'artist' único (Mongoose population)
+    else if (track.artist && typeof track.artist === 'object' && track.artist.name) {
+        artistNames = track.artist.name;
+    }
+    // VERIFICAÇÃO 3: String direta (Dados normalizados)
+    else if (typeof track.artist === 'string' && track.artist.trim() !== '') {
+        artistNames = track.artist;
+    }
+    // VERIFICAÇÃO 4: Caso esteja dentro de 'owner' (comum em uploads de usuários)
+    else if (track.owner && (track.owner.name || track.owner.username)) {
+        artistNames = track.owner.name || track.owner.username;
+    }
+    // VERIFICAÇÃO 5: Salvação final - olhar dentro do album
+    else if (track.album && Array.isArray(track.album.artists) && track.album.artists.length > 0) {
+         if (track.album.artists[0].name) {
+            artistNames = track.album.artists.map(a => a.name).join(', ');
+         }
+    }
+
+    // Tratamento de Imagem (já estava correto, mas mantendo a segurança)
+    const imageCover = track.cover || 
+                       track.image ||
+                       (track.album && track.album.cover) || 
+                       (track.album && track.album.images && track.album.images[0]?.url) ||
+                       ''; // string vazia caso não tenha imagem
 
     return {
         ...track,
-        id: track._id || track.id,
-        artist: artistNames,
-        image: track.cover || (track.album && track.album.cover)
+        id: track._id || track.id, 
+        title: track.title || track.name,
+        artist: artistNames, 
+        // DICA: Muitos Cards usam 'subtitle' em vez de 'artist'. 
+        // Adicionamos as duas propriedades para garantir que o Card leia corretamente.
+        subtitle: artistNames, 
+        image: imageCover
     };
 };
+// --- Lógica de Adaptação dos Dados ---
 
-const adaptResults = (data) => {
-    const getSplitResults = (backendKey) => {
-        const raw = data[backendKey];
-        if (raw && (raw.priority || raw.related)) {
-            return {
-                priority: raw.priority || [],
-                related: raw.related || []
-            };
-        }
-        if (Array.isArray(raw)) {
-             return { priority: raw, related: [] };
-        }
-        return { priority: [], related: [] };
-    };
+/**
+ * Normaliza qualquer resposta do backend para o formato { priority: [], related: [] }
+ */
+const normalizeSectionData = (rawData) => {
+    if (!rawData) return { priority: [], related: [] };
+    
+    // Se o backend já devolve separado
+    if (rawData.priority || rawData.related) {
+        return {
+            priority: rawData.priority || [],
+            related: rawData.related || []
+        };
+    }
+    
+    // Se o backend devolve apenas um array (comportamento antigo ou filtro específico)
+    if (Array.isArray(rawData)) {
+        return { priority: rawData, related: [] };
+    }
 
-
-    return {
-        artists: getSplitResults('artistas'),
-        albums: getSplitResults('albuns'),
-        tracks: getSplitResults('musicas'),
-        playlists: getSplitResults('playlists'),
-        users: getSplitResults('usuarios'),
-    };
+    return { priority: [], related: [] };
 };
+
+/**
+ * Adapta a resposta completa da API para o estado do componente
+ */
+const adaptResults = (data, categoryFilter) => {
+    // Estado inicial vazio
+    const emptyState = {
+        artists: { priority: [], related: [] },
+        albums: { priority: [], related: [] },
+        tracks: { priority: [], related: [] },
+        playlists: { priority: [], related: [] },
+        users: { priority: [], related: [] }
+    };
+
+    if (!data) return emptyState;
+
+    // Se a busca é "Tudo", o backend retorna chaves no plural (artistas, albuns...)
+    if (categoryFilter === 'tudo') {
+        return {
+            artists: normalizeSectionData(data.artistas),
+            albums: normalizeSectionData(data.albuns),
+            tracks: normalizeSectionData(data.musicas),
+            playlists: normalizeSectionData(data.playlists),
+            users: normalizeSectionData(data.usuarios),
+        };
+    } 
+    
+    // Se a busca é específica, preenchemos apenas a chave relevante
+    // Note que o backend pode retornar { priority: [], related: [] } direto na raiz ou um array
+    const normalized = normalizeSectionData(data);
+    
+    switch (categoryFilter) {
+        case 'musica': return { ...emptyState, tracks: normalized };
+        case 'album': return { ...emptyState, albums: normalized };
+        case 'artista': return { ...emptyState, artists: normalized };
+        case 'playlist': return { ...emptyState, playlists: normalized };
+        case 'usuario': return { ...emptyState, users: normalized };
+        default: return emptyState;
+    }
+};
+
+// --- Componente Principal ---
 
 function Pesquisa() {
     const [selectedFilter, setSelectedFilter] = useState('Tudo');
     const [searchParams] = useSearchParams();
     const query = searchParams.get('q'); 
 
+    // Estado unificado dos resultados
     const [results, setResults] = useState({
         artists: { priority: [], related: [] }, 
         albums: { priority: [], related: [] }, 
@@ -123,11 +226,11 @@ function Pesquisa() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const fetchResults = async (currentQuery, currentFilter) => {
+    const fetchResults = async (currentQuery, currentFilterLabel) => {
         setIsLoading(true);
         setError(null);
         
-        const backendCategory = CATEGORY_MAP[currentFilter] || 'tudo'; 
+        const backendCategory = CATEGORY_MAP[currentFilterLabel] || 'tudo'; 
 
         try {
             const response = await api.get(`/api/search`, {
@@ -137,79 +240,45 @@ function Pesquisa() {
                 }
             });
 
-            const rawData = response.data.results; 
-            let finalResults = {}; 
-
-            if (backendCategory === 'tudo') {
-                const adaptedData = adaptResults(rawData);
-                finalResults = {
-                    artists: adaptedData.artists,
-                    albums: adaptedData.albums,
-                    tracks: adaptedData.tracks,
-                    playlists: adaptedData.playlists,
-                    users: adaptedData.users,
-                };
-            } else {
-                let stateKey;
-                switch (backendCategory) {
-                    case 'musica': stateKey = 'tracks'; break;
-                    case 'album': stateKey = 'albums'; break;
-                    case 'artista': stateKey = 'artists'; break;
-                    case 'playlist': stateKey = 'playlists'; break;
-                    case 'usuario': stateKey = 'users'; break;
-                    default: stateKey = null;
-                }
-                
-                if (stateKey) {
-                    const normalizedData = Array.isArray(rawData) 
-                        ? { priority: rawData, related: [] } 
-                        : rawData; 
-
-                    finalResults = { 
-                        ...results, 
-                        [stateKey]: normalizedData
-                    };
-                }
-            }
+            // O backend deve retornar algo dentro de data.results ou data diretamente
+            const rawData = response.data.results || response.data; 
             
-            if (Object.keys(finalResults).length > 0) {
-                setResults(finalResults);
-            }
-
+            // Adaptamos os dados usando a função centralizada
+            const finalResults = adaptResults(rawData, backendCategory);
+            
+            setResults(finalResults);
 
         } catch (err) {
             console.error("Erro na busca:", err);
-            setError("Não foi possível realizar a busca. Verifique o servidor.");
+            setError("Não foi possível realizar a busca. Tente novamente.");
+            // Limpa resultados em caso de erro
+            setResults(adaptResults(null));
         } finally {
             setIsLoading(false);
         }
     };
 
+    // Efeito para disparar a busca
     useEffect(() => {
         if (!query || query.trim() === "") {
-            setResults({ 
-                artists: { priority: [], related: [] }, 
-                albums: { priority: [], related: [] }, 
-                tracks: { priority: [], related: [] }, 
-                playlists: { priority: [], related: [] }, 
-                users: { priority: [], related: [] }
-            });
+            setResults(adaptResults(null)); // Reseta
             return;
         }
-
+        // Debounce opcional poderia ser adicionado aqui
         fetchResults(query, selectedFilter);
-
     }, [query, selectedFilter]);
 
+    // Efeito para sugestões aleatórias (quando não há resultados)
     useEffect(() => {
-        const totalMainResults = 
+        const totalCount = 
             getCombinedResults(results.tracks).length + 
             getCombinedResults(results.artists).length + 
             getCombinedResults(results.albums).length + 
             getCombinedResults(results.playlists).length + 
             getCombinedResults(results.users).length;
         
-        if (query && totalMainResults === 0 && !isLoading) {
+        // Só busca sugestões se a busca terminou, tem query, mas zero resultados
+        if (query && totalCount === 0 && !isLoading) {
             const loadSuggestions = async () => {
                 try {
                     const [songsRes, artistsRes, albumsRes] = await Promise.all([
@@ -237,6 +306,7 @@ function Pesquisa() {
         setSelectedFilter(item);
     };
     
+    // Cálculo do total de resultados para controle de exibição
     const totalMainResults = 
         getCombinedResults(results.tracks).length + 
         getCombinedResults(results.artists).length + 
@@ -244,45 +314,39 @@ function Pesquisa() {
         getCombinedResults(results.playlists).length + 
         getCombinedResults(results.users).length;
     
+    // Configuração das seções para renderização
     const sectionsData = [
-        { title: "Músicas", type: "musica", data: results.tracks, renderCard: (item) => <SongCard key={item.id} {...item} /> },
-        { title: "Álbuns", type: "album", data: results.albums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
-        { title: "Artistas", type: "artista", data: results.artists, renderCard: (item) => <ArtistCircle key={item.id} id={item.id} image={item.image} name={item.name} />},
-        { title: "Playlists", type: "playlist", data: results.playlists, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
-        { title: "Usuários", type: "usuario", data: results.users, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
+        { title: "Músicas", type: "musica", data: results.tracks, mapFn: mapTrack, renderCard: (item) => <SongCard key={item.id} {...item} /> },
+        { title: "Álbuns", type: "album", data: results.albums, mapFn: mapAlbum, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
+        { title: "Artistas", type: "artista", data: results.artists, mapFn: mapArtist, renderCard: (item) => <ArtistCircle key={item.id} id={item.id} image={item.image} name={item.name} />},
+        { title: "Playlists", type: "playlist", data: results.playlists, mapFn: mapPlaylist, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
+        { title: "Usuários", type: "usuario", data: results.users, mapFn: mapUser, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
     ];
 
     const randomSections = [
-        { title: "Músicas", type: "song", data: randomSuggestions.tracks, renderCard: (item) => <SongCard key={item.id} {...item} /> },
-        { title: "Álbuns", type: "album", data: randomSuggestions.albums, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
-        { title: "Artistas", type: "artist", data: randomSuggestions.artists, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
+        { title: "Músicas", type: "song", data: randomSuggestions.tracks, mapFn: mapTrack, renderCard: (item) => <SongCard key={item.id} {...item} /> },
+        { title: "Álbuns", type: "album", data: randomSuggestions.albums, mapFn: mapAlbum, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
+        { title: "Artistas", type: "artist", data: randomSuggestions.artists, mapFn: mapArtist, renderCard: (item) => <ArtistCircle key={item.id} image={item.image} name={item.name} />},
     ];
 
     const renderResultsSection = (section, isPriority) => {
         const dataKey = isPriority ? 'priority' : 'related';
-        
-        const dataArray = (section.data && section.data[dataKey]) || [];
+        const rawDataArray = (section.data && section.data[dataKey]) || [];
 
-        const sectionTitle = isPriority ? section.title : `Relacionados em ${section.title}`;
-        const containerClass = isPriority ? "section-scroll-container" : "section-scroll-container related-section";
-        
-        const isFiltered = selectedFilter === 'Tudo' || selectedFilter === section.title;
+        // Filtra visualmente se necessário (embora a API já deva ter filtrado, isso garante a UI limpa)
+        const shouldShow = selectedFilter === 'Tudo' || selectedFilter === section.title;
 
-        if (dataArray.length > 0 && isFiltered) {
-            
-            const mapFunction = (item) => {
-                if (section.title === 'Músicas') return mapTrack(item);
-                if (section.title === 'Álbuns') return mapAlbum(item);
-                if (section.title === 'Artistas') return mapArtist(item);
-                if (section.title === 'Playlists') return mapPlaylist(item);
-                if (section.title === 'Usuários') return mapUser(item);
-                return item;
-            };
+        if (rawDataArray.length > 0 && shouldShow) {
+            // Aplica o mapper específico da seção
+            const finalData = rawDataArray.map(section.mapFn).filter(item => item !== null);
 
-            const finalData = dataArray.map(mapFunction);
+            if (finalData.length === 0) return null;
+
+            const sectionTitle = isPriority ? section.title : `Relacionados em ${section.title}`;
+            const containerClass = isPriority ? "section-scroll-container" : "section-scroll-container related-section";
             
             return (
-                <Section key={section.title + '-' + dataKey} title={sectionTitle} showTitle={isPriority || selectedFilter !== 'Tudo'}>
+                <Section key={`${section.title}-${dataKey}`} title={sectionTitle} showTitle={isPriority || selectedFilter !== 'Tudo'}>
                     <div className={containerClass}>
                         {finalData.map(section.renderCard)}
                     </div>
@@ -307,25 +371,30 @@ function Pesquisa() {
 
                 {isLoading && <div className="loading-spinner">Carregando resultados...</div>}
                 
-                {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
+                {error && <p style={{ color: 'var(--text-error, red)', textAlign: 'center', marginTop: '20px' }}>{error}</p>}
                 
+                {/* Exibição dos Resultados da Busca */}
                 {!isLoading && !error && totalMainResults > 0 && (
                     <>
-                        <h1 className='search-subtitle'>Resultados para "{query}"</h1>
+                        {query && <h1 className='search-subtitle'>Resultados para "{query}"</h1>}
                         
+                        {/* Seção Prioritária (Exatos) */}
                         <div className="search-priority-section">
                             {sectionsData.map((section) => renderResultsSection(section, true))}
                         </div>
                         
-                        <h2 className='search-related-title' style={{ display: sectionsData.some(s => s.data.related && s.data.related.length > 0) ? 'block' : 'none' }}>
-                            Relacionados
-                        </h2>
+                        {/* Seção Relacionados - Só exibe o título se houver algum item relacionado */}
+                        {sectionsData.some(s => s.data.related && s.data.related.length > 0 && (selectedFilter === 'Tudo' || selectedFilter === s.title)) && (
+                            <h2 className='search-related-title'>Relacionados</h2>
+                        )}
+                        
                         <div className="search-related-section">
                             {sectionsData.map((section) => renderResultsSection(section, false))}
                         </div>
                     </>
                 )}
 
+                {/* Exibição de Sem Resultados + Sugestões */}
                 {!isLoading && !error && query && totalMainResults === 0 && (
                     <div style={{ marginTop: '20px' }}>
                         <p style={{ marginBottom: '40px', fontSize: '1.2rem', color: 'var(--text-color)', textAlign:'center' }}>
@@ -336,10 +405,12 @@ function Pesquisa() {
 
                         {randomSections.map((section) => {
                             if (section.data && section.data.length > 0) {
+                                // Mapeia os dados aleatórios também
+                                const mappedData = section.data.map(section.mapFn).filter(Boolean);
                                 return (
                                     <Section key={section.title + '-random'} title={section.title}>
                                         <div className="section-scroll-container">
-                                            {section.data.map(section.renderCard)}
+                                            {mappedData.map(section.renderCard)}
                                         </div>
                                     </Section>
                                 );
