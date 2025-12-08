@@ -3,7 +3,6 @@ import { Box, Divider, Typography, CircularProgress } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { fetchPlaylistsByUserId } from '../../redux/playlistsSlice.js';
 import { fetchArtistsByIds, fetchSongsByIds } from '../../redux/catalogoSlice.js';
 
 import { 
@@ -19,7 +18,6 @@ import ArtistCircle from '../../components/ArtistCircle.jsx';
 import ProfileHeader from '../../components/ProfileHeader.jsx'; 
 import SongList from '../../components/SongList.jsx';
 
-const DATA_API_URL = 'http://localhost:3001'; 
 const USER_API_URL = 'http://localhost:3000'; 
 const DEFAULT_USER_IMAGE = 'https://placehold.co/400x400?text=User'; 
 
@@ -126,7 +124,6 @@ export default function Perfil() {
 
             if (isOwner) {
                 finalUserData = userLogado;
-                dispatch(fetchPlaylistsByUserId(targetId));
                 dispatch(fetchArtistsByIds(userLogado.following || []));
                 dispatch(fetchSongsByIds(userLogado.likedSongs || []));
             } else {

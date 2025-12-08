@@ -1,5 +1,3 @@
-// src/pages/Playlists.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -10,6 +8,7 @@ import {
     Button,
     Switch,
     FormControlLabel,
+    CircularProgress
 } from '@mui/material';
 import api from '../../services/api';
 import { useSelector, useDispatch } from 'react-redux';
@@ -18,7 +17,7 @@ import { fetchUserPlaylistsDetail } from '../../redux/loginSlice';
 const LIKED_SONGS_COVER = '/assets/img/liked_cover_0.png';
 const DEFAULT_PLAYLIST_COVER = '/assets/img/vibe_cover_2.png'; 
 
-const LIKED_SONGS_PLAYLIST = {
+const LIKED_SONGS_PLAYLIST_TEMPLATE = {
     id: "0",
     name: "Músicas Curtidas",
     img: LIKED_SONGS_COVER,
@@ -26,7 +25,7 @@ const LIKED_SONGS_PLAYLIST = {
     description: "Todas as músicas que você curtiu.",
     creator: "Você",
     songCount: 0,
-    duration: "0 min",
+    duration: "0 músicas",
 };
 
 const ModalStyle = {
@@ -51,9 +50,12 @@ function Playlists() {
 
     const user = useSelector(state => state.user?.user) || useSelector(state => state.auth?.user);
     const USER_ID = user?.id || user?._id;
-    const userLikedSongs = user?.likedSongs || [];
+    
+    // Contagem de likes do Redux para manter atualizado em tempo real
+    const reduxLikedCount = user?.likedSongs?.length || 0;
 
     const [playlists, setPlaylists] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     
     const [newPlaylistName, setNewPlaylistName] = useState('');
@@ -62,59 +64,71 @@ function Playlists() {
     const [isPublic, setIsPublic] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
 
-
-
     const fetchPlaylists = async () => {
-        if (!USER_ID) return;
+        if (!USER_ID) {
+            setIsLoading(false);
+            return;
+        }
 
         try {
-            const userResponse = await api.get(`/users/${USER_ID}`);
-            const userData = userResponse.data;
-            const userPlaylistsIds = userData.userPlaylists || [];
-            const likedSongsCount = (userData.likedSongs || []).filter(id => id).length;
+            // ESTRATÉGIA NOVA: Busca todas as playlists do usuário de uma vez só.
+            // Isso evita buscar IDs órfãos que geram erro 404.
+            const response = await api.get('/playlists'); 
+            const allPlaylists = response.data;
 
-            const playlistsPromises = userPlaylistsIds.map(async id => {
-                try {
-                    const res = await api.get(`/playlists/${id}`);
-                    const playlistData = res.data;
-                    const songsCount = playlistData.songs ? playlistData.songs.length : 0;
-                    
-                    return {
-                        id: playlistData._id,
-                        name: playlistData.title,
-                        img: playlistData.cover || DEFAULT_PLAYLIST_COVER, 
-                        description: playlistData.description,
-                        creator: playlistData.user?.username || 'Usuário',
-                        songCount: songsCount,
-                        duration: `${songsCount} músicas`,
-                    };
-                } catch (e) {
-                    return null;
-                }
-            });
+            // 1. Encontra a playlist real de "Músicas Curtidas" no banco
+            const dbLikedPlaylist = allPlaylists.find(p => p.isLikedSongs);
             
-            let userCustomPlaylists = (await Promise.all(playlistsPromises)).filter(p => p !== null);
+            // 2. Separa as playlists customizadas
+            const customPlaylists = allPlaylists.filter(p => !p.isLikedSongs);
+
+            // 3. Monta o card de Músicas Curtidas
+            let likedPlaylistDisplay = { ...LIKED_SONGS_PLAYLIST_TEMPLATE };
             
-            const updatedLikedPlaylist = {
-                ...LIKED_SONGS_PLAYLIST,
-                songCount: likedSongsCount,
-                duration: `${likedSongsCount} músicas`
-            };
+            if (dbLikedPlaylist) {
+                // Se já existe no banco, usamos os dados reais
+                likedPlaylistDisplay = {
+                    ...LIKED_SONGS_PLAYLIST_TEMPLATE,
+                    id: dbLikedPlaylist._id, // ID real do banco (importante!)
+                    songCount: dbLikedPlaylist.songs?.length || 0,
+                    duration: `${dbLikedPlaylist.songs?.length || 0} músicas`
+                };
+            } else {
+                // Se não existe (ainda não curtiu nada ou lazy creation), usamos o contador do User
+                likedPlaylistDisplay.songCount = reduxLikedCount;
+                likedPlaylistDisplay.duration = `${reduxLikedCount} músicas`;
+            }
 
-            const finalPlaylists = [updatedLikedPlaylist, ...userCustomPlaylists];
-            setPlaylists(finalPlaylists);
+            // 4. Formata as playlists customizadas para exibição
+            const formattedCustomPlaylists = customPlaylists.map(p => ({
+                id: p._id,
+                name: p.name,
+                img: p.cover || DEFAULT_PLAYLIST_COVER,
+                description: p.description,
+                creator: 'Você',
+                songCount: p.songs ? p.songs.length : 0,
+                duration: `${p.songs ? p.songs.length : 0} músicas`
+            }));
 
+            // Combina tudo: Curtidas primeiro, depois as outras
+            setPlaylists([likedPlaylistDisplay, ...formattedCustomPlaylists]);
+
+            // Atualiza o Redux em background para manter a Sidebar sincronizada
             dispatch(fetchUserPlaylistsDetail(USER_ID));
 
         } catch (error) {
             console.error("Erro ao buscar playlists:", error);
-            setPlaylists([LIKED_SONGS_PLAYLIST]);
+            // Em caso de erro total, mostra pelo menos a de curtidas vazia
+            setPlaylists([LIKED_SONGS_PLAYLIST_TEMPLATE]);
+        } finally {
+            setIsLoading(false);
         }
     };
     
+    // Atualiza quando o ID do usuário muda ou quando ele curte algo novo (mudando o contador)
     useEffect(() => {
         fetchPlaylists();
-    }, [USER_ID, userLikedSongs.length]);
+    }, [USER_ID, reduxLikedCount]); 
 
     useEffect(() => {
         const query = new URLSearchParams(location.search);
@@ -133,11 +147,7 @@ function Playlists() {
     }
     
     const handleClose = () => {
-        setNewPlaylistName('');
-        setNewPlaylistDescription('');
-        setNewPlaylistCoverUrl('');
-        setIsPublic(false);
-        setIsModalOpen(false);
+        if (!isCreating) setIsModalOpen(false);
     }
 
     const handleCreatePlaylist = async (e) => {
@@ -153,28 +163,24 @@ function Playlists() {
             setIsCreating(true);
             try {
                 const coverUrlTrimmed = newPlaylistCoverUrl.trim();
-
-                // ✅ CORREÇÃO CRUCIAL: Se a URL estiver vazia, envia a URL padrão (link externo)
-                const cover = coverUrlTrimmed === '' 
-                    ? DEFAULT_PLAYLIST_COVER 
-                    : coverUrlTrimmed; 
+                const cover = coverUrlTrimmed === '' ? DEFAULT_PLAYLIST_COVER : coverUrlTrimmed; 
 
                 const newPlaylist = {
-                    title,
+                    name: title, // Backend espera "name"
                     description: newPlaylistDescription.trim() || `Playlist criada por ${user?.name || user?.username || 'usuário'}.`,
                     cover: cover,
                     isPublic: isPublic 
                 };
 
                 const response = await api.post('/playlists', newPlaylist);
-                const createdPlaylistId = response.data.playlist._id;
-
-                // Força a recarga dos dados antes de fechar o modal.
-                await fetchPlaylists();
                 
-                handleClose();
+                // O backend retorna a playlist criada (verifique se vem em response.data ou response.data.playlist)
+                const createdData = response.data.playlist || response.data;
+                const createdPlaylistId = createdData._id;
 
-                // Redireciona para a nova playlist.
+                await fetchPlaylists(); // Recarrega a lista
+                
+                setIsModalOpen(false);
                 navigate(`/playlist/${createdPlaylistId}`);
 
             } catch (error) {
@@ -188,10 +194,10 @@ function Playlists() {
     };
 
     const navigateToDetail = (id) => {
-        navigate(`/playlist/${id}`);
+        // Se o ID for o "0" (template), navegamos para a rota especial
+        if (id === "0") navigate('/playlist/0');
+        else navigate(`/playlist/${id}`);
     };
-
-    // --- RENDERIZAÇÃO ---
 
     return (
         <main className="content-area playlist-page">
@@ -202,83 +208,69 @@ function Playlists() {
                 paddingLeft: '0px'
             }}>Minhas Playlists</Typography>
 
-            <Box className="playlists-container"> 
-                
-                {/* 1. BLOCo DE CRIAÇÃO (Card) */}
-                <div className="box-playlist add-playlist" onClick={handleOpen}>
-                    <button className="btn-add-playlist" disabled={isCreating}>
-                        {isCreating 
-                            ? <i className="fas fa-spinner fa-spin" style={{ color: 'var(--text-color)', fontSize: '40px' }}></i>
-                            : <i className="fas fa-plus" style={{ color: 'var(--text-color)', fontSize: '40px' }}></i>
-                        }
-                    </button>
-                    <p style={{ color: 'var(--text-color)', marginTop: '10px', fontWeight: 'bold' }}>
-                        Nova Playlist
-                    </p>
-                    <p style={{ fontSize: '0.9rem', color: 'var(--secondary-text-color)', fontWeight: 'normal' }}>
-                        Crie e personalize
-                    </p>
-                </div>
-
-                {/* 2. LISTAGEM DAS PLAYLISTS (Cards) */}
-                {playlists.map((playlist) => (
-                    <div
-                        key={playlist.id}
-                        className="box-playlist" 
-                        onClick={() => navigateToDetail(playlist.id)}
-                    >
-                        {/* Imagem da Playlist */}
-                        <img 
-                            src={playlist.img} 
-                            alt={`Capa Playlist: ${playlist.name}`} 
-                        />
-                        
-                        {/* Título (Primeiro P) */}
-                        <p title={playlist.name}>
-                            {playlist.name}
+            {isLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: '50px' }}>
+                    <CircularProgress sx={{ color: 'var(--orange)' }} />
+                </Box>
+            ) : (
+                <Box className="playlists-container"> 
+                    
+                    {/* Card de Nova Playlist */}
+                    <div className="box-playlist add-playlist" onClick={handleOpen}>
+                        <button className="btn-add-playlist" disabled={isCreating}>
+                            <i className="fas fa-plus" style={{ color: 'var(--text-color)', fontSize: '40px' }}></i>
+                        </button>
+                        <p style={{ color: 'var(--text-color)', marginTop: '10px', fontWeight: 'bold' }}>
+                            Nova Playlist
                         </p>
-                        
-                        {/* Sub-texto/Contagem (Segundo P) */}
-                        <p style={{ 
-                            fontWeight: 'normal',
-                            fontSize: '0.9rem',
-                        }}>
-                            {playlist.songCount} músicas
+                        <p style={{ fontSize: '0.9rem', color: 'var(--secondary-text-color)', fontWeight: 'normal' }}>
+                            Crie e personalize
                         </p>
                     </div>
-                ))}
-            </Box>
+
+                    {/* Lista de Playlists */}
+                    {playlists.map((playlist) => (
+                        <div
+                            key={playlist.id}
+                            className="box-playlist" 
+                            onClick={() => navigateToDetail(playlist.id)}
+                        >
+                            <img 
+                                src={playlist.img} 
+                                alt={`Capa Playlist: ${playlist.name}`} 
+                                onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_PLAYLIST_COVER; }}
+                                style={{ objectFit: 'cover' }}
+                            />
+                            
+                            <p title={playlist.name}>
+                                {playlist.name}
+                            </p>
+                            
+                            <p style={{ fontWeight: 'normal', fontSize: '0.9rem' }}>
+                                {playlist.songCount} músicas
+                            </p>
+                        </div>
+                    ))}
+                </Box>
+            )}
 
             {/* Modal de Criação */}
             <Modal
                 open={isModalOpen}
                 onClose={handleClose}
                 aria-labelledby="modal-title"
-                aria-describedby="modal-description"
             >
                 <Box sx={ModalStyle} component="form" onSubmit={handleCreatePlaylist}>
-                    <Typography
-                        id="modal-title"
-                        variant="h6"
-                        component="h2"
-                        sx={{ color: 'var(--orange)', mb: 2 }}
-                    >
+                    <Typography id="modal-title" variant="h6" component="h2" sx={{ color: 'var(--orange)', mb: 2 }}>
                         Criar Nova Playlist
                     </Typography>
                     
-                    {/* Preview e Campo URL da Capa */}
                     <Box sx={{ display: 'flex', gap: '20px', marginBottom: 2, alignItems: 'center' }}>
                         <img 
-                            // Preview dinâmico: mostra o que o usuário digitou ou o padrão
                             src={newPlaylistCoverUrl.trim() || DEFAULT_PLAYLIST_COVER} 
                             alt="Preview da Capa" 
-                            style={{ 
-                                width: '100px', 
-                                height: '100px', 
-                                objectFit: 'cover', 
-                                borderRadius: '8px', 
-                                border: '1px solid var(--border-color)'
-                            }}
+                            onError={(e) => { e.target.src = DEFAULT_PLAYLIST_COVER; }} 
+                            style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }}
                         />
                         <TextField
                             label="URL da Capa"
@@ -288,27 +280,24 @@ function Playlists() {
                             margin="none"
                             sx={{ input: { color: 'var(--text-color)' }, '& .MuiInputLabel-root': { color: 'var(--secondary-text-color)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--border-color)' }, '&:hover fieldset': { borderColor: 'var(--orange)' }, '&.Mui-focused fieldset': { borderColor: 'var(--orange)' }, backgroundColor: 'var(--input-bg)' } }}
                             disabled={isCreating}
-                            helperText={`Padrão: ${DEFAULT_PLAYLIST_COVER}`}
+                            helperText="Deixe vazio para usar a capa padrão."
                         />
                     </Box>
 
-
-                    {/* Nome da Playlist */}
                     <TextField
                         autoFocus
                         margin="dense"
-                        id="name"
                         label="Nome da Playlist"
                         type="text"
                         fullWidth
                         variant="outlined"
                         value={newPlaylistName}
                         onChange={(e) => setNewPlaylistName(e.target.value)}
+                        required
                         sx={{ input: { color: 'var(--text-color)' }, '& .MuiInputLabel-root': { color: 'var(--secondary-text-color)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--border-color)' }, '&:hover fieldset': { borderColor: 'var(--orange)' }, '&.Mui-focused fieldset': { borderColor: 'var(--orange)' }, backgroundColor: 'var(--input-bg)' } }}
                         disabled={isCreating}
                     />
                     
-                    {/* Descrição */}
                     <TextField
                         label="Descrição (Opcional)"
                         value={newPlaylistDescription}
@@ -321,16 +310,12 @@ function Playlists() {
                         disabled={isCreating}
                     />
                     
-                    {/* Switch Pública */}
                     <FormControlLabel
                         control={
                             <Switch
                                 checked={isPublic}
                                 onChange={(e) => setIsPublic(e.target.checked)}
-                                sx={{
-                                    '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--orange)' },
-                                    '& .MuiSwitch-track': { backgroundColor: 'var(--secondary-text-color)' },
-                                }}
+                                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--orange)' }, '& .MuiSwitch-track': { backgroundColor: 'var(--secondary-text-color)' } }}
                             />
                         }
                         label={<Typography sx={{ color: 'var(--text-color)' }}>Playlist Pública</Typography>}
@@ -339,21 +324,14 @@ function Playlists() {
                     />
 
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, marginTop: 3 }}>
-                        <Button
-                            onClick={handleClose}
-                            sx={{ color: 'var(--secondary-text-color)' }}
-                            disabled={isCreating}
-                        >
+                        <Button onClick={handleClose} sx={{ color: 'var(--secondary-text-color)' }} disabled={isCreating}>
                             Cancelar
                         </Button>
                         <Button
                             type="submit"
                             variant="contained"
                             disabled={!newPlaylistName.trim() || isCreating}
-                            sx={{
-                                backgroundColor: 'var(--orange)',
-                                '&:hover': { backgroundColor: '#cc612a' }
-                            }}
+                            sx={{ backgroundColor: 'var(--orange)', '&:hover': { backgroundColor: '#cc612a' } }}
                         >
                             {isCreating ? 'Criando...' : 'Criar'}
                         </Button>

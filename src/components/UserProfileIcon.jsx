@@ -118,15 +118,19 @@ function UserProfileIcon() {
 
         <MenuItem onClick={handleProfileClick}>Ver Perfil</MenuItem>
 
-        {isAdmin && (
-          <>
-            <MenuItem onClick={handleUploadClick}>Upload de Músicas</MenuItem>
-            
-            <MenuItem onClick={handleAdminClick} sx={{ fontWeight: 'bold', color: 'var(--orange)' }}>
-              Admin Dashboard 👑
-            </MenuItem>
-          </>
-        )}
+        {isAdmin && [
+          <MenuItem key="upload" onClick={handleUploadClick}>
+            Upload de Músicas
+          </MenuItem>,
+
+          <MenuItem
+            key="admin"
+            onClick={handleAdminClick}
+            sx={{ fontWeight: 'bold', color: 'var(--orange)' }}
+          >
+            Admin Dashboard 👑
+          </MenuItem>
+        ]}
         
         <MenuItem onClick={handleLogout} sx={{ color: '#f44336' }}>
             Sair

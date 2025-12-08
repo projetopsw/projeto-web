@@ -1,244 +1,118 @@
 import Playlist from '../models/playlist.model.js';
-import User from '../models/user.model.js'; 
-import Song from '../models/song.model.js'; 
-import mongoose from 'mongoose';
+import Song from '../models/song.model.js';
 
-const PlaylistController = {
-    createPlaylist: async (req, res) => {
-        const { title, description, isPublic } = req.body;
-        const userId = req.user._id || req.user.id; 
+// 1. Cria uma playlist customizada (ex: "Para Treinar")
+export const createPlaylist = async (req, res) => {
+    try {
+        const { name, description, cover } = req.body;
+        const ownerId = req.user.id; // Assumindo que você tem um middleware de autenticação que popula req.user
 
-        if (!title) {
-            return res.status(400).json({ message: 'O título da playlist é obrigatório.' });
-        }
-        
-        if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-              return res.status(401).json({ message: 'ID de usuário inválido após autenticação. Refaça o login.' });
-        }
+        const newPlaylist = await Playlist.create({
+            name,
+            description,
+            cover,
+            owner: ownerId,
+            isLikedSongs: false // Playlist normal
+        });
 
-        try {
-            const coverUrl = req.file 
-                ? `/cover_images/${req.file.filename}` 
-                : (req.body.cover || undefined); 
-            const novaPlaylist = new Playlist({
-                title,
-                description,
-                user: userId, 
-                cover: coverUrl,
-                isPublic: isPublic !== undefined ? isPublic : true,
-                songs: [], 
-                songCount: 0,
-            });
-
-            const savedPlaylist = await novaPlaylist.save();
-            
-            await User.findByIdAndUpdate(userId, {
-                $push: { userPlaylists: savedPlaylist._id }
-            });
-
-            res.status(201).json({ 
-                message: 'Playlist criada com sucesso!', 
-                playlist: savedPlaylist 
-            });
-
-        } catch (error) {
-            console.error("Erro ao criar playlist no controller:", error); 
-            if (error.name === 'ValidationError') {
-                  return res.status(400).json({ message: 'Dados inválidos para a playlist.', errors: error.errors });
-            }
-            res.status(500).json({ message: 'Erro interno do servidor ao criar playlist.', error: error.message });
-        }
-    },
-    
-    getPlaylists: async (req, res) => {
-        try {
-            const playlists = await Playlist.find({ isPublic: true })
-                .populate('user', 'username img') 
-                .select('-songs') 
-                .lean();
-
-            res.status(200).json(playlists);
-        } catch (error) {
-            res.status(500).json({ message: 'Erro ao buscar playlists.', error: error.message });
-        }
-    },
-
-    getPlaylistById: async (req, res) => {
-        const { id } = req.params;
-        const loggedInUserId = req.user?._id || req.user?.id; 
-
-        try {
-            const playlist = await Playlist.findById(id)
-                .populate('user', 'username img') 
-                .populate('songs', 'title duration cover artists caminho') 
-                .lean();
-
-            if (!playlist) {
-                return res.status(404).json({ message: 'Playlist não encontrada.' });
-            }
-
-            const isOwner = loggedInUserId && playlist.user._id.toString() === loggedInUserId.toString();
-            if (!playlist.isPublic && !isOwner) {
-                return res.status(403).json({ message: 'Acesso negado. Esta playlist é privada.' });
-            }
-
-            res.status(200).json(playlist);
-        } catch (error) {
-            res.status(500).json({ message: 'Erro ao buscar playlist.', error: error.message });
-        }
-    },
-
-    updatePlaylist: async (req, res) => {
-        const { id } = req.params;
-        const { title, description, isPublic, cover } = req.body; 
-        const userId = (req.user._id || req.user.id)?.toString(); 
-
-        try {
-            const playlist = await Playlist.findById(id);
-            if (!playlist) {
-                return res.status(404).json({ message: 'Playlist não encontrada.' });
-            }
-
-            if (playlist.user.toString() !== userId) {
-                return res.status(403).json({ message: 'Acesso negado. Você não é o proprietário desta playlist.' });
-            }
-
-            let updateFields = {};
-            if (title !== undefined) updateFields.title = title;
-            if (description !== undefined) updateFields.description = description;
-            if (isPublic !== undefined) updateFields.isPublic = isPublic;
-            
-            if (cover !== undefined) {
-                  updateFields.cover = cover; 
-            }
-
-            if (req.file) { 
-                updateFields.cover = `/cover_images/${req.file.filename}`;
-            }
-
-            if (Object.keys(updateFields).length === 0) {
-                  return res.status(200).json({ message: 'Nenhuma alteração detectada.', playlist });
-            }
-
-            const updatedPlaylist = await Playlist.findByIdAndUpdate(
-                id,
-                updateFields,
-                { new: true, runValidators: true }
-            );
-
-            res.status(200).json({ message: 'Playlist atualizada com sucesso.', playlist: updatedPlaylist });
-        } catch (error) {
-            res.status(500).json({ message: 'Falha ao atualizar playlist.', error: error.message });
-        }
-    },
-    
-    deletePlaylist: async (req, res) => {
-        const { id } = req.params;
-        const userId = (req.user._id || req.user.id)?.toString();
-
-        try {
-            const playlist = await Playlist.findById(id);
-            if (!playlist) {
-                return res.status(404).json({ message: 'Playlist não encontrada.' });
-            }
-
-            if (playlist.user.toString() !== userId) {
-                return res.status(403).json({ message: 'Acesso negado. Você não é o proprietário desta playlist.' });
-            }
-
-            await Playlist.findByIdAndDelete(id);
-
-            await User.findByIdAndUpdate(userId, {
-                $pull: { userPlaylists: id }
-            });
-
-            res.status(200).json({ message: 'Playlist deletada com sucesso.' });
-        } catch (error) {
-            res.status(500).json({ message: 'Falha ao deletar playlist.', error: error.message });
-        }
-    },
-    
-    addSongToPlaylist: async (req, res) => {
-        const { id } = req.params;
-        const { songId } = req.body;
-        const userId = (req.user._id || req.user.id)?.toString();
-
-        if (!mongoose.Types.ObjectId.isValid(songId)) {
-              return res.status(400).json({ message: 'ID de música inválido.' });
-        }
-
-        try {
-            const playlist = await Playlist.findById(id);
-
-            if (!playlist) return res.status(404).json({ message: 'Playlist não encontrada.' });
-            
-            if (playlist.user.toString() !== userId) {
-                return res.status(403).json({ message: 'Acesso negado. Você não é o proprietário desta playlist.' });
-            }
-
-            const songExists = await Song.findById(songId).select('_id');
-            if (!songExists) return res.status(404).json({ message: 'Música não encontrada.' });
-            
-            const updatedPlaylist = await Playlist.findByIdAndUpdate(
-                id,
-                { 
-                    $addToSet: { songs: songId }, 
-                    $inc: { songCount: 1 } 
-                }, 
-                { new: true }
-            );
-
-            res.status(200).json({ 
-                message: 'Música adicionada à playlist com sucesso.', 
-                playlist: updatedPlaylist 
-            });
-
-        } catch (error) {
-            res.status(500).json({ message: 'Falha ao adicionar música.', error: error.message });
-        }
-    },
-
-    removeSongFromPlaylist: async (req, res) => {
-        const { id } = req.params; 
-        const { songId } = req.body;
-        const userId = (req.user._id || req.user.id)?.toString();
-
-        if (!mongoose.Types.ObjectId.isValid(songId)) {
-              return res.status(400).json({ message: 'ID de música inválido.' });
-        }
-
-        try {
-            const playlist = await Playlist.findById(id);
-
-            if (!playlist) return res.status(404).json({ message: 'Playlist não encontrada.' });
-            
-            if (playlist.user.toString() !== userId) {
-                return res.status(403).json({ message: 'Acesso negado. Você não é o proprietário desta playlist.' });
-            }
-            
-            const updatedPlaylist = await Playlist.findByIdAndUpdate(
-                id,
-                { 
-                    $pull: { songs: songId }, 
-                    $inc: { songCount: -1 } 
-                }, 
-                { new: true }
-            );
-
-            if (updatedPlaylist.songCount < 0) {
-                updatedPlaylist.songCount = 0;
-                await updatedPlaylist.save();
-            }
-
-            res.status(200).json({ 
-                message: 'Música removida da playlist com sucesso.', 
-                playlist: updatedPlaylist 
-            });
-
-        } catch (error) {
-            res.status(500).json({ message: 'Falha ao remover música.', error: error.message });
-        }
-    },
+        res.status(201).json(newPlaylist);
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao criar playlist', error: error.message });
+    }
 };
 
-export default PlaylistController;
+// 2. Excluir Playlist
+export const deletePlaylist = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const ownerId = req.user.id;
+
+        const playlist = await Playlist.findOneAndDelete({ _id: id, owner: ownerId });
+
+        if (!playlist) {
+            return res.status(404).json({ message: 'Playlist não encontrada ou sem permissão.' });
+        }
+
+        res.json({ message: 'Playlist excluída com sucesso.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao excluir playlist', error: error.message });
+    }
+};
+
+// 3. Adicionar música a uma playlist específica
+export const addSongToPlaylist = async (req, res) => {
+    try {
+        const { playlistId, songId } = req.body;
+        const ownerId = req.user.id;
+
+        const playlist = await Playlist.findOne({ _id: playlistId, owner: ownerId });
+        if (!playlist) return res.status(404).json({ message: 'Playlist não encontrada' });
+
+        // Evita duplicatas
+        if (playlist.songs.includes(songId)) {
+            return res.status(400).json({ message: 'Música já está na playlist' });
+        }
+
+        playlist.songs.push(songId);
+        await playlist.save();
+
+        res.json(playlist);
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao adicionar música', error: error.message });
+    }
+};
+
+// 4. LÓGICA DE CURTIR (Toggle Like)
+// Se a playlist "Músicas Curtidas" não existir, cria ela. Se existir, adiciona/remove a música.
+export const toggleLikeSong = async (req, res) => {
+    try {
+        const { songId } = req.body;
+        const ownerId = req.user.id;
+
+        // Tenta achar a playlist de curtidas desse usuário
+        let likedPlaylist = await Playlist.findOne({ owner: ownerId, isLikedSongs: true });
+
+        // Se não existir, cria agora (Lazy creation)
+        if (!likedPlaylist) {
+            likedPlaylist = await Playlist.create({
+                name: 'Músicas Curtidas',
+                owner: ownerId,
+                isLikedSongs: true,
+                songs: []
+            });
+        }
+
+        const songIndex = likedPlaylist.songs.indexOf(songId);
+        let isLiked = false;
+
+        if (songIndex > -1) {
+            // Se já curtiu, remove (Descurtir)
+            likedPlaylist.songs.splice(songIndex, 1);
+            isLiked = false;
+        } else {
+            // Se não curtiu, adiciona (Curtir)
+            likedPlaylist.songs.push(songId);
+            isLiked = true;
+        }
+
+        await likedPlaylist.save();
+
+        res.json({ isLiked, playlistId: likedPlaylist._id });
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao curtir música', error: error.message });
+    }
+};
+
+// 5. Listar playlists do usuário
+export const getUserPlaylists = async (req, res) => {
+    try {
+        const ownerId = req.user.id;
+        // Busca todas, ordenando: Músicas Curtidas primeiro, depois as criadas recentemente
+        const playlists = await Playlist.find({ owner: ownerId })
+                                        .sort({ isLikedSongs: -1, createdAt: -1 }); 
+        
+        res.json(playlists);
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao buscar playlists', error: error.message });
+    }
+};

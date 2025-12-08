@@ -1,28 +1,10 @@
-// src/pages/PlaylistDetalhe.jsx
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
-    Modal, 
-    Box, 
-    Typography, 
-    TextField, 
-    Button, 
-    IconButton, 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableContainer, 
-    TableHead, 
-    TableRow, 
-    styled,
-    Switch, 
-    FormControlLabel,
-    Menu,
-    MenuItem,
-    Divider,
+    Modal, Box, Typography, TextField, Button, IconButton, 
+    Table, TableBody, TableCell, TableContainer, TableHead, TableRow, 
+    styled, Switch, FormControlLabel, Menu, MenuItem, Divider, CircularProgress 
 } from '@mui/material';
-// ... (Ícones e drag and drop imports) ...
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -34,27 +16,17 @@ import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useSelector, useDispatch } from 'react-redux';
-import { setQueue, togglePlayPause } from '../../redux/playerSlice';
-import { fetchUserPlaylistsDetail } from '../../redux/loginSlice';
+import { togglePlayPause } from '../../redux/playerSlice'; 
 import api from '../../services/api';
 
 const INACTIVE_ICON_COLOR = 'var(--secondary-text-color)';
 const LIKED_SONGS_COVER = '/assets/img/liked_cover_0.png';
-// A imagem padrão para playlists customizadas
 const DEFAULT_PLAYLIST_COVER = '/assets/img/vibe_cover_2.png'; 
 
 const ModalStyle = {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: 400,
-    bgcolor: 'var(--sidebar-bg)',
-    border: '2px solid var(--orange)',
-    borderRadius: '8px',
-    boxShadow: 24,
-    p: 4,
-    color: 'var(--text-color)',
+    position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+    width: 400, bgcolor: 'var(--sidebar-bg)', border: '2px solid var(--orange)',
+    borderRadius: '8px', boxShadow: 24, p: 4, color: 'var(--text-color)',
 };
 
 const PlaylistHeaderContainer = styled(Box)(({ theme }) => ({
@@ -73,27 +45,12 @@ const ActionIcon = styled(IconButton)(({ theme }) => ({
 }));
 
 const SortContainer = styled(Box)(({ theme }) => ({
-    display: 'flex', 
-    alignItems: 'center', 
-    marginLeft: 'auto',
-    gap: '10px'
+    display: 'flex', alignItems: 'center', marginLeft: 'auto', gap: '10px'
 }));
 
 const SortButton = styled(Button)(({ theme }) => ({
-    color: 'var(--text-color)',
-    border: '1px solid var(--border-color)',
-    borderRadius: '20px',
-    padding: '6px 16px',
-    textTransform: 'none',
-    fontSize: '0.9rem',
-    backgroundColor: 'var(--input-bg)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    '&:hover': {
-        backgroundColor: 'var(--card-bg)',
-        borderColor: 'var(--secondary-text-color)'
-    }
+    color: 'var(--text-color)', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '6px 16px', textTransform: 'none', fontSize: '0.9rem', backgroundColor: 'var(--input-bg)', display: 'flex', alignItems: 'center', gap: '8px',
+    '&:hover': { backgroundColor: 'var(--card-bg)', borderColor: 'var(--secondary-text-color)' }
 }));
 
 const sortOptions = {
@@ -104,31 +61,52 @@ const sortOptions = {
     added: 'Adicionado em (Mais Recente)'
 };
 
-const sortSongs = (songs, key) => {
-    if (key === 'custom') {
-        return songs;
+// --- FUNÇÃO AUXILIAR PARA LIMPAR OS DADOS (CORRIGE A TELA PRETA) ---
+const mapSongSafe = (s) => {
+    if (!s) return null;
+
+    // 1. Trata Artista (Array ou Objeto -> String)
+    let artistName = 'Desconhecido';
+    if (Array.isArray(s.artists) && s.artists.length > 0) {
+        artistName = s.artists.map(a => a.name).join(', ');
+    } else if (s.artist && typeof s.artist === 'object') {
+        artistName = s.artist.name || 'Desconhecido';
+    } else if (typeof s.artist === 'string') {
+        artistName = s.artist;
     }
 
-    const sorted = [...songs].sort((a, b) => {
-        let valA = a[key] || '';
-        let valB = b[key] || '';
+    // 2. Trata Álbum (Objeto -> String)
+    let albumName = '';
+    let albumId = null;
+    if (s.album && typeof s.album === 'object') {
+        albumName = s.album.title || s.album.name || '';
+        albumId = s.album._id || s.album.id;
+    } else if (typeof s.album === 'string') {
+        albumName = s.album;
+    }
 
-        let comparison = String(valA).localeCompare(String(valB), 'pt', { sensitivity: 'base' });
+    // 3. Trata Duração
+    let durationDisplay = "0:00";
+    if (typeof s.duration === 'number') {
+        const min = Math.floor(s.duration / 60);
+        const sec = Math.floor(s.duration % 60);
+        durationDisplay = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+    } else if (s.duration) {
+        durationDisplay = s.duration;
+    }
 
-        if (key === 'added') {
-            return comparison * -1;
-        }
-        
-        return comparison;
-    });
-
-    return sorted;
+    return {
+        ...s,
+        id: s._id || s.id,
+        title: s.title || s.name || 'Sem título',
+        artist: artistName,  // Agora garantimos que é String!
+        album: albumName,    // Agora garantimos que é String!
+        albumId: albumId || s.albumId,
+        artistId: (s.artists && s.artists[0]?._id) || (s.artist?._id) || s.artistId,
+        cover: s.cover || s.image || (s.album && s.album.cover) || '/assets/img/default_song_cover.png',
+        duration: durationDisplay
+    };
 };
-
-const calculateTotalDuration = (songs) => {
-    return `${songs.length} músicas`; 
-};
-
 
 function PlaylistDetalhe() {
     const { id } = useParams();
@@ -136,18 +114,16 @@ function PlaylistDetalhe() {
     const dispatch = useDispatch();
     
     const { currentSong, isPlaying } = useSelector(state => state.player);
-    const userPlaylistsDetail = useSelector(state => state.auth.userPlaylistsDetail || []);
-    const user = useSelector(state => state.user?.user);
+    const user = useSelector(state => state.user?.user) || useSelector(state => state.auth?.user);
     const USER_ID = user?._id || user?.id || '';
-    const likedSongsFromRedux = userPlaylistsDetail.find(p => p.id === '0')?.songs || [];
-    const userPlaylists = userPlaylistsDetail;
-    const playlistsStatus = useSelector(state => state.auth.playlistsStatus);
 
     const [playlistDetails, setPlaylistDetails] = useState(null);
     const [localSongs, setLocalSongs] = useState([]);
+    const [originalSongs, setOriginalSongs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [hoveredSongId, setHoveredSongId] = useState(null);
     
+    // Estados UI
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editName, setEditName] = useState('');
     const [editDescription, setEditDescription] = useState('');
@@ -156,424 +132,219 @@ function PlaylistDetalhe() {
     
     const [sortAnchorEl, setSortAnchorEl] = useState(null);
     const [sortKey, setSortKey] = useState('custom');
-
     const [optionsAnchorEl, setOptionsAnchorEl] = useState(null);
-    const optionsMenuOpen = Boolean(optionsAnchorEl);
-
-    const [songOptionsAnchorEl, setSongOptionsAnchorEl] = useState(null); 
-    const [songOptionsSong, setSongOptionsSong] = useState(null); 
-    const songOptionsMenuOpen = Boolean(songOptionsAnchorEl);
-
     const [isAddToPlaylistModalOpen, setIsAddToPlaylistModalOpen] = useState(false);
-    
-    const fetchPlaylistData = async () => {
-        setIsLoading(true);
-        try {
-            if (id === '0') {
-                if (playlistsStatus !== 'succeeded') {
-                    setIsLoading(true);
-                    return;
+
+    // --- 1. EFEITO DE BUSCA (DESACOPLADO PARA EVITAR LOOP) ---
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadData = async () => {
+            if (id === '0' && !USER_ID) return; // Aguarda usuário logar
+            
+            setIsLoading(true);
+            try {
+                let details = null;
+                let rawSongs = [];
+                let songIds = [];
+
+                if (id === '0') {
+                    // --- MÚSICAS CURTIDAS ---
+                    const userRes = await api.get(`/users/${USER_ID}`);
+                    const userData = userRes.data;
+                    songIds = (userData.likedSongs || []).filter(Boolean);
+
+                    details = {
+                        id: '0',
+                        name: 'Músicas Curtidas',
+                        description: 'Todas as músicas que você curtiu.',
+                        img: LIKED_SONGS_COVER,
+                        isPublic: false,
+                        creator: 'Você',
+                        creatorId: USER_ID,
+                    };
+                } else {
+                    // --- PLAYLIST NORMAL ---
+                    const playlistResponse = await api.get(`/playlists/${id}`);
+                    const playlistData = playlistResponse.data;
+                    songIds = playlistData.songs || [];
+                    
+                    details = {
+                        ...playlistData,
+                        name: playlistData.title, 
+                        img: playlistData.cover || DEFAULT_PLAYLIST_COVER, 
+                        creator: playlistData.user?.username || 'Você', 
+                        creatorId: playlistData.user?._id || playlistData.user?.id || USER_ID,
+                        isPublic: playlistData.isPublic
+                    };
                 }
 
-                let songs = [];
-                if (likedSongsFromRedux && likedSongsFromRedux.length > 0) {
-                    const songsPromises = likedSongsFromRedux.map(songId => api.get(`/songs/${songId}`));
-                    const results = await Promise.allSettled(songsPromises);
-                    songs = results
-                        .filter(r => r.status === 'fulfilled')
-                        .map(r => r.value.data);
+                // --- POPULAR E LIMPAR DADOS ---
+                if (songIds.length > 0) {
+                    // Se já vier populado (objeto), usa direto. Se não, busca por ID.
+                    if (typeof songIds[0] === 'object' && (songIds[0].title || songIds[0].name)) {
+                        rawSongs = songIds;
+                    } else {
+                        const songsPromises = songIds.map(songId => api.get(`/songs/${songId}`));
+                        const results = await Promise.allSettled(songsPromises);
+                        rawSongs = results
+                            .filter(r => r.status === 'fulfilled')
+                            .map(r => r.value.data);
+                    }
                 }
-                
-                const likedPlaylistData = {
-                    id: '0',
-                    name: 'Músicas Curtidas',
-                    description: 'Todas as músicas que você curtiu.',
-                    img: LIKED_SONGS_COVER,
-                    isPublic: false,
-                    creator: 'Você',
-                    creatorId: USER_ID,
-                    songCount: songs.length,
-                    duration: calculateTotalDuration(songs),
-                };
-                
-                setPlaylistDetails(likedPlaylistData);
-                setLocalSongs(sortSongs(songs, sortKey));
-                setIsLoading(false);
-                return;
-            }
 
-            // BUSCAR DETALHES DA PLAYLIST NO BACKEND
-            const playlistResponse = await api.get(`/playlists/${id}`);
-            let playlistData = playlistResponse.data;
-            
-            let songIds = playlistData.songs || [];
-            let songs = [];
-            
-            // Verifica se as músicas já vieram populadas
-            if (songIds.length > 0 && typeof songIds[0] === 'object' && songIds[0].title) {
-                songs = songIds;
-            } else { // Caso contrário, buscamos os detalhes de cada ID
-                const songsPromises = songIds.map(songId => api.get(`/songs/${songId}`));
-                const results = await Promise.allSettled(songsPromises);
-                songs = results
-                    .filter(r => r.status === 'fulfilled')
-                    .map(r => r.value.data);
-            }
-            
-            // --- MAPEAMENTO BACKEND (title, cover) para FRONTEND (name, img) ---
-            const updatedPlaylist = {
-                ...playlistData,
-                name: playlistData.title, 
-                img: playlistData.cover, 
-                creator: playlistData.user?.username || 'Você', 
-                creatorId: playlistData.user?._id || playlistData.user?.id || USER_ID,
-                songCount: songs.length,
-                duration: calculateTotalDuration(songs),
-                isPublic: playlistData.isPublic
-            }
-            
-            setPlaylistDetails(updatedPlaylist);
-            setLocalSongs(sortSongs(songs, sortKey));
-            
-            // Inicializa os estados de EDIÇÃO usando o valor do backend ou o fallback padrão
-            setEditName(updatedPlaylist.name);
-            setEditDescription(updatedPlaylist.description || '');
-            
-            // **CORREÇÃO/CONFIRMAÇÃO:** Usamos o img da playlist, ou o DEFAULT_PLAYLIST_COVER se o campo estiver vazio/nulo.
-            setEditImg(updatedPlaylist.img || DEFAULT_PLAYLIST_COVER); 
-            
-            setEditIsPublic(updatedPlaylist.isPublic || false); 
+                // Aplica a função de limpeza em cada música
+                const cleanSongs = rawSongs.map(mapSongSafe).filter(Boolean);
 
-        } catch (error) {
-            console.error(`Erro ao carregar detalhes da playlist (ID: ${id}):`, error);
-            setPlaylistDetails(null); 
-        } finally {
-            setIsLoading(false);
-        }
-    };
+                if (isMounted) {
+                    details.songCount = cleanSongs.length;
+                    details.duration = `${cleanSongs.length} músicas`;
+                    
+                    setPlaylistDetails(details);
+                    setOriginalSongs(cleanSongs); // Salva base
+                    setLocalSongs(cleanSongs);    // Inicializa lista (o useEffect de sort vai ordenar depois)
 
+                    // Preenche form de edição
+                    setEditName(details.name);
+                    setEditDescription(details.description || '');
+                    setEditImg(details.img || DEFAULT_PLAYLIST_COVER);
+                    setEditIsPublic(details.isPublic || false); 
+                }
+
+            } catch (error) {
+                console.error("Erro ao carregar playlist:", error);
+                if (isMounted) setPlaylistDetails(null);
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        loadData();
+
+        return () => { isMounted = false; };
+    }, [id, USER_ID]); // Dependências limpas: só roda se mudar o ID da playlist ou o Usuário
+
+    // --- 2. EFEITO DE ORDENAÇÃO (SEPARADO) ---
     useEffect(() => {
-        fetchPlaylistData();
-    }, [id, likedSongsFromRedux.length, playlistsStatus]); 
+        if (!originalSongs || originalSongs.length === 0) return;
 
-    useEffect(() => {
-        if (id === '0' && USER_ID) {
-            if (playlistsStatus !== 'succeeded') {
-                try { dispatch(fetchUserPlaylistsDetail(USER_ID)); } catch {}
-            }
+        let sorted = [...originalSongs];
+        if (sortKey !== 'custom') {
+            sorted.sort((a, b) => {
+                let valA = a[sortKey] || '';
+                let valB = b[sortKey] || '';
+                let comparison = String(valA).localeCompare(String(valB), 'pt', { sensitivity: 'base' });
+                return sortKey === 'added' ? comparison * -1 : comparison;
+            });
         }
-    }, [id, USER_ID, playlistsStatus, dispatch]); 
-    
-    useEffect(() => {
-        setLocalSongs(prevSongs => sortSongs(prevSongs, sortKey));
-    }, [sortKey]); 
+        setLocalSongs(sorted);
+    }, [sortKey, originalSongs]);
 
-    const handleSortClick = (event) => {
-        setSortAnchorEl(event.currentTarget);
-    };
 
-    const handleSortClose = () => {
-        setSortAnchorEl(null);
-    };
-
-    const handleSortSelect = (key) => {
-        setSortKey(key); 
-        handleSortClose();
-    };
-    
-    const handleOpenEditModal = () => {
-        // Reinicializa os estados do modal antes de abrir, garantindo que o valor atual seja exibido
-        if(playlistDetails) {
-            setEditName(playlistDetails.name);
-            setEditDescription(playlistDetails.description || '');
-            setEditImg(playlistDetails.img || DEFAULT_PLAYLIST_COVER);
-            setEditIsPublic(playlistDetails.isPublic || false); 
-        }
-        setIsEditModalOpen(true);
-    }
-    const handleCloseEditModal = () => setIsEditModalOpen(false);
-    
-    // --- FUNÇÃO CRUCIAL 1: UPDATE (EDIÇÃO COM LINK EXTERNO) ---
+    // --- HANDLERS ---
     const handleUpdatePlaylist = async (e) => {
         e.preventDefault();
-        const newTitle = editName.trim(); 
+        if (!editName.trim()) return alert("Título obrigatório.");
+        if (id === "0") return;
 
-        if (!newTitle) {
-            alert("O título é obrigatório.");
-            return;
-        }
-
-        if (newTitle && id !== "0") {
-            const updatedData = {
-                // Mapeamento: FRONTEND (editName) -> BACKEND (title)
-                title: newTitle, 
-                description: editDescription,
-                // Mapeamento: FRONTEND (editImg - URL) -> BACKEND (cover)
-                // Usamos o editImg, que pode ser a URL padrão se o usuário apagou o campo.
-                cover: editImg, 
-                isPublic: editIsPublic
-            };
-
-            try {
-                // Chamada PATCH (envia JSON com a URL da imagem)
-                const response = await api.patch(`/playlists/${id}`, updatedData);
-                
-                // Recarrega os dados completos após o sucesso para atualizar a UI
-                fetchPlaylistData();
-                handleCloseEditModal();
-                alert("Playlist atualizada com sucesso!");
-            } catch (error) {
-                console.error("Erro ao atualizar playlist:", error.response || error);
-                alert(`Não foi possível atualizar a playlist. Erro: ${error.response?.data?.message || error.message}`);
-            }
+        try {
+            await api.patch(`/playlists/${id}`, {
+                title: editName, description: editDescription, cover: editImg, isPublic: editIsPublic
+            });
+            // Recarrega a página para simplificar atualização
+            window.location.reload();
+        } catch (error) {
+            alert("Erro ao atualizar.");
         }
     };
-    
-    // --- FUNÇÃO CRUCIAL 2: DELETE (EXCLUSÃO) ---
+
     const handleDeletePlaylist = async () => {
-        handleOptionsClose();
+        setOptionsAnchorEl(null);
         if (id === "0") return;
-        
-        if (window.confirm(`Tem certeza que deseja excluir a playlist "${playlistDetails.name}"? Esta ação é irreversível.`)) {
+        if (window.confirm(`Excluir "${playlistDetails.name}"?`)) {
             try {
                 await api.delete(`/playlists/${id}`);
-
-                // Navega para a página de listagem após o sucesso
-                navigate('/playlists'); 
+                navigate('/playlists');
             } catch (error) {
-                console.error("Erro ao excluir playlist:", error.response || error);
-                alert(`Não foi possível excluir a playlist. Erro: ${error.response?.data?.message || "Acesso negado ou erro no servidor."}`);
+                alert("Erro ao excluir.");
             }
         }
     };
 
-    // --- Outros Handlers (MANTIDOS) ---
-    const handleOptionsClick = (event) => { setOptionsAnchorEl(event.currentTarget); };
-    const handleOptionsClose = () => { setOptionsAnchorEl(null); };
-    const handleSharePlaylist = () => { /* ... */ };
-    const handleOpenAddToPlaylistModal = () => { /* ... */ };
-    const handleCloseAddToPlaylistModal = () => setIsAddToPlaylistModalOpen(false);
-    const handleAddSongToPlaylist = async (targetPlaylistId) => { /* ... */ };
-    const availablePlaylists = userPlaylists.filter(p => p.id !== '0' && p.id !== id);
-    const handleSongOptionsClick = (event, song) => { /* ... */ };
-    const handleSongOptionsClose = () => { setSongOptionsAnchorEl(null); setSongOptionsSong(null); };
-    const handleRemoveSong = async () => { /* ... */ };
-    const handleShareSong = () => { /* ... */ };
-    const handleOpenAddSongToPlaylistModal = () => { /* ... */ };
+    const onDragEnd = (result) => {
+        if (!result.destination || result.destination.index === result.source.index) return;
+        const items = Array.from(localSongs);
+        const [reorderedItem] = items.splice(result.source.index, 1);
+        items.splice(result.destination.index, 0, reorderedItem);
+        setLocalSongs(items);
+        // Em um cenário real, você salvaria a nova ordem no backend aqui
+    };
 
-    if (isLoading) {
-        return (
-            <main className="content-area" style={{paddingTop: '50px'}}>
-                <Typography variant="h4" sx={{color: 'var(--text-color)'}}>Carregando...</Typography>
-            </main>
-        );
-    }
-    
-    if (!playlistDetails) {
-        return (
-            <main className="content-area" style={{paddingTop: '50px'}}>
-                <Typography variant="h4" color="error">Playlist Não Encontrada! (ID: {id})</Typography>
-            </main>
-        );
-    }
+    // UI Helpers
+    const handleSortClick = (e) => setSortAnchorEl(e.currentTarget);
+    const handleSortClose = () => setSortAnchorEl(null);
+    const handleSortSelect = (key) => { setSortKey(key); handleSortClose(); };
+    const handleOptionsClick = (e) => setOptionsAnchorEl(e.currentTarget);
+    const handleOptionsClose = () => setOptionsAnchorEl(null);
+    const handlePlaylistPlay = () => { if(localSongs.length > 0) console.log("Play"); };
 
-    const isThisPlaylistPlaying = isPlaying && localSongs.some(song => song.id === currentSong?.id);
+    // --- RENDERIZAÇÃO ---
+    if (isLoading) return <main className="content-area" style={{paddingTop: '50px', display:'flex', justifyContent:'center'}}><CircularProgress color="warning" /></main>;
+    if (!playlistDetails) return <main className="content-area" style={{paddingTop: '50px', textAlign:'center'}}><Typography variant="h4" color="error">Playlist não encontrada.</Typography><Button onClick={() => navigate('/playlists')} sx={{mt: 2, color:'var(--orange)'}}>Voltar</Button></main>;
+
     const isCustomPlaylist = id !== "0"; 
     const isOwner = playlistDetails.creatorId === USER_ID;
-
-    const handlePlaylistPlay = () => { /* ... */ };
-    const handleSongClick = (song, index) => { /* ... */ };
-    const onDragEnd = async (result) => { /* ... */ };
+    const isThisPlaylistPlaying = isPlaying && localSongs.some(song => song.id === currentSong?.id);
 
     return (
         <main className="content-area playlist-page">
-            
             <PlaylistHeaderContainer>
-                {/* Imagem da Capa e Botão de Edição */}
-                {isOwner && isCustomPlaylist ? (
-                    <Box sx={{ position: 'relative', cursor: 'pointer' }} onClick={handleOpenEditModal}>
-                        <img 
-                            src={playlistDetails.img || DEFAULT_PLAYLIST_COVER} 
-                            alt="Playlist Cover" 
-                            style={{ 
-                                width: '250px', 
-                                height: '250px', 
-                                borderRadius: '12px', 
-                                boxShadow: '0 10px 30px var(--shadow-color-dark)', 
-                                objectFit: 'cover' 
-                            }}
-                        />
-                        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '12px', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', '&:hover': { opacity: 1 } }}>
+                <Box sx={{ position: 'relative', cursor: isOwner && isCustomPlaylist ? 'pointer' : 'default' }} onClick={isOwner && isCustomPlaylist ? () => setIsEditModalOpen(true) : undefined}>
+                    <img src={playlistDetails.img} alt="Capa" onError={(e) => {e.target.src = DEFAULT_PLAYLIST_COVER}} style={{ width: '250px', height: '250px', borderRadius: '12px', boxShadow: '0 10px 30px var(--shadow-color-dark)', objectFit: 'cover' }} />
+                    {isOwner && isCustomPlaylist && (
+                        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '12px', bgcolor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', '&:hover': { opacity: 1 } }}>
                             <EditIcon sx={{ fontSize: '50px', color: 'white' }} />
                         </Box>
-                    </Box>
-                ) : (
-                    <img 
-                        src={playlistDetails.img || DEFAULT_PLAYLIST_COVER} 
-                        alt="Playlist Cover" 
-                        style={{ 
-                            width: '250px', 
-                            height: '250px', 
-                            borderRadius: '12px', 
-                            boxShadow: '0 10px 30px var(--shadow-color-dark)', 
-                            objectFit: 'cover' 
-                        }}
-                    />
-                )}
-
+                    )}
+                </Box>
                 <Box className="header-info">
-                    <Typography variant="overline" className="playlist-type" sx={{ color: 'var(--secondary-text-color)', fontWeight: 'bold' }}>
+                    <Typography variant="overline" sx={{ color: 'var(--secondary-text-color)', fontWeight: 'bold' }}>
                         {id === '0' ? 'PLAYLIST ESPECIAL' : (playlistDetails.isPublic ? 'PLAYLIST PÚBLICA' : 'PLAYLIST PRIVADA')}
                     </Typography>
-                    <Typography variant="h3" component="h1" sx={{ color: 'var(--text-color)', fontWeight: 'bold', margin: '10px 0' }}>
-                        {playlistDetails.name}
-                    </Typography>
-                    <Typography className="playlist-description" sx={{ color: 'var(--secondary-text-color)', maxWidth: '600px' }}>
-                        {playlistDetails.description}
-                    </Typography>
-                    <Typography variant="body2" className="playlist-stats" sx={{ color: 'var(--secondary-text-color)', marginTop: '10px' }}>
-                        Criada por <Link to={`/perfil/${playlistDetails.creatorId}`} style={{ color: 'var(--text-color)', fontWeight: 'bold', textDecoration: 'none' }}>{playlistDetails.creator}</Link>
-                        • <span>{playlistDetails.songCount} músicas</span>
-                        • <span>{playlistDetails.duration}</span>
+                    <Typography variant="h3" component="h1" sx={{ color: 'var(--text-color)', fontWeight: 'bold', margin: '10px 0' }}>{playlistDetails.name}</Typography>
+                    <Typography sx={{ color: 'var(--secondary-text-color)', maxWidth: '600px' }}>{playlistDetails.description}</Typography>
+                    <Typography variant="body2" sx={{ color: 'var(--secondary-text-color)', mt: '10px' }}>
+                        Criada por <strong style={{ color: 'var(--text-color)' }}>{playlistDetails.creator}</strong> • {playlistDetails.songCount} músicas
                     </Typography>
                 </Box>
             </PlaylistHeaderContainer>
             
-            <Box className="actions-bar" sx={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '30px', padding: '0 20px' }}>
-                
-                <PlayButton
-                    aria-label={isThisPlaylistPlaying ? "Pausar Playlist" : "Tocar Playlist"}
-                    onClick={handlePlaylistPlay}
-                    disabled={localSongs.length === 0}
-                >
+            <Box className="actions-bar" sx={{ display: 'flex', alignItems: 'center', gap: '15px', mb: '30px', px: '20px' }}>
+                <PlayButton onClick={handlePlaylistPlay} disabled={localSongs.length === 0}>
                     {isThisPlaylistPlaying ? <PauseIcon sx={{ fontSize: '32px' }} /> : <PlayArrowIcon sx={{ fontSize: '32px' }} />}
                 </PlayButton>
-                
-                <ActionIcon aria-label="Shuffle"><i className="fas fa-random" style={{ fontSize: '20px' }} /></ActionIcon>
-                
-                {isOwner && isCustomPlaylist && (
-                    <ActionIcon 
-                        aria-label="Editar Playlist"
-                        onClick={handleOpenEditModal}
-                    >
-                        <EditIcon sx={{ fontSize: '20px' }} />
-                    </ActionIcon>
-                )}
-
-                <ActionIcon 
-                    aria-label="Mais Opções"
-                    onClick={handleOptionsClick}
-                >
-                    <MoreVertIcon sx={{ fontSize: '20px' }} />
-                </ActionIcon>
-
-                {/* Menu de Opções */}
-                <Menu
-                    anchorEl={optionsAnchorEl}
-                    open={optionsMenuOpen}
-                    onClose={handleOptionsClose}
-                    PaperProps={{
-                        sx: {
-                            backgroundColor: 'var(--card-bg)',
-                            color: 'var(--text-color)',
-                            marginTop: '5px',
-                            '& .MuiMenuItem-root': {
-                                fontSize: '0.9rem',
-                                padding: '8px 16px',
-                                '&:hover': { backgroundColor: 'var(--input-bg)' }
-                            }
-                        }
-                    }}
-                >
-                    <MenuItem onClick={handleSharePlaylist}>
-                        <ShareIcon sx={{ marginRight: 1, fontSize: '18px' }} />
-                        Compartilhar Playlist
-                    </MenuItem>
-                    
-                    <MenuItem onClick={handleOpenAddToPlaylistModal} disabled={availablePlaylists.length === 0 || localSongs.length === 0}>
-                        <PlaylistAddIcon sx={{ marginRight: 1, fontSize: '18px' }} />
-                        Adicionar a Outra Playlist
-                    </MenuItem>
-                    
-                    {isOwner && isCustomPlaylist && (
-                        <>
-                            <Divider sx={{ backgroundColor: 'var(--border-color)' }} />
-                            <MenuItem onClick={handleDeletePlaylist}>
-                                <DeleteIcon sx={{ marginRight: 1, fontSize: '18px', color: 'red' }} />
-                                Excluir Playlist
-                            </MenuItem>
-                        </>
-                    )}
+                <ActionIcon onClick={handleOptionsClick}><MoreVertIcon sx={{ fontSize: '20px' }} /></ActionIcon>
+                <Menu anchorEl={optionsAnchorEl} open={Boolean(optionsAnchorEl)} onClose={handleOptionsClose} PaperProps={{ sx: { bgcolor: 'var(--card-bg)', color: 'var(--text-color)' } }}>
+                    <MenuItem disabled>Compartilhar (Em breve)</MenuItem>
+                    {isOwner && isCustomPlaylist && <Divider sx={{ my: 1, bgcolor: 'var(--border-color)' }} />}
+                    {isOwner && isCustomPlaylist && <MenuItem onClick={handleDeletePlaylist} sx={{color: 'red'}}><DeleteIcon sx={{ mr: 1, fontSize: '18px' }} /> Excluir Playlist</MenuItem>}
                 </Menu>
-                
-                {/* Botão de Ordenação (Menu de Ordenação) */}
                 <SortContainer>
-                    <SortButton
-                        onClick={handleSortClick}
-                        endIcon={<i className="fas fa-chevron-down" style={{ fontSize: '12px' }} />}
-                    >
-                        <i 
-                            className="fas fa-list-ul" 
-                            style={{ 
-                                fontSize: '18px', 
-                                color: sortKey !== 'custom' ? 'var(--orange)' : INACTIVE_ICON_COLOR 
-                            }} 
-                        />
-                        {sortOptions[sortKey]}
+                    <SortButton onClick={handleSortClick} endIcon={<i className="fas fa-chevron-down" style={{ fontSize: '12px' }} />}>
+                        <i className="fas fa-list-ul" style={{ fontSize: '18px', color: sortKey !== 'custom' ? 'var(--orange)' : INACTIVE_ICON_COLOR }} /> {sortOptions[sortKey]}
                     </SortButton>
-                    
-                    <Menu
-                        anchorEl={sortAnchorEl}
-                        open={Boolean(sortAnchorEl)}
-                        onClose={handleSortClose}
-                        PaperProps={{
-                            sx: {
-                                backgroundColor: 'var(--card-bg)',
-                                color: 'var(--text-color)',
-                                marginTop: '5px',
-                                '& .MuiMenuItem-root': {
-                                    fontSize: '0.9rem',
-                                    padding: '8px 16px',
-                                    '&:hover': { backgroundColor: 'var(--input-bg)' },
-                                    '&.Mui-selected': { 
-                                        backgroundColor: 'var(--input-bg)',
-                                        color: 'var(--orange)',
-                                    }
-                                }
-                            }
-                        }}
-                    >
+                    <Menu anchorEl={sortAnchorEl} open={Boolean(sortAnchorEl)} onClose={handleSortClose} PaperProps={{ sx: { bgcolor: 'var(--card-bg)', color: 'var(--text-color)' } }}>
                         {Object.entries(sortOptions).map(([key, label]) => (
-                            <MenuItem 
-                                key={key}
-                                onClick={() => handleSortSelect(key)}
-                                selected={sortKey === key}
-                                disabled={!isCustomPlaylist && key === 'custom'}
-                            >
-                                {label}
-                            </MenuItem>
+                            <MenuItem key={key} onClick={() => handleSortSelect(key)} selected={sortKey === key} disabled={!isCustomPlaylist && key === 'custom'}>{label}</MenuItem>
                         ))}
                     </Menu>
                 </SortContainer>
-
             </Box>
             
-            {/* Tabela de Músicas (Drag and Drop) - Omitida por brevidade */}
-            {/* ... */}
-            
-            <TableContainer sx={{ marginTop: '20px', padding: '0 20px' }}>
+            <TableContainer sx={{ mt: '20px', px: '20px' }}>
                 <Table stickyHeader sx={{ minWidth: 650, borderSpacing: '0 10px', borderCollapse: 'separate' }}>
                     <TableHead>
-                        <TableRow sx={{ 
-                            '& th': { 
-                                color: 'var(--secondary-text-color)', 
-                                borderBottom: '1px solid var(--border-color)', 
-                                padding: '10px 0', 
-                                backgroundColor: 'var(--main-bg)', 
-                                fontSize: '0.85rem', 
-                                fontWeight: 'bold' 
-                            }
-                        }}>
+                        <TableRow sx={{ '& th': { color: 'var(--secondary-text-color)', borderBottom: '1px solid var(--border-color)', bgcolor: 'var(--main-bg)' } }}>
                             <TableCell sx={{ width: '40px' }}></TableCell>
                             <TableCell align="center" sx={{ width: '40px' }}>#</TableCell>
                             <TableCell>Título</TableCell>
@@ -583,249 +354,60 @@ function PlaylistDetalhe() {
                             <TableCell sx={{ width: '40px' }}></TableCell>
                         </TableRow>
                     </TableHead>
-
-                    {/* Mapeamento de Músicas (Adaptado para D&D) */}
                     {isCustomPlaylist && isOwner && sortKey === 'custom' ? (
                         <DragDropContext onDragEnd={onDragEnd}>
                             <Droppable droppableId="songs">
-                                {(droppableProvided) => (
-                                    <TableBody
-                                        {...droppableProvided.droppableProps}
-                                        ref={droppableProvided.innerRef}
-                                    >
+                                {(provided) => (
+                                    <TableBody {...provided.droppableProps} ref={provided.innerRef}>
                                         {localSongs.map((song, index) => (
-                                            <Draggable key={song._id || song.id} draggableId={song._id || song.id} index={index}>
-                                                {(draggableProvided) => (
-                                                    <TableRow 
-                                                        ref={draggableProvided.innerRef}
-                                                        {...draggableProvided.draggableProps}
-                                                        sx={{ 
-                                                            cursor: 'pointer', 
-                                                            backgroundColor: hoveredSongId === song.id ? 'var(--card-bg)' : 'transparent',
-                                                            '&:hover': { backgroundColor: 'var(--card-bg)' }
-                                                        }}
-                                                        onMouseEnter={() => setHoveredSongId(song.id)}
-                                                        onMouseLeave={() => setHoveredSongId(null)}
-                                                        onClick={() => handleSongClick(song, index)}
-                                                    >
-                                                        <TableCell sx={{ padding: '8px 0', borderBottom: 'none' }}>
-                                                            <div {...draggableProvided.dragHandleProps} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: INACTIVE_ICON_COLOR }}>
-                                                                <DragIndicatorIcon />
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell align="center" sx={{ padding: '8px 0', borderBottom: 'none', color: (currentSong?.id === song.id && isPlaying) ? 'var(--orange)' : INACTIVE_ICON_COLOR }}>
-                                                            {(currentSong?.id === song.id && isPlaying) ? <i className="fas fa-volume-up" /> : index + 1}
-                                                        </TableCell>
-                                                        <TableCell sx={{ padding: '8px 10px', borderBottom: 'none', color: currentSong?.id === song.id ? 'var(--orange)' : 'var(--text-color)' }}>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                                                <img src={song.cover || '/assets/img/default_song_cover.png'} alt="Cover" style={{ width: '40px', height: '40px', borderRadius: '4px' }} />
-                                                                <Box>
-                                                                    <Typography sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{song.title}</Typography>
-                                                                    <Typography variant="body2" sx={{ color: 'var(--secondary-text-color)' }}>{song.artist}</Typography>
-                                                                </Box>
-                                                            </Box>
-                                                        </TableCell>
-                                                        <TableCell sx={{ padding: '8px 10px', borderBottom: 'none', color: 'var(--secondary-text-color)' }}>
-                                                            <Link to={`/album/${song.albumId}`} style={{ color: 'inherit', textDecoration: 'none' }}>{song.album}</Link>
-                                                        </TableCell>
-                                                        <TableCell sx={{ padding: '8px 10px', borderBottom: 'none', color: 'var(--secondary-text-color)' }}>
-                                                            <Link to={`/artist/${song.artistId}`} style={{ color: 'inherit', textDecoration: 'none' }}>{song.artist}</Link>
-                                                        </TableCell>
-                                                        <TableCell align="center" sx={{ padding: '8px 0', borderBottom: 'none', color: 'var(--secondary-text-color)' }}>
-                                                            {song.duration} 
-                                                        </TableCell>
-                                                        <TableCell sx={{ padding: '8px 0', borderBottom: 'none' }}>
-                                                            {(hoveredSongId === song.id || songOptionsSong?.id === song.id) && (
-                                                                <ActionIcon onClick={(e) => handleSongOptionsClick(e, song)}>
-                                                                    <MoreVertIcon sx={{ fontSize: '18px' }} />
-                                                                </ActionIcon>
-                                                            )}
-                                                        </TableCell>
+                                            <Draggable key={song.id} draggableId={String(song.id)} index={index}>
+                                                {(provided) => (
+                                                    <TableRow ref={provided.innerRef} {...provided.draggableProps} sx={{ '&:hover': { bgcolor: 'var(--card-bg)' } }}>
+                                                        <TableCell sx={{borderBottom:'none'}}><div {...provided.dragHandleProps} style={{display:'flex',justifyContent:'center',color:INACTIVE_ICON_COLOR}}><DragIndicatorIcon /></div></TableCell>
+                                                        <TableCell align="center" sx={{borderBottom:'none', color:INACTIVE_ICON_COLOR}}>{index + 1}</TableCell>
+                                                        <TableCell sx={{borderBottom:'none', color:'var(--text-color)'}}><Box sx={{display:'flex', alignItems:'center', gap: 2}}><img src={song.cover} style={{width: 40, height: 40, borderRadius: 4}} alt="" />{song.title}</Box></TableCell>
+                                                        <TableCell sx={{borderBottom:'none', color:'var(--secondary-text-color)'}}>{song.album}</TableCell>
+                                                        <TableCell sx={{borderBottom:'none', color:'var(--secondary-text-color)'}}>{song.artist}</TableCell>
+                                                        <TableCell align="center" sx={{borderBottom:'none', color:'var(--secondary-text-color)'}}>{song.duration}</TableCell>
+                                                        <TableCell sx={{borderBottom:'none'}}></TableCell>
                                                     </TableRow>
                                                 )}
                                             </Draggable>
                                         ))}
-                                        {droppableProvided.placeholder}
+                                        {provided.placeholder}
                                     </TableBody>
                                 )}
                             </Droppable>
                         </DragDropContext>
                     ) : (
-                        // Renderização Sem D&D (para Músicas Curtidas ou ordenação não-custom)
-                        <TableBody>
+                         <TableBody>
                             {localSongs.map((song, index) => (
-                                <TableRow 
-                                    key={song._id || song.id}
-                                    sx={{ 
-                                        cursor: 'pointer', 
-                                        backgroundColor: hoveredSongId === song.id ? 'var(--card-bg)' : 'transparent',
-                                        '&:hover': { backgroundColor: 'var(--card-bg)' }
-                                    }}
-                                    onMouseEnter={() => setHoveredSongId(song.id)}
-                                    onMouseLeave={() => setHoveredSongId(null)}
-                                    onClick={() => handleSongClick(song, index)}
-                                >
-                                    <TableCell sx={{ width: '40px', padding: '8px 0', borderBottom: 'none' }}></TableCell>
-                                    <TableCell align="center" sx={{ padding: '8px 0', borderBottom: 'none', color: (currentSong?.id === song.id && isPlaying) ? 'var(--orange)' : INACTIVE_ICON_COLOR }}>
-                                        {(currentSong?.id === song.id && isPlaying) ? <i className="fas fa-volume-up" /> : index + 1}
-                                    </TableCell>
-                                    <TableCell sx={{ padding: '8px 10px', borderBottom: 'none', color: currentSong?.id === song.id ? 'var(--orange)' : 'var(--text-color)' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                            <img src={song.cover || '/assets/img/default_song_cover.png'} alt="Cover" style={{ width: '40px', height: '40px', borderRadius: '4px' }} />
-                                            <Box>
-                                                <Typography sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{song.title}</Typography>
-                                                <Typography variant="body2" sx={{ color: 'var(--secondary-text-color)' }}>{song.artist}</Typography>
-                                            </Box>
-                                        </Box>
-                                    </TableCell>
-                                    <TableCell sx={{ padding: '8px 10px', borderBottom: 'none', color: 'var(--secondary-text-color)' }}>
-                                        <Link to={`/album/${song.albumId}`} style={{ color: 'inherit', textDecoration: 'none' }}>{song.album}</Link>
-                                    </TableCell>
-                                    <TableCell sx={{ padding: '8px 10px', borderBottom: 'none', color: 'var(--secondary-text-color)' }}>
-                                        <Link to={`/artist/${song.artistId}`} style={{ color: 'inherit', textDecoration: 'none' }}>{song.artist}</Link>
-                                    </TableCell>
-                                    <TableCell align="center" sx={{ padding: '8px 0', borderBottom: 'none', color: 'var(--secondary-text-color)' }}>
-                                        {song.duration} 
-                                    </TableCell>
-                                    <TableCell sx={{ padding: '8px 0', borderBottom: 'none' }}>
-                                        {(hoveredSongId === song.id || songOptionsSong?.id === song.id) && (
-                                            <ActionIcon onClick={(e) => handleSongOptionsClick(e, song)}>
-                                                <MoreVertIcon sx={{ fontSize: '18px' }} />
-                                            </ActionIcon>
-                                        )}
-                                    </TableCell>
+                                <TableRow key={song.id} sx={{ '&:hover': { bgcolor: 'var(--card-bg)' } }}>
+                                     <TableCell sx={{borderBottom:'none'}}></TableCell>
+                                     <TableCell align="center" sx={{borderBottom:'none', color:INACTIVE_ICON_COLOR}}>{index + 1}</TableCell>
+                                     <TableCell sx={{borderBottom:'none', color:'var(--text-color)'}}><Box sx={{display:'flex', alignItems:'center', gap: 2}}><img src={song.cover} style={{width: 40, height: 40, borderRadius: 4}} alt="" />{song.title}</Box></TableCell>
+                                     <TableCell sx={{borderBottom:'none', color:'var(--secondary-text-color)'}}>{song.album}</TableCell>
+                                     <TableCell sx={{borderBottom:'none', color:'var(--secondary-text-color)'}}>{song.artist}</TableCell>
+                                     <TableCell align="center" sx={{borderBottom:'none', color:'var(--secondary-text-color)'}}>{song.duration}</TableCell>
+                                     <TableCell sx={{borderBottom:'none'}}></TableCell>
                                 </TableRow>
                             ))}
-                        </TableBody>
+                         </TableBody>
                     )}
                 </Table>
             </TableContainer>
 
-            {/* Menu de Opções da Música (Song Options Menu) - Omitido por brevidade */}
-            {/* ... */}
-            
-            {/* Modal de Edição da Playlist */}
-            {isOwner && isCustomPlaylist && (
-                <Modal
-                    open={isEditModalOpen}
-                    onClose={handleCloseEditModal}
-                    aria-labelledby="modal-edit-playlist-title"
-                >
-                    <Box sx={ModalStyle} component="form" onSubmit={handleUpdatePlaylist}>
-                        <Typography id="modal-edit-playlist-title" variant="h6" component="h2" sx={{ marginBottom: 2 }}>
-                            Editar Detalhes
-                        </Typography>
-
-                        <TextField
-                            label="Nome da Playlist"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            fullWidth
-                            margin="normal"
-                            required
-                            sx={{ input: { color: 'var(--text-color)' }, '& .MuiInputLabel-root': { color: 'var(--secondary-text-color)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--border-color)' }, '&:hover fieldset': { borderColor: 'var(--orange)' }, '&.Mui-focused fieldset': { borderColor: 'var(--orange)' }, backgroundColor: 'var(--input-bg)' } }}
-                        />
-
-                        <TextField
-                            label="Descrição"
-                            value={editDescription}
-                            onChange={(e) => setEditDescription(e.target.value)}
-                            fullWidth
-                            multiline
-                            rows={2}
-                            margin="normal"
-                            sx={{ textarea: { color: 'var(--text-color)' }, '& .MuiInputLabel-root': { color: 'var(--secondary-text-color)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--border-color)' }, '&:hover fieldset': { borderColor: 'var(--orange)' }, '&.Mui-focused fieldset': { borderColor: 'var(--orange)' }, backgroundColor: 'var(--input-bg)' } }}
-                        />
-
-                        <TextField
-                            label="URL da Capa"
-                            value={editImg}
-                            onChange={(e) => setEditImg(e.target.value)}
-                            fullWidth
-                            margin="normal"
-                            sx={{ input: { color: 'var(--text-color)' }, '& .MuiInputLabel-root': { color: 'var(--secondary-text-color)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--border-color)' }, '&:hover fieldset': { borderColor: 'var(--orange)' }, '&.Mui-focused fieldset': { borderColor: 'var(--orange)' }, backgroundColor: 'var(--input-bg)' } }}
-                        />
-                        
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={editIsPublic}
-                                    onChange={(e) => setEditIsPublic(e.target.checked)}
-                                    sx={{
-                                        '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--orange)' },
-                                        '& .MuiSwitch-track': { backgroundColor: 'var(--secondary-text-color)' },
-                                    }}
-                                />
-                            }
-                            label={<Typography sx={{ color: 'var(--text-color)' }}>Playlist Pública</Typography>}
-                            sx={{ marginTop: 1, marginBottom: 2 }}
-                        />
-
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 3 }}>
-                            <Button 
-                                type="submit" 
-                                variant="contained" 
-                                sx={{ 
-                                    backgroundColor: 'var(--orange)', 
-                                    color: 'white', 
-                                    '&:hover': { backgroundColor: 'var(--darker-orange)' } 
-                                }}
-                            >
-                                Salvar
-                            </Button>
+            <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
+                 <Box sx={ModalStyle} component="form" onSubmit={handleUpdatePlaylist}>
+                        <Typography variant="h6" sx={{ mb: 2, color: 'var(--orange)' }}>Editar Playlist</Typography>
+                        <TextField label="Nome" value={editName} onChange={e => setEditName(e.target.value)} fullWidth margin="normal" sx={{ input: { color: 'white' } }} />
+                        <TextField label="Descrição" value={editDescription} onChange={e => setEditDescription(e.target.value)} fullWidth multiline rows={2} margin="normal" sx={{ textarea: { color: 'white' } }} />
+                        <TextField label="Capa URL" value={editImg} onChange={e => setEditImg(e.target.value)} fullWidth margin="normal" sx={{ input: { color: 'white' } }} />
+                        <FormControlLabel control={<Switch checked={editIsPublic} onChange={e => setEditIsPublic(e.target.checked)} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--orange)' } }} />} label={<Typography sx={{color:'white'}}>Pública</Typography>} />
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                            <Button type="submit" variant="contained" sx={{ bgcolor: 'var(--orange)' }}>Salvar</Button>
                         </Box>
-                    </Box>
-                </Modal>
-            )}
-            
-            {/* Modal de Adicionar a Outra Playlist (Add to Playlist Modal) */}
-            <Modal
-                open={isAddToPlaylistModalOpen}
-                onClose={handleCloseAddToPlaylistModal}
-                aria-labelledby="modal-add-to-playlist-title"
-            >
-                <Box sx={ModalStyle}>
-                    <Typography id="modal-add-to-playlist-title" variant="h6" component="h2" sx={{ marginBottom: 2 }}>
-                        Adicionar 
-                        <Typography component="span" sx={{ fontWeight: 'bold', margin: '0 5px' }}>
-                            {songOptionsSong ? songOptionsSong.title : `${localSongs.length} músicas`}
-                        </Typography> 
-                        a:
-                    </Typography>
-
-                    <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
-                        {availablePlaylists.length > 0 ? (
-                            availablePlaylists.map((p) => (
-                                <MenuItem 
-                                    key={p.id} 
-                                    onClick={() => handleAddSongToPlaylist(p.id)}
-                                    sx={{ 
-                                        padding: '10px 16px', 
-                                        borderRadius: '4px',
-                                        '&:hover': { backgroundColor: 'var(--input-bg)' }
-                                    }}
-                                >
-                                    <img src={p.img || DEFAULT_PLAYLIST_COVER} alt="Cover" style={{ width: '40px', height: '40px', marginRight: '15px', borderRadius: '4px' }} />
-                                    <Box>
-                                        <Typography sx={{ fontWeight: 'bold', color: 'var(--text-color)' }}>{p.name}</Typography>
-                                        <Typography variant="body2" sx={{ color: 'var(--secondary-text-color)' }}>{p.songCount} músicas</Typography>
-                                    </Box>
-                                </MenuItem>
-                            ))
-                        ) : (
-                            <Typography sx={{ color: 'var(--secondary-text-color)' }}>Nenhuma outra playlist customizada disponível.</Typography>
-                        )}
-                    </Box>
-                    
-                    <Button 
-                        onClick={handleCloseAddToPlaylistModal} 
-                        variant="outlined" 
-                        fullWidth 
-                        sx={{ marginTop: 3, borderColor: 'var(--border-color)', color: 'var(--text-color)', '&:hover': { borderColor: 'var(--orange)' } }}
-                    >
-                        Fechar
-                    </Button>
-                </Box>
+                 </Box>
             </Modal>
         </main>
     );

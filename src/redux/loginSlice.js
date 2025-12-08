@@ -74,35 +74,19 @@ export const handleSpotifyCallback = createAsyncThunk(
 
 export const toggleLikeSongAsync = createAsyncThunk(
     'auth/toggleLikeSong',
-    async ({ userId, songId, currentLikedSongs }, { rejectWithValue }) => { 
+    async ({ songId }, { rejectWithValue }) => { 
         try {
-            // 1. Recuperar o token
-            const token = localStorage.getItem('token');
-
-            // 2. Configurar o Header
-            const config = {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            };
-
-            // Nota: Se a rota GET abaixo também precisar de auth, adicione o config nela também
-            const songsToToggle = currentLikedSongs || (await api.get(`/users/${userId}`, config)).data.likedSongs || [];
+            // Usa o novo endpoint inteligente do backend
+            // Ele já verifica token, cria playlist se precisar e adiciona/remove música
+            const response = await api.post('/playlists/like', { songId });
             
-            const songIdStr = String(songId);
-            const isLiked = songsToToggle.some(id => String(id) === songIdStr);
-    
-            const newLikedSongs = isLiked
-                ? songsToToggle.filter(id => String(id) !== songIdStr)
-                : [...songsToToggle, songId];
-
-            // 3. Passar o config (com o token) na requisição PATCH
-            await api.patch(`/users/${userId}`, { likedSongs: newLikedSongs }, config);
-
-            return newLikedSongs; 
-
+            // Retorna: { isLiked: boolean, playlistId: string }
+            return { 
+                songId, 
+                isLiked: response.data.isLiked 
+            };
         } catch (error) {
-            console.error("Erro ao fazer toggle de like:", error.response?.data || error.message);
+            console.error("Erro ao curtir:", error);
             return rejectWithValue(error.response?.data?.message || 'Falha ao curtir música.');
         }
     }
@@ -110,44 +94,33 @@ export const toggleLikeSongAsync = createAsyncThunk(
 
 export const addSongToPlaylistAsync = createAsyncThunk(
     'auth/addSongToPlaylist',
-    async ({ userId, playlistId, songId, currentLikedSongs }, { rejectWithValue, dispatch }) => {
+    async ({ playlistId, songId }, { rejectWithValue, dispatch }) => {
         try {
+            // Se for Músicas Curtidas, usa a ação específica de Like
             if (playlistId === LIKED_SONGS_ID) {
-                const result = await dispatch(toggleLikeSongAsync({ 
-                    userId, 
-                    songId,
-                    currentLikedSongs 
-                })).unwrap();
-                
-                const songIdStr = String(songId);
-                const isNowInList = result.some(id => String(id) === songIdStr);
-                
+                const result = await dispatch(toggleLikeSongAsync({ songId })).unwrap();
                 return { 
                     songId, 
                     playlistId: LIKED_SONGS_ID, 
-                    added: isNowInList, 
-                    message: isNowInList ? "Música curtida com sucesso!" : "Música descurtida." 
+                    added: result.isLiked, 
+                    message: result.isLiked ? "Música curtida!" : "Música descurtida." 
                 };
             } 
-            else {
-                const playlistResponse = await api.get(`/playlists/${playlistId}`);
-                const currentSongs = playlistResponse.data.songs || [];
+            
+            // Se for playlist customizada, usa o endpoint novo
+            const response = await api.post('/playlists/add-song', { playlistId, songId });
+            
+            // O backend retorna a playlist atualizada
+            return { 
+                songId, 
+                playlistId, 
+                updatedPlaylist: response.data, 
+                added: true, 
+                message: "Adicionada à playlist com sucesso!" 
+            };
 
-                const songIdStr = String(songId);
-                const isSongAlreadyInPlaylist = currentSongs.some(id => String(id) === songIdStr);
-
-                if (!isSongAlreadyInPlaylist) {
-                    const updatedSongs = [...currentSongs, songId];
-                    await api.patch(`/playlists/${playlistId}`, { songs: updatedSongs });
-                    
-                    return { songId, playlistId, updatedSongs, added: true, message: "Adicionada à playlist com sucesso!" };
-                }
-                
-                return { songId: null, playlistId, added: false, message: "Música já está nesta playlist." };
-            }
         } catch (error) {
-            console.error("Erro ao adicionar música à playlist:", error.response?.data || error.message);
-            return rejectWithValue(error.response?.data?.message || error.message || 'Falha ao adicionar música à playlist.');
+            return rejectWithValue(error.response?.data?.message || 'Falha ao adicionar música.');
         }
     }
 );
@@ -156,28 +129,50 @@ export const fetchUserPlaylistsDetail = createAsyncThunk(
     'auth/fetchUserPlaylistsDetail',
     async (userId, { rejectWithValue }) => {
         try {
+            // 1. Busca dados do usuário (para saber quais músicas ele curtiu)
             const userResponse = await api.get(`/users/${userId}`);
             const userData = userResponse.data || {};
-            const userPlaylistsIds = userData.userPlaylists || [];
+            
+            // 2. AQUI ESTA A CORREÇÃO:
+            // Em vez de fazer o map nos IDs (que causava o erro),
+            // buscamos todas as playlists existentes do usuário de uma vez.
+            const playlistsResponse = await api.get('/playlists');
+            const allUserPlaylists = playlistsResponse.data || [];
 
-            // Playlist virtual de Músicas Curtidas (id "0") baseada em likedSongs do usuário
-            const likedSongs = (userData.likedSongs || []).filter(Boolean);
-            const likedVirtual = {
+            // 3. Processamento: Separa a playlist de curtidas das outras
+            const dbLikedPlaylist = allUserPlaylists.find(p => p.isLikedSongs);
+            const realCustomPlaylists = allUserPlaylists.filter(p => !p.isLikedSongs);
+
+            // 4. Monta o objeto da Playlist de Curtidas
+            // (Usa a do banco se existir, ou cria uma virtual baseada no perfil do usuário)
+            const likedSongsIds = (userData.likedSongs || []).filter(Boolean);
+            
+            const likedPlaylistFinal = {
+                id: dbLikedPlaylist ? dbLikedPlaylist._id : '0',
+                _id: dbLikedPlaylist ? dbLikedPlaylist._id : '0',
+                name: 'Músicas Curtidas',
+                img: '/assets/img/liked_cover_0.png',
+                // Se existir no banco, usa as músicas de lá. Se não, usa do array do usuário.
+                songs: dbLikedPlaylist ? dbLikedPlaylist.songs : likedSongsIds,
+                songCount: dbLikedPlaylist ? dbLikedPlaylist.songs?.length : likedSongsIds.length,
+                duration: `${dbLikedPlaylist ? dbLikedPlaylist.songs?.length : likedSongsIds.length} músicas`,
+                isLikedSongs: true
+            };
+            
+            // 5. Retorna tudo junto sem erros 404
+            return [likedPlaylistFinal, ...realCustomPlaylists];
+
+        } catch (error) {
+            console.error("Erro no Redux fetchUserPlaylistsDetail:", error);
+            // Fallback para não quebrar a tela se a API falhar totalmente
+            return [{
                 id: '0',
                 name: 'Músicas Curtidas',
                 img: '/assets/img/liked_cover_0.png',
-                songs: likedSongs,
-                songCount: likedSongs.length,
-                duration: `${likedSongs.length} músicas`,
-            };
-            
-            const promises = userPlaylistsIds.map(id => api.get(`/playlists/${id}`));
-            const responses = await Promise.all(promises);
-
-            const realPlaylists = responses.map(response => response.data);
-            return [likedVirtual, ...realPlaylists];
-        } catch (error) {
-            return rejectWithValue(error.response?.data || 'Falha ao buscar detalhes das playlists.');
+                songs: [],
+                songCount: 0,
+                isLikedSongs: true
+            }];
         }
     }
 );
@@ -282,11 +277,18 @@ const authSlice = createSlice({
             })
             
             .addCase(addSongToPlaylistAsync.fulfilled, (state, action) => {
-                const { songId, playlistId, added, updatedSongs } = action.payload;
-                if (added && songId && playlistId !== LIKED_SONGS_ID) {
-                    const playlist = state.userPlaylistsDetail.find(p => p.id === playlistId);
-                    if (playlist) {
-                        playlist.songs = updatedSongs;
+                const { playlistId, updatedPlaylist } = action.payload;
+                
+                if (playlistId !== LIKED_SONGS_ID && updatedPlaylist) {
+                    // Atualiza a playlist na lista local
+                    const index = state.userPlaylistsDetail.findIndex(p => p.id === playlistId || p._id === playlistId);
+                    if (index !== -1) {
+                        // Atualiza os dados com o que veio do backend
+                        state.userPlaylistsDetail[index] = {
+                            ...state.userPlaylistsDetail[index],
+                            songs: updatedPlaylist.songs,
+                            songCount: updatedPlaylist.songs?.length || 0
+                        };
                     }
                 }
             })
@@ -313,7 +315,29 @@ const authSlice = createSlice({
             .addCase(fetchUsersByIds.rejected, (state, action) => {
                 state.friends.status = 'failed';
                 state.friends.error = action.error.message;
-            });
+            })
+            .addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
+                const { songId, isLiked } = action.payload;
+
+                // Encontra a playlist virtual "Músicas Curtidas" (ID '0')
+                const likedPlaylist = state.userPlaylistsDetail.find(p => p.id === '0');
+                
+                if (likedPlaylist) {
+                    if (isLiked) {
+                        // Adiciona se não existir
+                        if (!likedPlaylist.songs.some(s => s === songId || s._id === songId)) {
+                            // Nota: Adicionamos apenas o ID aqui para atualização rápida da UI. 
+                            // Se precisar do objeto completo da música, teria que vir do payload ou recarregar.
+                            likedPlaylist.songs.push(songId);
+                            likedPlaylist.songCount = (likedPlaylist.songCount || 0) + 1;
+                        }
+                    } else {
+                        // Remove
+                        likedPlaylist.songs = likedPlaylist.songs.filter(s => s !== songId && s._id !== songId);
+                        likedPlaylist.songCount = Math.max(0, (likedPlaylist.songCount || 1) - 1);
+                    }
+                }
+            })
 
             
     },

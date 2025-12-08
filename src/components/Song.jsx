@@ -146,37 +146,24 @@ export default function Song({ song }) {
             return;
         }
 
-        const wasLiked = isLiked; 
+        // Feedback visual imediato (Optimistic UI) ou esperar o thunk
+        const isCurrentlyLiked = isLiked;
 
         try {
-            await dispatch(toggleLikeSongAsync({
-                userId: user.id || user._id,
-                songId: songId,
-                currentLikedSongs: userLikedSongs,
+            // Dispara a ação que chama /api/playlists/like
+            const resultAction = await dispatch(toggleLikeSongAsync({
+                songId: songId
             })).unwrap();
 
-            try {
-                dispatch(fetchUserPlaylistsDetail(user.id || user._id));
-            } catch (e) {
-                console.warn('Playlist update warning', e);
+            // O backend nos diz se curtiu ou descurtiu
+            if (resultAction.isLiked) {
+                alert(`"${title}" adicionada às Músicas Curtidas!`);
+            } else {
+                alert(`"${title}" removida das Músicas Curtidas.`);
             }
 
-            if (!wasLiked) {
-                try {
-                    const prefResponse = await api.post('/users/like', { songId: songId });
-                    if (prefResponse.data.analyzed) {
-                        alert(`Parabéns! Suas preferências musicais foram analisadas e salvas!`);
-                    } else if (prefResponse.data.count) {
-                        alert(`Like registrado. Faltam ${5 - prefResponse.data.count} para a análise de preferências.`);
-                    } else {
-                        alert(`"${title}" foi curtida com sucesso!`);
-                    }
-                } catch (prefError) {
-                    alert(`"${title}" foi curtida com sucesso!`);
-                }
-            } else {
-                alert(`"${title}" foi removida das Músicas Curtidas.`);
-            }
+            // Atualiza a lista lateral de playlists para garantir que "Músicas Curtidas" apareça se foi criada agora
+            dispatch(fetchUserPlaylistsDetail(user.id || user._id));
 
         } catch (error) {
             console.error("Erro ao curtir/descurtir música:", error);
@@ -214,17 +201,25 @@ export default function Song({ song }) {
             navigate('/login');
             return;
         }
+
+        // Se o usuário clicar em "Músicas Curtidas" no menu, usamos a lógica de Like
+        if (playlistId === LIKED_SONGS_ID) {
+            handleLikeClick({ stopPropagation: () => {} }); // Reutiliza a função de like
+            handlePlaylistMenuClose();
+            return;
+        }
         
+        // Para outras playlists criadas manualmente
         dispatch(addSongToPlaylistAsync({
-            userId: user.id || user._id,
             playlistId: playlistId,
-            songId: songId,
-            currentLikedSongs: userLikedSongs
+            songId: songId
         })).unwrap().then(() => {
             alert(`"${title}" adicionada com sucesso à playlist "${playlistName}"!`);
         }).catch((error) => {
             console.error("Erro ao adicionar música à playlist:", error);
-            alert(`Erro ao adicionar "${title}" à playlist "${playlistName}".`);
+            // Mensagem de erro mais amigável vinda do backend (ex: "Música já está na playlist")
+            const msg = error.message || `Erro ao adicionar "${title}" à playlist.`;
+            alert(msg);
         });
         
         handlePlaylistMenuClose();

@@ -14,7 +14,6 @@ const playlistSchema = new Schema({
     },
     cover: { 
         type: String, 
-        // 🚨 NOVO DEFAULT: Caminho para a imagem de capa padrão (sem foto).
         default: '/assets/img/default_playlist_cover.png'
     },
     user: { 
@@ -35,6 +34,12 @@ const playlistSchema = new Schema({
         type: Boolean,
         default: true
     },
+    isLikedSongs: { 
+        type: Boolean, 
+        default: false 
+    },
 }, { timestamps: true });
+
+playlistSchema.index({ owner: 1, isLikedSongs: 1 }, { unique: true, partialFilterExpression: { isLikedSongs: true } });
 
 export default mongoose.model('Playlist', playlistSchema);
