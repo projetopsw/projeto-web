@@ -1,5 +1,6 @@
 import Playlist from '../models/playlist.model.js';
 import Song from '../models/song.model.js';
+import User from '../models/user.model.js';
 
 export const createPlaylist = async (req, res) => {
     try {
@@ -34,16 +35,23 @@ export const getPlaylistById = async (req, res) => {
         const { id } = req.params;
         
         const playlist = await Playlist.findById(id)
-            .populate('songs') 
-            .populate('user', 'name username'); 
+            .populate('user', 'name username') 
+            .populate({
+                path: 'songs', 
+                populate: [
+                    { 
+                        path: 'album', 
+                        select: 'title cover' 
+                    },
+                    { 
+                        path: 'artists', 
+                        select: 'name' 
+                    }
+                ]
+            });
 
         if (!playlist) {
             return res.status(404).json({ message: 'Playlist não encontrada.' });
-        }
-
-
-        if (!playlist.isPublic && playlist.user._id.toString() !== req.user.id) {
-            return res.status(403).json({ message: 'Acesso negado a esta playlist privada.' });
         }
 
         res.json(playlist);
@@ -69,58 +77,115 @@ export const getUserPlaylists = async (req, res) => {
 export const deletePlaylist = async (req, res) => {
     try {
         const { id } = req.params;
-        const ownerId = req.user.id;
+        const userId = req.user.id;
 
-        const playlist = await Playlist.findOneAndDelete({ _id: id, owner: ownerId });
+        const playlist = await Playlist.findById(id);
 
         if (!playlist) {
-            return res.status(404).json({ message: 'Playlist não encontrada ou sem permissão.' });
+            return res.status(404).json({ message: 'Playlist não encontrada no banco de dados.' });
         }
 
+        const donoDaPlaylist = (playlist.user || playlist.owner || '').toString();
+
+        if (donoDaPlaylist !== userId) {
+            return res.status(403).json({ message: 'Você não tem permissão para excluir esta playlist.' });
+        }
+
+        await Playlist.deleteOne({ _id: id });
+
+        await User.findByIdAndUpdate(userId, {
+            $pull: { userPlaylists: id }
+        });
+
         res.json({ message: 'Playlist excluída com sucesso.' });
+
     } catch (error) {
-        res.status(500).json({ message: 'Erro ao excluir playlist', error: error.message });
+        console.error("Erro ao excluir playlist:", error);
+        res.status(500).json({ message: 'Erro interno ao excluir playlist', error: error.message });
     }
 };
 
 export const addSongToPlaylist = async (req, res) => {
     try {
         const { playlistId, songId } = req.body;
-        const ownerId = req.user.id;
+        const userId = req.user.id; 
 
-        const playlist = await Playlist.findOne({ _id: playlistId, owner: ownerId });
-        if (!playlist) return res.status(404).json({ message: 'Playlist não encontrada' });
+        if (!playlistId || !songId) {
+            return res.status(400).json({ message: 'PlaylistId e SongId são obrigatórios.' });
+        }
 
-        if (playlist.songs.includes(songId)) {
-            return res.status(400).json({ message: 'Música já está na playlist' });
+        const playlist = await Playlist.findOne({ _id: playlistId, user: userId });
+        
+        if (!playlist) {
+            return res.status(404).json({ message: 'Playlist não encontrada ou você não tem permissão.' });
+        }
+
+        const songExists = playlist.songs.some(s => s.toString() === songId);
+
+        if (songExists) {
+            return res.status(400).json({ message: 'Esta música já está na playlist.' });
         }
 
         playlist.songs.push(songId);
+        
+        playlist.songCount = playlist.songs.length;
+        
         await playlist.save();
 
         res.json(playlist);
+
     } catch (error) {
-        res.status(500).json({ message: 'Erro ao adicionar música', error: error.message });
+        console.error("Erro ao adicionar música:", error);
+        res.status(500).json({ message: 'Erro interno ao adicionar música', error: error.message });
     }
 };
 
 export const toggleLikeSong = async (req, res) => {
     try {
         const { songId } = req.body;
-        const ownerId = req.user.id;
+        const userId = req.user.id;
 
-        let likedPlaylist = await Playlist.findOne({ owner: ownerId, isLikedSongs: true });
-
-        if (!likedPlaylist) {
-            likedPlaylist = await Playlist.create({
-                name: 'Músicas Curtidas',
-                owner: ownerId,
-                isLikedSongs: true,
-                songs: []
-            });
+        if (!songId) {
+            return res.status(400).json({ message: 'SongId é obrigatório.' });
         }
 
-        const songIndex = likedPlaylist.songs.indexOf(songId);
+        const userProfile = await User.findById(userId);
+        if (!userProfile) return res.status(404).json({ message: 'Usuário não encontrado.' });
+
+        let likedPlaylist = await Playlist.findOne({ 
+            $or: [{ user: userId }, { owner: userId }], 
+            isLikedSongs: true 
+        });
+
+        if (!likedPlaylist) {
+            const initialSongs = userProfile.likedSongs || [];
+            
+            if (!initialSongs.includes(songId)) {
+                initialSongs.push(songId);
+            }
+
+            likedPlaylist = await Playlist.create({
+                title: 'Músicas Curtidas',
+                user: userId,
+                isLikedSongs: true,
+                isPublic: false,
+                songs: initialSongs, 
+                description: 'Músicas que você curtiu',
+                cover: '/assets/img/liked_cover_0.png'
+            });
+
+            await User.findByIdAndUpdate(userId, {
+                $addToSet: { userPlaylists: likedPlaylist._id }
+            });
+            
+            return res.json({ isLiked: true, playlistId: likedPlaylist._id });
+        }
+
+        if (!likedPlaylist.user) {
+            likedPlaylist.user = userId;
+        }
+
+        const songIndex = likedPlaylist.songs.findIndex(s => s.toString() === songId);
         let isLiked = false;
 
         if (songIndex > -1) {
@@ -131,10 +196,30 @@ export const toggleLikeSong = async (req, res) => {
             isLiked = true;
         }
 
+        if (likedPlaylist.songs.length < (userProfile.likedSongs?.length || 0)) {
+             const mergedSongs = new Set([
+                 ...likedPlaylist.songs.map(s => s.toString()), 
+                 ...(userProfile.likedSongs || []).map(s => s.toString())
+             ]);
+             
+             if (!isLiked) mergedSongs.delete(songId);
+             
+             likedPlaylist.songs = Array.from(mergedSongs);
+        }
+
+        likedPlaylist.songCount = likedPlaylist.songs.length;
         await likedPlaylist.save();
 
+        if (isLiked) {
+            await User.findByIdAndUpdate(userId, { $addToSet: { likedSongs: songId } });
+        } else {
+            await User.findByIdAndUpdate(userId, { $pull: { likedSongs: songId } });
+        }
+
         res.json({ isLiked, playlistId: likedPlaylist._id });
+
     } catch (error) {
+        console.error("Erro ao curtir música:", error);
         res.status(500).json({ message: 'Erro ao curtir música', error: error.message });
     }
 };

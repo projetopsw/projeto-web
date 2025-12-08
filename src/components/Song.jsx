@@ -1,22 +1,30 @@
 import React, { useState } from 'react';
-import { Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, IconButton } from '@mui/material';
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import AddIcon from '@mui/icons-material/Add';
-import PersonIcon from '@mui/icons-material/Person';
-import AlbumIcon from '@mui/icons-material/Album';
-import QueueIcon from '@mui/icons-material/Queue';
-import ShareIcon from '@mui/icons-material/Share';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import PauseIcon from '@mui/icons-material/Pause';
-import CloseIcon from '@mui/icons-material/Close';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
+import { 
+    Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, 
+    DialogActions, Button, TextField, IconButton 
+} from '@mui/material';
+import { 
+    FavoriteBorder as FavoriteBorderIcon, 
+    Favorite as FavoriteIcon, 
+    Add as AddIcon, 
+    Person as PersonIcon, 
+    Album as AlbumIcon, 
+    Queue as QueueIcon, 
+    Share as ShareIcon, 
+    PlayArrow as PlayArrowIcon, 
+    Pause as PauseIcon, 
+    Close as CloseIcon, 
+    Delete as DeleteIcon, 
+    Edit as EditIcon 
+} from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { toggleLikeSongAsync, addSongToPlaylistAsync, fetchUserPlaylistsDetail } from '../redux/loginSlice';
+import { 
+    toggleLikeSongAsync, 
+    addSongToPlaylistAsync, 
+    fetchUserPlaylistsDetail 
+} from '../redux/loginSlice';
 import { playSong, togglePlayPause, addSingleSongToQueue } from '../redux/playerSlice';
-import api from '../services/api'; 
 import mongoApi from '../services/mongoApi';
 import DeleteConfirmationModal from './DeleteMusica.jsx';
 import EditMusicaModal from './EditMusica.jsx'; 
@@ -27,7 +35,6 @@ const LIKED_SONGS_ID = "0";
 const formatTime = (seconds) => {
     if (!seconds && seconds !== 0) return "0:00";
     if (typeof seconds === 'string' && seconds.includes(':')) return seconds;
-    
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
@@ -44,15 +51,13 @@ export default function Song({ song }) {
     let mainArtistId = null;
 
     if (song.artists && Array.isArray(song.artists) && song.artists.length > 0) {
-        artistDisplay = song.artists.map(a => a.name).join(', ');
+        artistDisplay = song.artists.map(a => (typeof a === 'string' ? a : a.name)).join(', ');
         mainArtistId = song.artists[0]._id || song.artists[0].id;
-    } 
-    else if (song.artist && typeof song.artist === 'object') {
+    } else if (song.artist && typeof song.artist === 'object') {
         artistDisplay = song.artist.name || "Desconhecido";
         mainArtistId = song.artist._id || song.artist.id;
-    } 
-    else if (song.artist) {
-        artistDisplay = song.artist; 
+    } else if (typeof song.artist === 'string') {
+        artistDisplay = song.artist;
         mainArtistId = song.artistId || null;
     }
 
@@ -61,28 +66,26 @@ export default function Song({ song }) {
 
     if (song.album && typeof song.album === 'object') {
         albumId = song.album._id || song.album.id;
-        
         const type = song.album.type || song.album.album_type || "";
-        if (type.toLowerCase() === 'single') {
-            isSingle = true;
-        }
+        if (type.toLowerCase() === 'single') isSingle = true;
     } else if (song.albumId) {
         albumId = song.albumId;
     }
-    
-    if (song.albumType && song.albumType.toLowerCase() === 'single') {
-        isSingle = true;
-    }
+    if (song.albumType && song.albumType.toLowerCase() === 'single') isSingle = true;
 
     const durationDisplay = formatTime(song.duration);
 
-    const user = useSelector(state => state.user?.user);
+    const user = useSelector(state => state.user?.user) || useSelector(state => state.auth?.user);
     const isAdmin = user?.role === 'admin'; 
     const userPlaylistsDetail = useSelector(state => state.auth?.userPlaylistsDetail || []);
 
-    const userLikedSongs = user?.likedSongs || [];
+    const userLikedSongs = Array.isArray(user?.likedSongs) ? user.likedSongs : [];
     const songIdStr = String(songId);
-    const isLiked = userLikedSongs.some(id => String(id) === songIdStr); 
+    const isLiked = userLikedSongs.some(item => {
+        if (!item) return false;
+        const itemId = typeof item === 'object' ? (item._id || item.id) : item;
+        return String(itemId) === songIdStr;
+    });
 
     const { currentSong, isPlaying } = useSelector(state => state.player);
     const isThisSongCurrentlySelected = (currentSong?._id === songId) || (currentSong?.id === songId);
@@ -97,97 +100,67 @@ export default function Song({ song }) {
     
     const aberto = Boolean(anchorEl);
     const playlistMenuAberto = Boolean(playlistAnchorEl);
-    
     const canManage = isAdmin; 
 
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-    };
-    
-    const handlePlaylistMenuClose = () => {
-        setPlaylistAnchorEl(null);
-        handleMenuClose();
-    };
+    const handleMenuClose = () => setAnchorEl(null);
+    const handlePlaylistMenuClose = () => { setPlaylistAnchorEl(null); handleMenuClose(); };
     
     const handleDeleteSong = async () => {
         if (!songId) return;
-
         try {
             await mongoApi.delete(`/songs/${songId}`); 
             alert(`Música "${title}" deletada com sucesso!`); 
             window.location.reload(); 
         } catch (error) {
-            console.error('Erro ao deletar a música:', error);
-            alert('Falha ao deletar a música. Tente novamente.');
+            console.error('Erro ao deletar:', error);
+            alert('Falha ao deletar a música.');
         } finally {
             setShowDeleteModal(false);
         }
     };
 
-    const handleUpdateSuccess = (updatedSongData) => {
+    const handleUpdateSuccess = () => {
         window.location.reload(); 
         setShowEditModal(false);
     }
 
     const handleLikeClick = async (e) => {
         e.stopPropagation();
-        
-        if (!user || !user.id) {
-            navigate('/login');
-            return;
-        }
-
-        const isCurrentlyLiked = isLiked;
+        if (!user || (!user.id && !user._id)) { navigate('/login'); return; }
 
         try {
-            const resultAction = await dispatch(toggleLikeSongAsync({
-                songId: songId
-            })).unwrap();
-
-            if (resultAction.isLiked) {
-                alert(`"${title}" adicionada às Músicas Curtidas!`);
-            } else {
-                alert(`"${title}" removida das Músicas Curtidas.`);
-            }
-
-            dispatch(fetchUserPlaylistsDetail(user.id || user._id));
+            const resultAction = await dispatch(toggleLikeSongAsync({ songId })).unwrap();
+            
+            
+            if (user.id || user._id) dispatch(fetchUserPlaylistsDetail(user.id || user._id));
 
         } catch (error) {
-            console.error("Erro ao curtir/descurtir música:", error);
-            alert("Erro ao processar sua curtida. Tente novamente.");
+            console.error("Erro ao curtir:", error);
+            alert("Erro ao curtir música.");
         }
     }
 
     const handlePlayPauseClick = (e) => {
         e.stopPropagation();
-        if (isThisSongCurrentlySelected) {
-            dispatch(togglePlayPause());
-        } else {
-            dispatch(playSong(song));
-        }
+        if (isThisSongCurrentlySelected) dispatch(togglePlayPause());
+        else dispatch(playSong(song));
     };
 
     const handleMenuClick = (event) => {
         event.stopPropagation();
         setAnchorEl(event.currentTarget);
-        if (user && user.id) {
-            dispatch(fetchUserPlaylistsDetail(user.id));
+        if (user && (user.id || user._id)) {
+            dispatch(fetchUserPlaylistsDetail(user.id || user._id));
         }
     };
     
     const handleAddPlaylistClick = (currentTarget) => {
-        if (!user) {
-            navigate('/login');
-            return;
-        }
+        if (!user) { navigate('/login'); return; }
         setPlaylistAnchorEl(currentTarget); 
     };
 
-    const handleAddToSpecificPlaylist = (playlistId, playlistName) => {
-        if (!user) {
-            navigate('/login');
-            return;
-        }
+    const handleAddToSpecificPlaylist = async (playlistId, playlistName) => {
+        if (!user) { navigate('/login'); return; }
 
         if (playlistId === LIKED_SONGS_ID) {
             handleLikeClick({ stopPropagation: () => {} });
@@ -195,16 +168,20 @@ export default function Song({ song }) {
             return;
         }
         
-        dispatch(addSongToPlaylistAsync({
-            playlistId: playlistId,
-            songId: songId
-        })).unwrap().then(() => {
-            alert(`"${title}" adicionada com sucesso à playlist "${playlistName}"!`);
-        }).catch((error) => {
-            console.error("Erro ao adicionar música à playlist:", error);
-            const msg = error.message || `Erro ao adicionar "${title}" à playlist.`;
-            alert(msg);
-        });
+        try {
+            const result = await dispatch(addSongToPlaylistAsync({
+                playlistId,
+                songId
+            })).unwrap();
+
+            alert(result.message || `"${title}" adicionada à playlist "${playlistName}"!`);
+            
+            if (user.id || user._id) dispatch(fetchUserPlaylistsDetail(user.id || user._id));
+
+        } catch (error) {
+            console.error("Erro ao adicionar à playlist:", error);
+            alert(typeof error === 'string' ? error : "Erro ao adicionar música à playlist.");
+        }
         
         handlePlaylistMenuClose();
     };
@@ -216,36 +193,22 @@ export default function Song({ song }) {
     };
 
     const handleAddToQueue = () => {
-        if (!user) {
-            navigate('/login');
-            return;
-        }
         dispatch(addSingleSongToQueue(song));
-        alert(`"${title}" adicionada à fila.`);
     };
 
-    const handleOpenShareModal = () => {
-        setShareModalOpen(true);
-        handleMenuClose(); 
-    };
-
-    const handleCloseShareModal = () => {
-        setShareModalOpen(false);
-        setCopied(false); 
-    };
+    const handleOpenShareModal = () => { setShareModalOpen(true); handleMenuClose(); };
+    const handleCloseShareModal = () => { setShareModalOpen(false); setCopied(false); };
 
     const handleCopyLink = () => {
         const shareLink = `${window.location.origin}/song/${songId}`;
         navigator.clipboard.writeText(shareLink).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000); 
-        }).catch(err => {
-            console.error('Erro ao copiar o link: ', err);
-            alert('Não foi possível copiar o link.');
-        });
+        }).catch(err => alert('Não foi possível copiar o link.'));
     };
 
-    const baseMenuOptions = [
+
+    const menuOptions = [
         { 
             icon: <AddIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Adicionar à playlist', 
@@ -257,13 +220,11 @@ export default function Song({ song }) {
             label: 'Ir para o artista', 
             action: () => { handleMenuClose(); navigate(`/artista/${mainArtistId}`); } 
         }] : []),
-        
         ...(albumId && !isSingle ? [{ 
             icon: <AlbumIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Ir para o álbum', 
             action: () => { handleMenuClose(); navigate(`/album/${albumId}`) } 
         }] : []), 
-        
         { 
             icon: <QueueIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Adicionar à fila', 
@@ -274,22 +235,19 @@ export default function Song({ song }) {
             label: 'Compartilhar', 
             action: handleOpenShareModal 
         },
+        ...(canManage ? [
+            { 
+                icon: <EditIcon fontSize="small" sx={{ color: COR_LARANJA }} />, 
+                label: 'Editar Música', 
+                action: () => { handleMenuClose(); setShowEditModal(true); } 
+            },
+            { 
+                icon: <DeleteIcon fontSize="small" sx={{ color: 'red' }} />, 
+                label: 'Deletar Música', 
+                action: () => { handleMenuClose(); setShowDeleteModal(true); } 
+            },
+        ] : [])
     ];
-
-    const managementOptions = canManage ? [
-        { 
-            icon: <EditIcon fontSize="small" sx={{ color: COR_LARANJA }} />, 
-            label: 'Editar Música', 
-            action: () => { handleMenuClose(); setShowEditModal(true); } 
-        },
-        { 
-            icon: <DeleteIcon fontSize="small" sx={{ color: 'red' }} />, 
-            label: 'Deletar Música', 
-            action: () => { handleMenuClose(); setShowDeleteModal(true); } 
-        },
-    ] : [];
-
-    const menuOptions = [...baseMenuOptions, ...managementOptions];
 
     const corIcone = isLiked ? COR_LARANJA : 'var(--secondary-text-color)';
     
@@ -299,74 +257,41 @@ export default function Song({ song }) {
                 <div className="song-detail flex">
                     <div onClick={handlePlayPauseClick} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                         {isThisSongPlaying ? (
-                            <PauseIcon
-                                style={{ color: COR_LARANJA }} 
-                                onMouseEnter={(e) => (e.target.style.color = COR_LARANJA)}
-                                onMouseLeave={(e) => (e.target.style.color = COR_LARANJA)}
-                            />
+                            <PauseIcon style={{ color: COR_LARANJA }} />
                         ) : (
-                            <PlayArrowIcon
-                                onMouseEnter={(e) => (e.target.style.color = COR_LARANJA)}
-                                onMouseLeave={(e) => (e.target.style.color = 'white')} />
+                            <PlayArrowIcon className="play-hover" sx={{color:'white', '&:hover':{color:COR_LARANJA}}} />
                         )}
                     </div>
 
                     <div className="song-info flex" style={{ marginLeft: '15px' }}>
-                        <span
-                            className="song-title"
-                            style={{ color: isThisSongCurrentlySelected ? COR_LARANJA : 'white' }}
-                            >{title}</span>
+                        <span className="song-title" style={{ color: isThisSongCurrentlySelected ? COR_LARANJA : 'white' }}>{title}</span>
                         <span className="song-artist">{artistDisplay}</span>
                     </div>
                 </div>
                 <div className="song-detail flex">
-                    <div
-                        className="icon"
-                        onClick={handleLikeClick}
-                        style={{ cursor: 'pointer', color: corIcone }}
-                    >
+                    <div className="icon" onClick={handleLikeClick} style={{ cursor: 'pointer', color: corIcone }}>
                         {isLiked ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
                     </div>
                     <span className="song-duration">{durationDisplay}</span>
-                    <i
-                        className="icon fa-solid fa-ellipsis"
-                        onClick={handleMenuClick}
-                        style={{ cursor: 'pointer', color: 'var(--secondary-text-color)' }}
-                    ></i>
+                    <i className="icon fa-solid fa-ellipsis" onClick={handleMenuClick} style={{ cursor: 'pointer', color: 'var(--secondary-text-color)' }}></i>
                 </div>
             </div>
-            
+        
             <Menu
                 id="song-options-menu"
                 anchorEl={anchorEl}
                 open={aberto}
                 onClose={handleMenuClose}
-                PaperProps={{
-                    sx: {
-                        backgroundColor: 'var(--sidebar-bg)',
-                        color: 'var(--text-color)',
-                    }
-                }}
+                PaperProps={{ sx: { backgroundColor: 'var(--sidebar-bg)', color: 'var(--text-color)' } }}
             >
                 {menuOptions.map((option) => (
                     <MenuItem
                         key={option.label}
                         onClick={(e) => {
-                            if (option.requiresEvent) {
-                                option.action(e.currentTarget);
-                            } else {
-                                option.action();
-                                if (option.label !== 'Adicionar à playlist') {
-                                    handleMenuClose();
-                                }
-                            }
+                            if (option.requiresEvent) option.action(e.currentTarget);
+                            else { option.action(); if (option.label !== 'Adicionar à playlist') handleMenuClose(); }
                         }}
-                        sx={{ 
-                            color: option.label === 'Deletar Música' ? 'red' : 'var(--text-color)',
-                            '&:hover': { 
-                                backgroundColor: option.label === 'Deletar Música' ? 'rgba(233, 30, 99, 0.2)' : 'var(--button-hover-bg)'
-                            }, 
-                        }}
+                        sx={{ '&:hover': { backgroundColor: 'var(--button-hover-bg)' } }}
                     >
                         {option.icon}
                         <Typography variant="body1" sx={{ ml: '8px' }}>{option.label}</Typography>
@@ -379,21 +304,7 @@ export default function Song({ song }) {
                 anchorEl={playlistAnchorEl}
                 open={playlistMenuAberto}
                 onClose={handlePlaylistMenuClose}
-                MenuListProps={{
-                    'aria-labelledby': 'basic-button',
-                }}
-                PaperProps={{
-                    sx: {
-                        backgroundColor: 'var(--sidebar-bg)',
-                        color: 'var(--text-color)',
-                        '& .MuiMenuItem-root': {
-                            color: 'var(--text-color)',
-                            '&:hover': {
-                                backgroundColor: 'var(--button-hover-bg)', 
-                            }
-                        }
-                    }
-                }}
+                PaperProps={{ sx: { backgroundColor: 'var(--sidebar-bg)', color: 'var(--text-color)' } }}
             >
                 <MenuItem disabled style={{ opacity: 1 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'var(--secondary-text-color)' }}>Adicionar a:</Typography>
@@ -404,14 +315,14 @@ export default function Song({ song }) {
                     <Typography variant="body1">Músicas Curtidas</Typography>
                 </MenuItem>
                 
-                <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid var(--border-color)' }} />
+                <div style={{ margin: '4px 0', borderTop: '1px solid var(--border-color)' }}></div>
 
                 {userPlaylistsDetail && userPlaylistsDetail
                     .filter(p => p.id !== LIKED_SONGS_ID)
                     .map((playlist) => (
                         <MenuItem
-                            key={playlist.id}
-                            onClick={() => handleAddToSpecificPlaylist(playlist.id, playlist.name)}
+                            key={playlist.id || playlist._id}
+                            onClick={() => handleAddToSpecificPlaylist(playlist.id || playlist._id, playlist.name)}
                         >
                             <Typography variant="body1">{playlist.name}</Typography>
                         </MenuItem>
@@ -423,79 +334,23 @@ export default function Song({ song }) {
                 </MenuItem>
             </Menu>
 
-            <Dialog open={shareModalOpen} onClose={handleCloseShareModal} 
-                PaperProps={{
-                    sx: {
-                        backgroundColor: 'var(--card-bg)',
-                        color: 'var(--text-color)',
-                    }
-                }}
-            >
+            <Dialog open={shareModalOpen} onClose={handleCloseShareModal} PaperProps={{ sx: { backgroundColor: 'var(--card-bg)', color: 'var(--text-color)' } }}>
                 <DialogTitle sx={{ color: 'var(--text-color)' }}>
                     Compartilhar Música
-                    <IconButton
-                        aria-label="close"
-                        onClick={handleCloseShareModal}
-                        sx={{
-                            position: 'absolute',
-                            right: 8,
-                            top: 8,
-                            color: 'var(--secondary-text-color)',
-                        }}
-                    >
-                        <CloseIcon />
-                    </IconButton>
+                    <IconButton onClick={handleCloseShareModal} sx={{ position: 'absolute', right: 8, top: 8, color: 'var(--secondary-text-color)' }}><CloseIcon /></IconButton>
                 </DialogTitle>
                 <DialogContent>
-                    <Typography gutterBottom sx={{ color: 'var(--text-color)' }}>Copie o link abaixo para compartilhar "{title}":</Typography>
-                    <TextField
-                        fullWidth
-                        variant="outlined"
-                        value={`${window.location.origin}/song/${songId}`}
-                        sx={{ 
-                            '& .MuiInputBase-input': { color: 'var(--input-text-color)' },
-                            '& .MuiOutlinedInput-root': {
-                                '& fieldset': { borderColor: 'var(--border-color)' },
-                                '&:hover fieldset': { borderColor: 'var(--orange)' },
-                                '&.Mui-focused fieldset': { borderColor: 'var(--orange)' },
-                                backgroundColor: 'var(--input-bg)'
-                            }
-                        }}
-                        InputProps={{
-                            readOnly: true,
-                        }}
-                        onFocus={(event) => event.target.select()}
-                    />
+                    <Typography gutterBottom sx={{ color: 'var(--text-color)' }}>Link para compartilhar "{title}":</Typography>
+                    <TextField fullWidth variant="outlined" value={`${window.location.origin}/song/${songId}`} sx={{ '& .MuiInputBase-input': { color: 'var(--input-text-color)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--border-color)' }, backgroundColor: 'var(--input-bg)' } }} InputProps={{ readOnly: true }} onFocus={(event) => event.target.select()} />
                 </DialogContent>
                 <DialogActions sx={{ p: '16px' }}>
-                    <Button onClick={handleCopyLink} variant="contained" 
-                        sx={{ 
-                            backgroundColor: COR_LARANJA, 
-                            '&:hover': { 
-                                backgroundColor: 'var(--darker-orange)',
-                            } 
-                        }}
-                    >
-                        {copied ? 'Copiado!' : 'Copiar Link'}
-                    </Button>
+                    <Button onClick={handleCopyLink} variant="contained" sx={{ backgroundColor: COR_LARANJA }}>{copied ? 'Copiado!' : 'Copiar Link'}</Button>
                 </DialogActions>
             </Dialog>
 
-            <DeleteConfirmationModal
-                show={showDeleteModal}
-                onClose={() => setShowDeleteModal(false)}
-                onConfirm={handleDeleteSong}
-                itemTitle={title}
-            />
+            <DeleteConfirmationModal show={showDeleteModal} onClose={() => setShowDeleteModal(false)} onConfirm={handleDeleteSong} itemTitle={title} />
             
-            {song && (
-                <EditMusicaModal
-                    show={showEditModal}
-                    onClose={() => setShowEditModal(false)}
-                    song={song}
-                    onUpdateSuccess={handleUpdateSuccess}
-                />
-            )}
+            {song && <EditMusicaModal show={showEditModal} onClose={() => setShowEditModal(false)} song={song} onUpdateSuccess={handleUpdateSuccess} />}
         </>
     )
 }

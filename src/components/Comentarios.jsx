@@ -16,7 +16,6 @@ import {
 } from '@mui/material';
 
 function Comentarios({ musicaId }) {
-    console.log("ID da Música Recebido:", musicaId);
     const dispatch = useDispatch();
 
     const usuarioLogado = useSelector(state => state.user.user);
