@@ -40,6 +40,6 @@ const playlistSchema = new Schema({
     },
 }, { timestamps: true });
 
-playlistSchema.index({ owner: 1, isLikedSongs: 1 }, { unique: true, partialFilterExpression: { isLikedSongs: true } });
+playlistSchema.index({ user: 1, isLikedSongs: 1 }, { unique: true, partialFilterExpression: { isLikedSongs: true } });
 
 export default mongoose.model('Playlist', playlistSchema);

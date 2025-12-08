@@ -1,6 +1,5 @@
 import axios from "axios";
 
-// MongoDB backend URL (user-related endpoints)
 const USER_API_BASE_URL = 'http://localhost:3000';
 
 console.log("User API Base URL (MongoDB):", USER_API_BASE_URL);
@@ -10,7 +9,6 @@ const userApi = axios.create({
   timeout: 8000,
 });
 
-// Request interceptor to add JWT token
 userApi.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -26,7 +24,6 @@ userApi.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle auth errors
 userApi.interceptors.response.use(
   (response) => response,
   (error) => {

@@ -104,7 +104,6 @@ export const getArtistTopTracks = async (req, res) => {
     const { id } = req.params; 
 
     try {
-        // Melhor usar o validador do Mongoose para consistência
         const isMongoId = mongoose.Types.ObjectId.isValid(id);
         let query = isMongoId ? { _id: id } : { spotifyId: id };
         
@@ -122,20 +121,16 @@ export const getArtistTopTracks = async (req, res) => {
 
             if (spTopTracks && spTopTracks.tracks) {
                 const trackPromises = spTopTracks.tracks.map(async (spTrack) => {
-                    // 1. Garante/Atualiza os artistas da música
                     const artistPromises = spTrack.artists.map(a => upsertArtist(a));
                     const artistDocs = await Promise.all(artistPromises);
                     const artistIds = artistDocs.map(d => d._id);
 
-                    // 2. CORREÇÃO: Lógica do Álbum preenchida
                     let albumId = null;
                     if (spTrack.album) {
-                        // Precisamos garantir que os artistas do álbum existam
                         const albumArtistPromises = spTrack.album.artists.map(a => upsertArtist(a));
                         const albumArtistDocs = await Promise.all(albumArtistPromises);
                         const albumArtistIds = albumArtistDocs.map(d => d._id);
 
-                        // Mapeia e salva o álbum no banco
                         const albumData = mapAlbum(spTrack.album, albumArtistIds);
                         const savedAlbum = await Album.findOneAndUpdate(
                             { spotifyId: albumData.spotifyId },
@@ -143,11 +138,9 @@ export const getArtistTopTracks = async (req, res) => {
                             { new: true, upsert: true }
                         );
                         
-                        // Pega o ID do Mongo do álbum salvo
                         albumId = savedAlbum._id;
                     }
 
-                    // 3. Cria a música vinculando o ID do álbum correto
                     const trackData = mapTrack(spTrack, artistIds, albumId);
                     
                     return await Song.findOneAndUpdate(
@@ -209,7 +202,6 @@ export const updateArtist = async (req, res) => {
     }
 };
 
-// Se você tiver uma função de deletar, adicione também:
 export const deleteArtist = async (req, res) => {
     const { id } = req.params;
     try {

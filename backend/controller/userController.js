@@ -133,7 +133,6 @@ export const updateUserController = async (req, res) => {
         
         const updateData = { ...otherUpdateData };
 
-        // Normaliza e valida likedSongs para ObjectId válidos
         if (Array.isArray(updateData.likedSongs)) {
             try {
                 const converted = updateData.likedSongs.map((val) => {

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Box, IconButton, Typography, Tooltip } from '@mui/material';
-import { Link, useLocation } from 'react-router-dom'; // Adicionado useLocation para gerenciar o estado ativo
+import { Link, useLocation } from 'react-router-dom'; 
 import HomeIcon from '@mui/icons-material/Home'; 
 import QueueMusicIcon from '@mui/icons-material/QueueMusic';
 import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';

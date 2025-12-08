@@ -188,14 +188,11 @@ function Player() {
     
     const songDisplay = selectedSongInfo || currentSong; 
     
-    // --- CORREÇÃO DO NOME DO ARTISTA ---
     const getArtistName = (song) => {
         if (!song) return "";
-        // 1. Verifica se tem lista de artistas (comum no Spotify/Mongo Populado)
         if (song.artists && Array.isArray(song.artists) && song.artists.length > 0) {
             return song.artists.map(a => a.name || a).join(', ');
         }
-        // 2. Verifica se tem artista único
         if (song.artist) {
              return typeof song.artist === 'string' ? song.artist : song.artist.name;
         }
@@ -204,7 +201,6 @@ function Player() {
 
     const artistName = getArtistName(songDisplay);
     const songName = songDisplay ? `${songDisplay.title} - ${artistName}` : " ";
-    // ------------------------------------
 
     const detailRoute = songDisplay ? `${MUSIC_DETAIL_PATH_BASE}${songDisplay._id || songDisplay.id}` : MUSIC_DETAIL_PATH_BASE;
     const PlayPauseIcon = isPlaying ? "fas fa-pause" : "fas fa-play";

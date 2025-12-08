@@ -61,11 +61,9 @@ const sortOptions = {
     added: 'Adicionado em (Mais Recente)'
 };
 
-// --- FUNÇÃO AUXILIAR PARA LIMPAR OS DADOS (CORRIGE A TELA PRETA) ---
 const mapSongSafe = (s) => {
     if (!s) return null;
 
-    // 1. Trata Artista (Array ou Objeto -> String)
     let artistName = 'Desconhecido';
     if (Array.isArray(s.artists) && s.artists.length > 0) {
         artistName = s.artists.map(a => a.name).join(', ');
@@ -75,7 +73,6 @@ const mapSongSafe = (s) => {
         artistName = s.artist;
     }
 
-    // 2. Trata Álbum (Objeto -> String)
     let albumName = '';
     let albumId = null;
     if (s.album && typeof s.album === 'object') {
@@ -85,7 +82,6 @@ const mapSongSafe = (s) => {
         albumName = s.album;
     }
 
-    // 3. Trata Duração
     let durationDisplay = "0:00";
     if (typeof s.duration === 'number') {
         const min = Math.floor(s.duration / 60);
@@ -99,8 +95,8 @@ const mapSongSafe = (s) => {
         ...s,
         id: s._id || s.id,
         title: s.title || s.name || 'Sem título',
-        artist: artistName,  // Agora garantimos que é String!
-        album: albumName,    // Agora garantimos que é String!
+        artist: artistName,  
+        album: albumName,    
         albumId: albumId || s.albumId,
         artistId: (s.artists && s.artists[0]?._id) || (s.artist?._id) || s.artistId,
         cover: s.cover || s.image || (s.album && s.album.cover) || '/assets/img/default_song_cover.png',
@@ -123,7 +119,6 @@ function PlaylistDetalhe() {
     const [isLoading, setIsLoading] = useState(true);
     const [hoveredSongId, setHoveredSongId] = useState(null);
     
-    // Estados UI
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editName, setEditName] = useState('');
     const [editDescription, setEditDescription] = useState('');
@@ -135,12 +130,11 @@ function PlaylistDetalhe() {
     const [optionsAnchorEl, setOptionsAnchorEl] = useState(null);
     const [isAddToPlaylistModalOpen, setIsAddToPlaylistModalOpen] = useState(false);
 
-    // --- 1. EFEITO DE BUSCA (DESACOPLADO PARA EVITAR LOOP) ---
     useEffect(() => {
         let isMounted = true;
 
         const loadData = async () => {
-            if (id === '0' && !USER_ID) return; // Aguarda usuário logar
+            if (id === '0' && !USER_ID) return;
             
             setIsLoading(true);
             try {
@@ -149,7 +143,6 @@ function PlaylistDetalhe() {
                 let songIds = [];
 
                 if (id === '0') {
-                    // --- MÚSICAS CURTIDAS ---
                     const userRes = await api.get(`/users/${USER_ID}`);
                     const userData = userRes.data;
                     songIds = (userData.likedSongs || []).filter(Boolean);
@@ -164,7 +157,6 @@ function PlaylistDetalhe() {
                         creatorId: USER_ID,
                     };
                 } else {
-                    // --- PLAYLIST NORMAL ---
                     const playlistResponse = await api.get(`/playlists/${id}`);
                     const playlistData = playlistResponse.data;
                     songIds = playlistData.songs || [];
@@ -179,9 +171,7 @@ function PlaylistDetalhe() {
                     };
                 }
 
-                // --- POPULAR E LIMPAR DADOS ---
                 if (songIds.length > 0) {
-                    // Se já vier populado (objeto), usa direto. Se não, busca por ID.
                     if (typeof songIds[0] === 'object' && (songIds[0].title || songIds[0].name)) {
                         rawSongs = songIds;
                     } else {
@@ -193,7 +183,6 @@ function PlaylistDetalhe() {
                     }
                 }
 
-                // Aplica a função de limpeza em cada música
                 const cleanSongs = rawSongs.map(mapSongSafe).filter(Boolean);
 
                 if (isMounted) {
@@ -201,10 +190,9 @@ function PlaylistDetalhe() {
                     details.duration = `${cleanSongs.length} músicas`;
                     
                     setPlaylistDetails(details);
-                    setOriginalSongs(cleanSongs); // Salva base
-                    setLocalSongs(cleanSongs);    // Inicializa lista (o useEffect de sort vai ordenar depois)
+                    setOriginalSongs(cleanSongs); 
+                    setLocalSongs(cleanSongs);    
 
-                    // Preenche form de edição
                     setEditName(details.name);
                     setEditDescription(details.description || '');
                     setEditImg(details.img || DEFAULT_PLAYLIST_COVER);
@@ -222,9 +210,8 @@ function PlaylistDetalhe() {
         loadData();
 
         return () => { isMounted = false; };
-    }, [id, USER_ID]); // Dependências limpas: só roda se mudar o ID da playlist ou o Usuário
+    }, [id, USER_ID]); 
 
-    // --- 2. EFEITO DE ORDENAÇÃO (SEPARADO) ---
     useEffect(() => {
         if (!originalSongs || originalSongs.length === 0) return;
 
@@ -240,8 +227,6 @@ function PlaylistDetalhe() {
         setLocalSongs(sorted);
     }, [sortKey, originalSongs]);
 
-
-    // --- HANDLERS ---
     const handleUpdatePlaylist = async (e) => {
         e.preventDefault();
         if (!editName.trim()) return alert("Título obrigatório.");
@@ -251,7 +236,6 @@ function PlaylistDetalhe() {
             await api.patch(`/playlists/${id}`, {
                 title: editName, description: editDescription, cover: editImg, isPublic: editIsPublic
             });
-            // Recarrega a página para simplificar atualização
             window.location.reload();
         } catch (error) {
             alert("Erro ao atualizar.");
@@ -277,10 +261,8 @@ function PlaylistDetalhe() {
         const [reorderedItem] = items.splice(result.source.index, 1);
         items.splice(result.destination.index, 0, reorderedItem);
         setLocalSongs(items);
-        // Em um cenário real, você salvaria a nova ordem no backend aqui
     };
 
-    // UI Helpers
     const handleSortClick = (e) => setSortAnchorEl(e.currentTarget);
     const handleSortClose = () => setSortAnchorEl(null);
     const handleSortSelect = (key) => { setSortKey(key); handleSortClose(); };
@@ -288,7 +270,6 @@ function PlaylistDetalhe() {
     const handleOptionsClose = () => setOptionsAnchorEl(null);
     const handlePlaylistPlay = () => { if(localSongs.length > 0) console.log("Play"); };
 
-    // --- RENDERIZAÇÃO ---
     if (isLoading) return <main className="content-area" style={{paddingTop: '50px', display:'flex', justifyContent:'center'}}><CircularProgress color="warning" /></main>;
     if (!playlistDetails) return <main className="content-area" style={{paddingTop: '50px', textAlign:'center'}}><Typography variant="h4" color="error">Playlist não encontrada.</Typography><Button onClick={() => navigate('/playlists')} sx={{mt: 2, color:'var(--orange)'}}>Voltar</Button></main>;
 

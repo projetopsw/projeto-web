@@ -26,8 +26,8 @@ export default function ProfileEdition() {
     const dispatch = useDispatch();
 
     const user = useSelector((state) => state.user.user);
-    const userId = user?.id || user?._id; // CORREÇÃO 1: Adiciona suporte a _id
-    const authToken = user?.token; // CORREÇÃO 2: Pega o token do Redux/UserState, não do localStorage
+    const userId = user?.id || user?._id; 
+    const authToken = user?.token; 
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -47,7 +47,6 @@ export default function ProfileEdition() {
 
     useEffect(() => {
         if (user) {
-            // CORREÇÃO 3: user.id pode estar ausente, verifica apenas a existência de user
             const currentUserId = user.id || user._id; 
             if (currentUserId) {
                 const key = SESSION_STORAGE_KEY(currentUserId);
@@ -57,17 +56,15 @@ export default function ProfileEdition() {
 
             setFormData(prev => ({
                 ...prev,
-                // CORREÇÃO 4: Suporta name ou username para o campo de edição
                 name: user.name || user.username || '', 
                 email: user.email || '',
             }));
 
             setIsLoading(false);
         } else {
-            // Se o usuário não estiver carregado, ainda precisa parar de carregar
             setIsLoading(false); 
         }
-    }, [user]); // userId pode ser derivado de user, simplificando a dependência
+    }, [user]); 
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -82,7 +79,6 @@ export default function ProfileEdition() {
 
     const handleImageSelect = (imageUrl) => {
         setNewProfileImage(imageUrl);
-        // Usa user.id ou user._id para a chave do sessionStorage
         const currentUserId = user?.id || user?._id;
         if (currentUserId) {
             sessionStorage.setItem(SESSION_STORAGE_KEY(currentUserId), imageUrl);
@@ -110,7 +106,6 @@ export default function ProfileEdition() {
         setIsSaving(true);
         setErrors({});
 
-        // CORREÇÃO 5: Verifica se o token existe antes de prosseguir
         if (!userId || !authToken) {
             alert("Erro: Usuário não autenticado ou token ausente. Por favor, faça login novamente.");
             setIsSaving(false);
@@ -141,7 +136,6 @@ export default function ProfileEdition() {
         const dataToSendToServer = {
             username: nameTrimmed,
             email: email,
-            // CORREÇÃO 6: Garante que a imagem enviada seja a nova temporária, a atual do usuário, ou a padrão.
             img: newProfileImage || user.img || DEFAULT_USER_IMAGE,
         };
 
@@ -155,7 +149,7 @@ export default function ProfileEdition() {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`, // Usa o token do Redux (CORREÇÃO 2)
+                    'Authorization': `Bearer ${authToken}`, 
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify(dataToSendToServer)
@@ -168,16 +162,15 @@ export default function ProfileEdition() {
                 const nameFromForm = nameTrimmed;
                 const imageFromForm = newProfileImage || responseUser.img || user.img || DEFAULT_USER_IMAGE;
 
-                // CORREÇÃO 7: Mantém o token atual no payload se o backend não o retornar.
                 const finalUserPayload = {
-                    ...user, // Mantém todos os dados antigos (incluindo token)
-                    ...responseUser, // Sobrescreve com dados novos do servidor
+                    ...user, 
+                    ...responseUser, 
                     id: responseUser._id || responseUser.id || user.id || user._id,
                     username: responseUser.username || responseUser.name || nameFromForm,
                     name: responseUser.name || responseUser.username || nameFromForm,
                     img: imageFromForm,
                     image: imageFromForm,
-                    token: user.token, // Garante que o token original seja mantido (essencial)
+                    token: user.token, 
                 };
 
                 const currentUserId = user?.id || user?._id;
@@ -211,7 +204,6 @@ export default function ProfileEdition() {
         navigate('/perfil');
     };
     
-    // CORREÇÃO 8: Memoiza o estilo para melhor performance
     const inputStyleProps = useMemo(() => {
         const ORANGE_COLOR = 'var(--orange)';
         const RED_COLOR_BORDER = '#f44336';

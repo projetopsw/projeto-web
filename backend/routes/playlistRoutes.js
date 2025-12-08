@@ -1,22 +1,25 @@
 import express from 'express';
-import { verifyToken } from '../middleware/authMiddleware.js'; // Seu middleware de login
+import { verifyToken } from '../middleware/authMiddleware.js'; 
 import { 
     createPlaylist, 
     deletePlaylist, 
     addSongToPlaylist, 
     toggleLikeSong, 
-    getUserPlaylists 
+    getUserPlaylists,
+    getPlaylistById,
+    updatePlaylist
 } from '../controller/playlistController.js';
 
 const router = express.Router();
 
-// Aplique o middleware de autenticação em tudo
 router.use(verifyToken);
 
-router.post('/', createPlaylist);               // Criar nova playlist
-router.get('/', getUserPlaylists);              // Listar todas (incluindo Curtidas)
-router.delete('/:id', deletePlaylist);          // Deletar playlist
-router.post('/add-song', addSongToPlaylist);    // Adicionar música em playlist específica
-router.post('/like', toggleLikeSong);           // Curtir/Descurtir música (Mágica automática)
+router.post('/', createPlaylist);               
+router.get('/', getUserPlaylists);             
+router.delete('/:id', deletePlaylist);         
+router.post('/add-song', addSongToPlaylist);    
+router.post('/like', toggleLikeSong);           
+router.get('/:id', getPlaylistById);
+router.patch('/:id', updatePlaylist);
 
 export default router;

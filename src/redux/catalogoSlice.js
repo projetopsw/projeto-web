@@ -2,10 +2,8 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { logout } from './loginSlice';
 import axios from 'axios';
 
-// URL DEFINITIVA DO SEU BACKEND EXPRESS (MongoDB / Spotify Proxy)
 const API_URL = 'http://127.0.0.1:3000'; 
 
-// THUNK GENÉRICA PARA BUSCAR DADOS DO SPOTIFY VIA PROXY
 export const fetchSpotifyData = createAsyncThunk(
     'catalog/fetchSpotifyData',
     async (endpoint, { rejectWithValue }) => {
@@ -13,7 +11,6 @@ export const fetchSpotifyData = createAsyncThunk(
             const token = localStorage.getItem('token'); 
             if (!token) throw new Error('Usuário Moosica não autenticado.');
 
-            // A chamada vai para o seu endpoint proxy /api/spotify/data no Express
             const response = await axios.get(`${API_URL}/api/spotify/data`, {
                 params: { endpoint: endpoint },
                 headers: {
@@ -29,7 +26,6 @@ export const fetchSpotifyData = createAsyncThunk(
     }
 );
 
-// MÚSICAS (SPOTIFY)
 export const fetchTopTracks = createAsyncThunk(
     'catalog/fetchTopTracks',
     async (_, { dispatch, rejectWithValue }) => {
@@ -55,7 +51,6 @@ export const fetchTopTracks = createAsyncThunk(
     }
 );
 
-// ARTISTAS (SPOTIFY)
 export const fetchArtists = createAsyncThunk('catalog/fetchArtists', async (_, { dispatch, rejectWithValue }) => {
     const result = await dispatch(fetchSpotifyData('/v1/me/top/artists?limit=20'));
     
@@ -74,7 +69,6 @@ export const fetchArtists = createAsyncThunk('catalog/fetchArtists', async (_, {
     }));
 });
 
-// PLAYLISTS (SPOTIFY)
 export const fetchPlaylists = createAsyncThunk('catalog/fetchPlaylists', async (_, { dispatch, rejectWithValue }) => {
     const result = await dispatch(fetchSpotifyData('/v1/browse/featured-playlists?limit=10'));
     
@@ -95,17 +89,15 @@ export const fetchPlaylists = createAsyncThunk('catalog/fetchPlaylists', async (
     }));
 });
 
-// ÁLBUNS (MONGO - CORRIGIDO PARA USAR API_URL)
 export const fetchAlbums = createAsyncThunk('catalog/fetchAlbums', async (_, { rejectWithValue }) => {
     try {
-        const response = await axios.get(`${API_URL}/albums`); // **CORREÇÃO AQUI**
+        const response = await axios.get(`${API_URL}/albums`); 
         return response.data;
     } catch (error) {
          return rejectWithValue('Falha ao buscar álbuns do Mongo.');
     }
 });
 
-// DETALHES (MONGO - CORRIGIDO PARA USAR API_URL)
 export const fetchArtistById = createAsyncThunk('catalog/fetchArtistById', async (artistId) => {
     const response = await axios.get(`${API_URL}/artists/${artistId}`);
     return response.data;

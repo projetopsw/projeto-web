@@ -51,7 +51,6 @@ function Playlists() {
     const user = useSelector(state => state.user?.user) || useSelector(state => state.auth?.user);
     const USER_ID = user?.id || user?._id;
     
-    // Contagem de likes do Redux para manter atualizado em tempo real
     const reduxLikedCount = user?.likedSongs?.length || 0;
 
     const [playlists, setPlaylists] = useState([]);
@@ -71,35 +70,27 @@ function Playlists() {
         }
 
         try {
-            // ESTRATÉGIA NOVA: Busca todas as playlists do usuário de uma vez só.
-            // Isso evita buscar IDs órfãos que geram erro 404.
             const response = await api.get('/playlists'); 
             const allPlaylists = response.data;
 
-            // 1. Encontra a playlist real de "Músicas Curtidas" no banco
             const dbLikedPlaylist = allPlaylists.find(p => p.isLikedSongs);
             
-            // 2. Separa as playlists customizadas
             const customPlaylists = allPlaylists.filter(p => !p.isLikedSongs);
 
-            // 3. Monta o card de Músicas Curtidas
             let likedPlaylistDisplay = { ...LIKED_SONGS_PLAYLIST_TEMPLATE };
             
             if (dbLikedPlaylist) {
-                // Se já existe no banco, usamos os dados reais
                 likedPlaylistDisplay = {
                     ...LIKED_SONGS_PLAYLIST_TEMPLATE,
-                    id: dbLikedPlaylist._id, // ID real do banco (importante!)
+                    id: dbLikedPlaylist._id, 
                     songCount: dbLikedPlaylist.songs?.length || 0,
                     duration: `${dbLikedPlaylist.songs?.length || 0} músicas`
                 };
             } else {
-                // Se não existe (ainda não curtiu nada ou lazy creation), usamos o contador do User
                 likedPlaylistDisplay.songCount = reduxLikedCount;
                 likedPlaylistDisplay.duration = `${reduxLikedCount} músicas`;
             }
 
-            // 4. Formata as playlists customizadas para exibição
             const formattedCustomPlaylists = customPlaylists.map(p => ({
                 id: p._id,
                 name: p.name,
@@ -110,22 +101,18 @@ function Playlists() {
                 duration: `${p.songs ? p.songs.length : 0} músicas`
             }));
 
-            // Combina tudo: Curtidas primeiro, depois as outras
             setPlaylists([likedPlaylistDisplay, ...formattedCustomPlaylists]);
 
-            // Atualiza o Redux em background para manter a Sidebar sincronizada
             dispatch(fetchUserPlaylistsDetail(USER_ID));
 
         } catch (error) {
             console.error("Erro ao buscar playlists:", error);
-            // Em caso de erro total, mostra pelo menos a de curtidas vazia
             setPlaylists([LIKED_SONGS_PLAYLIST_TEMPLATE]);
         } finally {
             setIsLoading(false);
         }
     };
     
-    // Atualiza quando o ID do usuário muda ou quando ele curte algo novo (mudando o contador)
     useEffect(() => {
         fetchPlaylists();
     }, [USER_ID, reduxLikedCount]); 
@@ -166,7 +153,7 @@ function Playlists() {
                 const cover = coverUrlTrimmed === '' ? DEFAULT_PLAYLIST_COVER : coverUrlTrimmed; 
 
                 const newPlaylist = {
-                    name: title, // Backend espera "name"
+                    name: title,
                     description: newPlaylistDescription.trim() || `Playlist criada por ${user?.name || user?.username || 'usuário'}.`,
                     cover: cover,
                     isPublic: isPublic 
@@ -174,11 +161,10 @@ function Playlists() {
 
                 const response = await api.post('/playlists', newPlaylist);
                 
-                // O backend retorna a playlist criada (verifique se vem em response.data ou response.data.playlist)
                 const createdData = response.data.playlist || response.data;
                 const createdPlaylistId = createdData._id;
 
-                await fetchPlaylists(); // Recarrega a lista
+                await fetchPlaylists(); 
                 
                 setIsModalOpen(false);
                 navigate(`/playlist/${createdPlaylistId}`);
@@ -194,7 +180,6 @@ function Playlists() {
     };
 
     const navigateToDetail = (id) => {
-        // Se o ID for o "0" (template), navegamos para a rota especial
         if (id === "0") navigate('/playlist/0');
         else navigate(`/playlist/${id}`);
     };
@@ -215,7 +200,6 @@ function Playlists() {
             ) : (
                 <Box className="playlists-container"> 
                     
-                    {/* Card de Nova Playlist */}
                     <div className="box-playlist add-playlist" onClick={handleOpen}>
                         <button className="btn-add-playlist" disabled={isCreating}>
                             <i className="fas fa-plus" style={{ color: 'var(--text-color)', fontSize: '40px' }}></i>
@@ -228,7 +212,6 @@ function Playlists() {
                         </p>
                     </div>
 
-                    {/* Lista de Playlists */}
                     {playlists.map((playlist) => (
                         <div
                             key={playlist.id}
@@ -254,7 +237,6 @@ function Playlists() {
                 </Box>
             )}
 
-            {/* Modal de Criação */}
             <Modal
                 open={isModalOpen}
                 onClose={handleClose}

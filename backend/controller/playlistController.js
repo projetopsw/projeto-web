@@ -1,27 +1,71 @@
 import Playlist from '../models/playlist.model.js';
 import Song from '../models/song.model.js';
 
-// 1. Cria uma playlist customizada (ex: "Para Treinar")
 export const createPlaylist = async (req, res) => {
     try {
-        const { name, description, cover } = req.body;
-        const ownerId = req.user.id; // Assumindo que você tem um middleware de autenticação que popula req.user
+        const { name, description, cover, isPublic } = req.body; 
+        
+        const userId = req.user.id; 
+
+        if (!name) {
+            return res.status(400).json({ message: "O nome da playlist é obrigatório." });
+        }
 
         const newPlaylist = await Playlist.create({
-            name,
+            title: name,      
             description,
             cover,
-            owner: ownerId,
-            isLikedSongs: false // Playlist normal
+            user: userId,       
+            isLikedSongs: false,
+            isPublic: isPublic !== undefined ? isPublic : true,
+            songs: [],
+            songCount: 0
         });
 
         res.status(201).json(newPlaylist);
     } catch (error) {
+        console.error("Erro ao criar playlist:", error);
         res.status(500).json({ message: 'Erro ao criar playlist', error: error.message });
     }
 };
 
-// 2. Excluir Playlist
+export const getPlaylistById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const playlist = await Playlist.findById(id)
+            .populate('songs') 
+            .populate('user', 'name username'); 
+
+        if (!playlist) {
+            return res.status(404).json({ message: 'Playlist não encontrada.' });
+        }
+
+
+        if (!playlist.isPublic && playlist.user._id.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Acesso negado a esta playlist privada.' });
+        }
+
+        res.json(playlist);
+    } catch (error) {
+        console.error("Erro ao buscar playlist:", error);
+        res.status(500).json({ message: 'Erro ao buscar playlist', error: error.message });
+    }
+};
+
+export const getUserPlaylists = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        const playlists = await Playlist.find({ user: userId })
+                                        .sort({ createdAt: -1 }); 
+        
+        res.json(playlists);
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao buscar playlists', error: error.message });
+    }
+};
+
 export const deletePlaylist = async (req, res) => {
     try {
         const { id } = req.params;
@@ -39,7 +83,6 @@ export const deletePlaylist = async (req, res) => {
     }
 };
 
-// 3. Adicionar música a uma playlist específica
 export const addSongToPlaylist = async (req, res) => {
     try {
         const { playlistId, songId } = req.body;
@@ -48,7 +91,6 @@ export const addSongToPlaylist = async (req, res) => {
         const playlist = await Playlist.findOne({ _id: playlistId, owner: ownerId });
         if (!playlist) return res.status(404).json({ message: 'Playlist não encontrada' });
 
-        // Evita duplicatas
         if (playlist.songs.includes(songId)) {
             return res.status(400).json({ message: 'Música já está na playlist' });
         }
@@ -62,17 +104,13 @@ export const addSongToPlaylist = async (req, res) => {
     }
 };
 
-// 4. LÓGICA DE CURTIR (Toggle Like)
-// Se a playlist "Músicas Curtidas" não existir, cria ela. Se existir, adiciona/remove a música.
 export const toggleLikeSong = async (req, res) => {
     try {
         const { songId } = req.body;
         const ownerId = req.user.id;
 
-        // Tenta achar a playlist de curtidas desse usuário
         let likedPlaylist = await Playlist.findOne({ owner: ownerId, isLikedSongs: true });
 
-        // Se não existir, cria agora (Lazy creation)
         if (!likedPlaylist) {
             likedPlaylist = await Playlist.create({
                 name: 'Músicas Curtidas',
@@ -86,11 +124,9 @@ export const toggleLikeSong = async (req, res) => {
         let isLiked = false;
 
         if (songIndex > -1) {
-            // Se já curtiu, remove (Descurtir)
             likedPlaylist.songs.splice(songIndex, 1);
             isLiked = false;
         } else {
-            // Se não curtiu, adiciona (Curtir)
             likedPlaylist.songs.push(songId);
             isLiked = true;
         }
@@ -103,16 +139,30 @@ export const toggleLikeSong = async (req, res) => {
     }
 };
 
-// 5. Listar playlists do usuário
-export const getUserPlaylists = async (req, res) => {
+export const updatePlaylist = async (req, res) => {
     try {
-        const ownerId = req.user.id;
-        // Busca todas, ordenando: Músicas Curtidas primeiro, depois as criadas recentemente
-        const playlists = await Playlist.find({ owner: ownerId })
-                                        .sort({ isLikedSongs: -1, createdAt: -1 }); 
-        
-        res.json(playlists);
+        const { id } = req.params;
+        const { title, description, cover, isPublic } = req.body; 
+        const userId = req.user.id;
+
+        const playlist = await Playlist.findOneAndUpdate(
+            { _id: id, user: userId }, 
+            { 
+                title, 
+                description, 
+                cover, 
+                isPublic 
+            },
+            { new: true } 
+        );
+
+        if (!playlist) {
+            return res.status(404).json({ message: 'Playlist não encontrada ou você não tem permissão para editá-la.' });
+        }
+
+        res.json(playlist);
     } catch (error) {
-        res.status(500).json({ message: 'Erro ao buscar playlists', error: error.message });
+        console.error("Erro ao atualizar playlist:", error);
+        res.status(500).json({ message: 'Erro ao atualizar playlist', error: error.message });
     }
 };

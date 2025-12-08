@@ -28,17 +28,13 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-    // 🚨 Apenas processa se for 'arquivoCapa' e for uma imagem.
     if (file.fieldname === 'arquivoCapa') {
         if (file.mimetype.startsWith('image/')) {
             cb(null, true);
         } else {
-            // Este erro só ocorre se o campo 'arquivoCapa' foi enviado, mas com um tipo errado.
             cb(new Error('Tipo de arquivo de imagem não suportado.'));
         }
     } else {
-        // Se o campo não for 'arquivoCapa', rejeita. 
-        // A ausência total do campo será tratada na rota.
         cb(new Error('Campo de arquivo desconhecido para playlist.'));
     }
 };
@@ -47,7 +43,7 @@ const uploadPlaylistCapaMiddleware = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: { 
-        fileSize: 1024 * 1024 * 5 // 5MB
+        fileSize: 1024 * 1024 * 5 
     }
 }).single('arquivoCapa'); 
 

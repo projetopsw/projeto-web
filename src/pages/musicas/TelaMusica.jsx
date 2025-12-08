@@ -4,7 +4,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { fetchSongById, fetchAlbumsByArtist } from '../../redux/catalogoSlice';
 import { playSong } from '../../redux/playerSlice.js';
 
-// NOVAS IMPORTAÇÕES PARA VOTAÇÃO E COMENTÁRIOS
 import { fetchVotes, toggleVote } from '../../redux/votesSlice'; 
 import BarraLikes from '../../components/BarraLikes'; 
 import Comentarios from '../../components/Comentarios'; 
@@ -73,7 +72,6 @@ export default function SongDetail({ songID }) {
     const currentUserId = currentUser?._id || currentUser?.id || "USUARIO_PADRAO";
     const isAdmin = currentUser?.role === 'admin'; 
 
-    // --- LÓGICA DE VOTOS ---
     const voteStatus = useSelector(state => state.votes[effectiveId]) || {
         likes: 0,
         dislikes: 0,
@@ -99,13 +97,11 @@ export default function SongDetail({ songID }) {
             dispatch(toggleVote({ musicaId: effectiveId, userId: currentUserId, action: newAction }));
         }
     };
-    // ----------------------
     
     useEffect(() => {
         if (effectiveId) {
             dispatch(fetchSongById(effectiveId));
             
-            // BUSCAR STATUS DE VOTO AO CARREGAR A PÁGINA
             if (currentUserId !== "USUARIO_PADRAO") {
                  dispatch(fetchVotes({ musicaId: effectiveId, userId: currentUserId }));
             }
@@ -242,7 +238,6 @@ export default function SongDetail({ songID }) {
         return currentSongIdsForCheck.some(id => albumArtistIds.includes(id));
     });
 
-    // --- Componente de Votação ---
     const LikeDislikeBar = () => (
         <Box sx={{ p: 2, mb: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
             <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
@@ -276,7 +271,6 @@ export default function SongDetail({ songID }) {
             </Stack>
         </Box>
     );
-    // ----------------------------
 
     return (
         <main>
@@ -307,13 +301,11 @@ export default function SongDetail({ songID }) {
                 )}
             </AlbumHeader> 
 
-            {/* Conteúdo principal */}
             
             <div className="song-list-container"> 
                 <SongList tracksArr={[song]} onTrackClick={handlePlaySong} />
             </div>
             
-            {/* REMOVIDO DAQUI */}
             
             {song.lyrics && (
                 <div className="song-lyrics-container">
@@ -328,7 +320,6 @@ export default function SongDetail({ songID }) {
                 genres={song.genres && song.genres.length > 0 ? song.genres.join(', ') : 'N/A'}
             />
 
-            {/* Seção "Mais de [Artista]" */}
             <Section title={`Mais de ${finalArtistName}`} className="section-mais-do-artista">
                 {artistAlbumsStatus === 'loading' && <p>Carregando...</p>}
                 
@@ -364,10 +355,8 @@ export default function SongDetail({ songID }) {
                 )}
             </Section>
             
-            {/* NOVO LOCAL: A Barra de Likes/Dislikes agora está aqui, imediatamente acima dos comentários */}
             <LikeDislikeBar />
             
-            {/* SEÇÃO DE COMENTÁRIOS */}
             <div className="section-comentarios" style={{ padding: '0 20px', margin: '30px 0' }}>
                 <h2>Comentários 💬</h2>
                 <Comentarios musicaId={effectiveId} />

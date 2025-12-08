@@ -1,6 +1,5 @@
 import axios from "axios";
 
-// Definindo a URL do Backend Express (onde rodam MongoDB/Login/Spotify Proxy)
 const EXPRESS_API_URL = 'http://127.0.0.1:3000'; 
 
 export const API_BASE_URL = EXPRESS_API_URL;

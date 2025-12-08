@@ -10,9 +10,8 @@ const GenericAdminTable = ({ config, searchTerm, refreshKey, onEdit, onDelete })
         const fetchData = async () => {
             setLoading(true);
             try {
-                // Busca os dados do endpoint configurado
                 const response = await api.get(`/${config.endpoint}`);
-                console.log(`Dados recebidos de ${config.endpoint}:`, response.data); // OLHE O CONSOLE F12
+                console.log(`Dados recebidos de ${config.endpoint}:`, response.data);
                 setData(response.data);
                 setError(null);
             } catch (err) {
@@ -25,32 +24,26 @@ const GenericAdminTable = ({ config, searchTerm, refreshKey, onEdit, onDelete })
         fetchData();
     }, [config.endpoint, config.plural, refreshKey]); 
 
-    // --- FUNÇÃO CORRIGIDA PARA EXIBIR DADOS ---
     const renderCell = (row, accessor) => {
         const value = row[accessor];
 
         if (value === null || value === undefined) return '';
 
-        // Se for um ARRAY (Lista), ex: artists: [{name: 'Gaga'}, {name: 'Bruno'}]
         if (Array.isArray(value)) {
             return value.map(item => {
                 if (typeof item === 'object') {
-                    // Tenta achar o nome dentro do objeto
                     return item.name || item.title || item.username || 'Item sem nome';
                 }
                 return item;
             }).join(', ');
         }
 
-        // Se for um OBJETO único, ex: album: { title: 'Chromatica' }
         if (typeof value === 'object') {
-            // Tenta pegar o nome/título. Se falhar, mostra o JSON para a gente ler e corrigir.
             return value.name || value.title || value.username || JSON.stringify(value); 
         }
 
         return String(value);
     };
-    // ------------------------------------------
 
     const filteredData = useMemo(() => {
         if (!searchTerm) return data; 
@@ -84,7 +77,6 @@ const GenericAdminTable = ({ config, searchTerm, refreshKey, onEdit, onDelete })
                         <tr key={rowId}>
                             {config.columns.map((col) => (
                                 <td key={col.accessor}>
-                                    {/* Chama a função que limpa o [object Object] */}
                                     {renderCell(row, col.accessor)}
                                 </td>
                             ))}

@@ -37,39 +37,31 @@ export default function Song({ song }) {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     
-    // Garante que pegamos o ID independente do formato
     const songId = song._id || song.id;
     const title = song.title || "Sem título";
 
-    // --- LÓGICA ROBUSTA PARA ARTISTA (Prioriza o Artista Principal) ---
     let artistDisplay = "Desconhecido";
     let mainArtistId = null;
 
-    // 1. Array de artistas (ex: [Lady Gaga, Bruno Mars]) -> Pega o índice 0 como principal
     if (song.artists && Array.isArray(song.artists) && song.artists.length > 0) {
         artistDisplay = song.artists.map(a => a.name).join(', ');
-        // O primeiro da lista é considerado o principal para navegação
         mainArtistId = song.artists[0]._id || song.artists[0].id;
     } 
-    // 2. Objeto único
     else if (song.artist && typeof song.artist === 'object') {
         artistDisplay = song.artist.name || "Desconhecido";
         mainArtistId = song.artist._id || song.artist.id;
     } 
-    // 3. String simples
     else if (song.artist) {
         artistDisplay = song.artist; 
         mainArtistId = song.artistId || null;
     }
 
-    // --- LÓGICA ROBUSTA PARA ÁLBUM E TIPO SINGLE ---
     let albumId = null;
-    let isSingle = false; // Flag para controlar se é single
+    let isSingle = false; 
 
     if (song.album && typeof song.album === 'object') {
         albumId = song.album._id || song.album.id;
         
-        // Verifica se o tipo é single (case insensitive)
         const type = song.album.type || song.album.album_type || "";
         if (type.toLowerCase() === 'single') {
             isSingle = true;
@@ -78,7 +70,6 @@ export default function Song({ song }) {
         albumId = song.albumId;
     }
     
-    // Fallback: às vezes a info do single está na raiz da música
     if (song.albumType && song.albumType.toLowerCase() === 'single') {
         isSingle = true;
     }
@@ -146,23 +137,19 @@ export default function Song({ song }) {
             return;
         }
 
-        // Feedback visual imediato (Optimistic UI) ou esperar o thunk
         const isCurrentlyLiked = isLiked;
 
         try {
-            // Dispara a ação que chama /api/playlists/like
             const resultAction = await dispatch(toggleLikeSongAsync({
                 songId: songId
             })).unwrap();
 
-            // O backend nos diz se curtiu ou descurtiu
             if (resultAction.isLiked) {
                 alert(`"${title}" adicionada às Músicas Curtidas!`);
             } else {
                 alert(`"${title}" removida das Músicas Curtidas.`);
             }
 
-            // Atualiza a lista lateral de playlists para garantir que "Músicas Curtidas" apareça se foi criada agora
             dispatch(fetchUserPlaylistsDetail(user.id || user._id));
 
         } catch (error) {
@@ -202,14 +189,12 @@ export default function Song({ song }) {
             return;
         }
 
-        // Se o usuário clicar em "Músicas Curtidas" no menu, usamos a lógica de Like
         if (playlistId === LIKED_SONGS_ID) {
-            handleLikeClick({ stopPropagation: () => {} }); // Reutiliza a função de like
+            handleLikeClick({ stopPropagation: () => {} });
             handlePlaylistMenuClose();
             return;
         }
         
-        // Para outras playlists criadas manualmente
         dispatch(addSongToPlaylistAsync({
             playlistId: playlistId,
             songId: songId
@@ -217,7 +202,6 @@ export default function Song({ song }) {
             alert(`"${title}" adicionada com sucesso à playlist "${playlistName}"!`);
         }).catch((error) => {
             console.error("Erro ao adicionar música à playlist:", error);
-            // Mensagem de erro mais amigável vinda do backend (ex: "Música já está na playlist")
             const msg = error.message || `Erro ao adicionar "${title}" à playlist.`;
             alert(msg);
         });
@@ -261,7 +245,6 @@ export default function Song({ song }) {
         });
     };
 
-    // --- MONTAGEM DO MENU ---
     const baseMenuOptions = [
         { 
             icon: <AddIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
@@ -269,14 +252,12 @@ export default function Song({ song }) {
             action: handleAddPlaylistClick, 
             requiresEvent: true 
         }, 
-        // Lógica Artista: Se tiver mainArtistId (que já pegamos o index 0 acima), mostra a opção
         ...(mainArtistId ? [{ 
             icon: <PersonIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Ir para o artista', 
             action: () => { handleMenuClose(); navigate(`/artista/${mainArtistId}`); } 
         }] : []),
         
-        // Lógica Álbum: Só mostra se tiver ID E NÃO for single (!isSingle)
         ...(albumId && !isSingle ? [{ 
             icon: <AlbumIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Ir para o álbum', 

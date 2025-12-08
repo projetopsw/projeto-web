@@ -76,11 +76,8 @@ export const toggleLikeSongAsync = createAsyncThunk(
     'auth/toggleLikeSong',
     async ({ songId }, { rejectWithValue }) => { 
         try {
-            // Usa o novo endpoint inteligente do backend
-            // Ele já verifica token, cria playlist se precisar e adiciona/remove música
             const response = await api.post('/playlists/like', { songId });
             
-            // Retorna: { isLiked: boolean, playlistId: string }
             return { 
                 songId, 
                 isLiked: response.data.isLiked 
@@ -96,7 +93,6 @@ export const addSongToPlaylistAsync = createAsyncThunk(
     'auth/addSongToPlaylist',
     async ({ playlistId, songId }, { rejectWithValue, dispatch }) => {
         try {
-            // Se for Músicas Curtidas, usa a ação específica de Like
             if (playlistId === LIKED_SONGS_ID) {
                 const result = await dispatch(toggleLikeSongAsync({ songId })).unwrap();
                 return { 
@@ -107,10 +103,9 @@ export const addSongToPlaylistAsync = createAsyncThunk(
                 };
             } 
             
-            // Se for playlist customizada, usa o endpoint novo
             const response = await api.post('/playlists/add-song', { playlistId, songId });
             
-            // O backend retorna a playlist atualizada
+
             return { 
                 songId, 
                 playlistId, 
@@ -129,22 +124,15 @@ export const fetchUserPlaylistsDetail = createAsyncThunk(
     'auth/fetchUserPlaylistsDetail',
     async (userId, { rejectWithValue }) => {
         try {
-            // 1. Busca dados do usuário (para saber quais músicas ele curtiu)
             const userResponse = await api.get(`/users/${userId}`);
             const userData = userResponse.data || {};
-            
-            // 2. AQUI ESTA A CORREÇÃO:
-            // Em vez de fazer o map nos IDs (que causava o erro),
-            // buscamos todas as playlists existentes do usuário de uma vez.
+         
             const playlistsResponse = await api.get('/playlists');
             const allUserPlaylists = playlistsResponse.data || [];
 
-            // 3. Processamento: Separa a playlist de curtidas das outras
             const dbLikedPlaylist = allUserPlaylists.find(p => p.isLikedSongs);
             const realCustomPlaylists = allUserPlaylists.filter(p => !p.isLikedSongs);
 
-            // 4. Monta o objeto da Playlist de Curtidas
-            // (Usa a do banco se existir, ou cria uma virtual baseada no perfil do usuário)
             const likedSongsIds = (userData.likedSongs || []).filter(Boolean);
             
             const likedPlaylistFinal = {
@@ -152,19 +140,16 @@ export const fetchUserPlaylistsDetail = createAsyncThunk(
                 _id: dbLikedPlaylist ? dbLikedPlaylist._id : '0',
                 name: 'Músicas Curtidas',
                 img: '/assets/img/liked_cover_0.png',
-                // Se existir no banco, usa as músicas de lá. Se não, usa do array do usuário.
                 songs: dbLikedPlaylist ? dbLikedPlaylist.songs : likedSongsIds,
                 songCount: dbLikedPlaylist ? dbLikedPlaylist.songs?.length : likedSongsIds.length,
                 duration: `${dbLikedPlaylist ? dbLikedPlaylist.songs?.length : likedSongsIds.length} músicas`,
                 isLikedSongs: true
             };
             
-            // 5. Retorna tudo junto sem erros 404
             return [likedPlaylistFinal, ...realCustomPlaylists];
 
         } catch (error) {
             console.error("Erro no Redux fetchUserPlaylistsDetail:", error);
-            // Fallback para não quebrar a tela se a API falhar totalmente
             return [{
                 id: '0',
                 name: 'Músicas Curtidas',
@@ -280,10 +265,8 @@ const authSlice = createSlice({
                 const { playlistId, updatedPlaylist } = action.payload;
                 
                 if (playlistId !== LIKED_SONGS_ID && updatedPlaylist) {
-                    // Atualiza a playlist na lista local
                     const index = state.userPlaylistsDetail.findIndex(p => p.id === playlistId || p._id === playlistId);
                     if (index !== -1) {
-                        // Atualiza os dados com o que veio do backend
                         state.userPlaylistsDetail[index] = {
                             ...state.userPlaylistsDetail[index],
                             songs: updatedPlaylist.songs,
@@ -319,20 +302,15 @@ const authSlice = createSlice({
             .addCase(toggleLikeSongAsync.fulfilled, (state, action) => {
                 const { songId, isLiked } = action.payload;
 
-                // Encontra a playlist virtual "Músicas Curtidas" (ID '0')
                 const likedPlaylist = state.userPlaylistsDetail.find(p => p.id === '0');
                 
                 if (likedPlaylist) {
                     if (isLiked) {
-                        // Adiciona se não existir
                         if (!likedPlaylist.songs.some(s => s === songId || s._id === songId)) {
-                            // Nota: Adicionamos apenas o ID aqui para atualização rápida da UI. 
-                            // Se precisar do objeto completo da música, teria que vir do payload ou recarregar.
                             likedPlaylist.songs.push(songId);
                             likedPlaylist.songCount = (likedPlaylist.songCount || 0) + 1;
                         }
                     } else {
-                        // Remove
                         likedPlaylist.songs = likedPlaylist.songs.filter(s => s !== songId && s._id !== songId);
                         likedPlaylist.songCount = Math.max(0, (likedPlaylist.songCount || 1) - 1);
                     }

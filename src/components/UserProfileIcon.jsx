@@ -10,7 +10,6 @@ function UserProfileIcon() {
 
   const { user } = useSelector((state) => state.user);
 
-  // A lógica de verificação já está correta aqui
   const isAdmin = user?.role === 'admin';
 
   const profileImageUrl = user?.img || user?.image || '/assets/img/default_profile.png';
