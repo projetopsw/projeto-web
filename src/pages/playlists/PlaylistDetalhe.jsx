@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Typography, CircularProgress } from '@mui/material';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import api from '../../services/api';
-
+import { setQueue, playSong } from '../../redux/playerSlice';
 import PlaylistHeader from './PlaylistHeader';
 import PlaylistActions from './PlaylistActions';
 import SongTable from './SongTable';
@@ -16,6 +16,8 @@ const DEFAULT_PLAYLIST_COVER = '/assets/img/vibe_cover_2.png';
 function PlaylistDetalhe() {
     const { id } = useParams();
     const navigate = useNavigate();
+
+    const dispatch = useDispatch();
    
     const { currentSong, isPlaying } = useSelector(state => state.player);
     const user = useSelector(state => state.user?.user) || useSelector(state => state.auth?.user);
@@ -141,7 +143,15 @@ function PlaylistDetalhe() {
         setLocalSongs(items);
     };
 
-    const handlePlaylistPlay = () => { if(localSongs.length > 0) console.log("Play"); };
+    const handlePlaylistPlay = () => {
+        if (localSongs.length > 0) {
+        
+            dispatch(setQueue({
+                songs: localSongs,
+                startIndex: 0,
+            }));
+        }
+    };
 
     if (isLoading) return <main className="content-area" style={{paddingTop:'50px', display:'flex', justifyContent:'center'}}><CircularProgress color="warning" /></main>;
     if (!playlistDetails) return <main className="content-area" style={{paddingTop:'50px', textAlign:'center'}}><Typography variant="h4" color="error">Playlist não encontrada.</Typography><Button onClick={() => navigate('/playlists')} sx={{mt:2, color:'var(--orange)'}}>Voltar</Button></main>;
