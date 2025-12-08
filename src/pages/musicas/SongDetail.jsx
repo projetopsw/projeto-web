@@ -316,13 +316,6 @@ export default function SongDetail({ songID }) {
                 <SongList tracksArr={[song]} onTrackClick={handlePlaySong} />
             </div>
             
-            {song.lyrics && (
-                <div className="song-lyrics-container">
-                    <h2>Letra 🎶</h2>
-                    <pre className="song-lyrics-text">{song.lyrics}</pre>
-                </div>
-            )}
-            
             <ReleaseInfo
                 releaseDate={song.releaseDate} 
                 recordLabel={song.album?.recordLabel || song.recordLabel || 'Não informada'} 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, 
     DialogActions, Button, TextField, IconButton 
@@ -32,12 +32,19 @@ import EditMusicaModal from './EditMusica.jsx';
 const COR_LARANJA = 'var(--orange)';
 const LIKED_SONGS_ID = "0";
 
+// Função para formatar tempo
 const formatTime = (seconds) => {
     if (!seconds && seconds !== 0) return "0:00";
     if (typeof seconds === 'string' && seconds.includes(':')) return seconds;
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+};
+
+// --- NOVO: Função para detectar se é um código de banco de dados (ObjectId) ---
+const isObjectId = (text) => {
+    // Verifica se é uma string de 24 caracteres hexadecimais (0-9, a-f)
+    return typeof text === 'string' && /^[0-9a-fA-F]{24}$/.test(text);
 };
 
 export default function Song({ song }) {
@@ -47,20 +54,42 @@ export default function Song({ song }) {
     const songId = song._id || song.id;
     const title = song.title || "Sem título";
 
+    // --- Lógica de Artista BLINDADA ---
     let artistDisplay = "Desconhecido";
     let mainArtistId = null;
 
-    if (song.artists && Array.isArray(song.artists) && song.artists.length > 0) {
-        artistDisplay = song.artists.map(a => (typeof a === 'string' ? a : a.name)).join(', ');
-        mainArtistId = song.artists[0]._id || song.artists[0].id;
-    } else if (song.artist && typeof song.artist === 'object') {
+    // 1. Array de Objetos (Melhor cenário: [{name: 'X'}])
+    if (Array.isArray(song.artists) && song.artists.length > 0) {
+        // Filtra para pegar apenas nomes válidos (ignora IDs no meio do array)
+        const validNames = song.artists
+            .map(a => (typeof a === 'string' ? a : a.name))
+            .filter(name => !isObjectId(name)); // Remove IDs
+
+        if (validNames.length > 0) {
+            artistDisplay = validNames.join(', ');
+        }
+        
+        // Tenta pegar o ID do primeiro artista para navegação
+        const firstArtist = song.artists[0];
+        mainArtistId = typeof firstArtist === 'object' ? (firstArtist._id || firstArtist.id) : firstArtist;
+    } 
+    // 2. Objeto Único ({name: 'X'})
+    else if (song.artist && typeof song.artist === 'object') {
         artistDisplay = song.artist.name || "Desconhecido";
         mainArtistId = song.artist._id || song.artist.id;
-    } else if (typeof song.artist === 'string') {
-        artistDisplay = song.artist;
+    } 
+    // 3. String (Aqui estava o problema!)
+    else if (typeof song.artist === 'string') {
+        // Só exibe se NÃO for um código de banco de dados
+        if (!isObjectId(song.artist)) {
+            artistDisplay = song.artist;
+        }
+        // Se for um ID, mantemos "Desconhecido" (melhor que mostrar código)
+        
         mainArtistId = song.artistId || null;
     }
 
+    // --- Lógica de Álbum ---
     let albumId = null;
     let isSingle = false; 
 
@@ -75,22 +104,33 @@ export default function Song({ song }) {
 
     const durationDisplay = formatTime(song.duration);
 
+    // --- Redux e Like ---
     const user = useSelector(state => state.user?.user) || useSelector(state => state.auth?.user);
     const isAdmin = user?.role === 'admin'; 
     const userPlaylistsDetail = useSelector(state => state.auth?.userPlaylistsDetail || []);
+    const { currentSong, isPlaying } = useSelector(state => state.player);
 
-    const userLikedSongs = Array.isArray(user?.likedSongs) ? user.likedSongs : [];
+    // Lógica robusta de Like
+    const likedPlaylist = userPlaylistsDetail.find(p => p.id === LIKED_SONGS_ID);
+    const likedSongsList = likedPlaylist ? likedPlaylist.songs : (user?.likedSongs || []);
     const songIdStr = String(songId);
-    const isLiked = userLikedSongs.some(item => {
+
+    const isLikedRedux = Array.isArray(likedSongsList) && likedSongsList.some(item => {
         if (!item) return false;
         const itemId = typeof item === 'object' ? (item._id || item.id) : item;
         return String(itemId) === songIdStr;
     });
 
-    const { currentSong, isPlaying } = useSelector(state => state.player);
+    const [localIsLiked, setLocalIsLiked] = useState(isLikedRedux);
+
+    useEffect(() => {
+        setLocalIsLiked(isLikedRedux);
+    }, [isLikedRedux]);
+
     const isThisSongCurrentlySelected = (currentSong?._id === songId) || (currentSong?.id === songId);
     const isThisSongPlaying = isThisSongCurrentlySelected && isPlaying;
 
+    // --- UI States ---
     const [anchorEl, setAnchorEl] = useState(null);
     const [playlistAnchorEl, setPlaylistAnchorEl] = useState(null);
     const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -102,9 +142,28 @@ export default function Song({ song }) {
     const playlistMenuAberto = Boolean(playlistAnchorEl);
     const canManage = isAdmin; 
 
+    // --- HANDLERS ---
     const handleMenuClose = () => setAnchorEl(null);
     const handlePlaylistMenuClose = () => { setPlaylistAnchorEl(null); handleMenuClose(); };
     
+    const handleLikeClick = async (e) => {
+        e.stopPropagation();
+        if (!user || (!user.id && !user._id)) { navigate('/login'); return; }
+
+        const previousState = localIsLiked;
+        setLocalIsLiked(!previousState);
+
+        try {
+            await dispatch(toggleLikeSongAsync({ songId })).unwrap();
+            if (user.id || user._id) {
+                dispatch(fetchUserPlaylistsDetail(user.id || user._id));
+            }
+        } catch (error) {
+            setLocalIsLiked(previousState);
+            alert("Erro ao curtir música.");
+        }
+    }
+
     const handleDeleteSong = async () => {
         if (!songId) return;
         try {
@@ -112,7 +171,6 @@ export default function Song({ song }) {
             alert(`Música "${title}" deletada com sucesso!`); 
             window.location.reload(); 
         } catch (error) {
-            console.error('Erro ao deletar:', error);
             alert('Falha ao deletar a música.');
         } finally {
             setShowDeleteModal(false);
@@ -124,22 +182,6 @@ export default function Song({ song }) {
         setShowEditModal(false);
     }
 
-    const handleLikeClick = async (e) => {
-        e.stopPropagation();
-        if (!user || (!user.id && !user._id)) { navigate('/login'); return; }
-
-        try {
-            const resultAction = await dispatch(toggleLikeSongAsync({ songId })).unwrap();
-            
-            
-            if (user.id || user._id) dispatch(fetchUserPlaylistsDetail(user.id || user._id));
-
-        } catch (error) {
-            console.error("Erro ao curtir:", error);
-            alert("Erro ao curtir música.");
-        }
-    }
-
     const handlePlayPauseClick = (e) => {
         e.stopPropagation();
         if (isThisSongCurrentlySelected) dispatch(togglePlayPause());
@@ -149,7 +191,7 @@ export default function Song({ song }) {
     const handleMenuClick = (event) => {
         event.stopPropagation();
         setAnchorEl(event.currentTarget);
-        if (user && (user.id || user._id)) {
+        if (user && (user.id || user._id) && userPlaylistsDetail.length === 0) {
             dispatch(fetchUserPlaylistsDetail(user.id || user._id));
         }
     };
@@ -179,7 +221,6 @@ export default function Song({ song }) {
             if (user.id || user._id) dispatch(fetchUserPlaylistsDetail(user.id || user._id));
 
         } catch (error) {
-            console.error("Erro ao adicionar à playlist:", error);
             alert(typeof error === 'string' ? error : "Erro ao adicionar música à playlist.");
         }
         
@@ -207,7 +248,6 @@ export default function Song({ song }) {
         }).catch(err => alert('Não foi possível copiar o link.'));
     };
 
-
     const menuOptions = [
         { 
             icon: <AddIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
@@ -215,7 +255,7 @@ export default function Song({ song }) {
             action: handleAddPlaylistClick, 
             requiresEvent: true 
         }, 
-        ...(mainArtistId ? [{ 
+        ...(mainArtistId && !isObjectId(mainArtistId) ? [{  // Proteção extra aqui também
             icon: <PersonIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Ir para o artista', 
             action: () => { handleMenuClose(); navigate(`/artista/${mainArtistId}`); } 
@@ -249,7 +289,7 @@ export default function Song({ song }) {
         ] : [])
     ];
 
-    const corIcone = isLiked ? COR_LARANJA : 'var(--secondary-text-color)';
+    const corIcone = localIsLiked ? COR_LARANJA : 'var(--secondary-text-color)';
     
     return (
         <>
@@ -265,18 +305,19 @@ export default function Song({ song }) {
 
                     <div className="song-info flex" style={{ marginLeft: '15px' }}>
                         <span className="song-title" style={{ color: isThisSongCurrentlySelected ? COR_LARANJA : 'white' }}>{title}</span>
-                        <span className="song-artist">{artistDisplay}</span>
+                        {artistDisplay != "Desconhecido" && <span className="song-artist">{artistDisplay}</span>}
                     </div>
                 </div>
                 <div className="song-detail flex">
                     <div className="icon" onClick={handleLikeClick} style={{ cursor: 'pointer', color: corIcone }}>
-                        {isLiked ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
+                        {localIsLiked ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
                     </div>
                     <span className="song-duration">{durationDisplay}</span>
                     <i className="icon fa-solid fa-ellipsis" onClick={handleMenuClick} style={{ cursor: 'pointer', color: 'var(--secondary-text-color)' }}></i>
                 </div>
             </div>
-        
+            
+            {/* Menus e Modais continuam iguais abaixo */}
             <Menu
                 id="song-options-menu"
                 anchorEl={anchorEl}

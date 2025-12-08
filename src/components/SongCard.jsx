@@ -13,12 +13,20 @@ const SongCard = ({
 }) => {
     const navigate = useNavigate();
     
+    const CARACTERES_MAXIMOS = 24; 
+
+    const truncateText = (text, maxLength) => {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        return text.slice(0, maxLength) + '...';
+    };
+    
     let artistPath = '';
     if (artistId) {
         if (isArtistUpload) {
-            artistPath = `/artista/${artistId}`;
+            artistPath = `/artist/${artistId}`;
         } else if (isUserUpload) {
-            artistPath = `/usuario/${artistId}`;
+            artistPath = `/user/${artistId}`;
         }
     }
 
@@ -26,22 +34,32 @@ const SongCard = ({
         navigate(`/song/${id}`);
     };
 
+    const displayArtist = truncateText(artist, CARACTERES_MAXIMOS);
+
     return (
         <div className="card" onClick={handleCardClick} style={{ cursor: 'pointer' }}>
             <img src={cover} alt={title} className="card-image" />
             <div className="card-info">
-                <h4 className="card-title">{title}</h4>
+                <h4 className="card-title" title={title}>
+                    {truncateText(title, 20)}
+                </h4>
                 
                 {artistPath ? (
                     <Link 
                         to={artistPath} 
                         className="card-artist" 
                         onClick={(e) => e.stopPropagation()}
+                        title={artist} 
                     >
-                        {artist}
+                        {displayArtist}
                     </Link>
                 ) : (
-                    <p className="card-artist">{artist}</p>
+                    <p 
+                        className="card-artist" 
+                        title={artist} 
+                    >
+                        {displayArtist}
+                    </p>
                 )}
             </div>
             <button 

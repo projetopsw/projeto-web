@@ -10,6 +10,7 @@ import AlbumCard from '../../components/AlbumCard';
 import '../musicas/css/SongAlbumDetail.css';
 import api from "../../services/api.js";
 
+
 const isGarbage = (text) => {
     if (!text) return false;
     const lower = text.toLowerCase();
@@ -32,6 +33,29 @@ const calculateTotalDuration = (songs = []) => {
     
     if (hours > 0) return `${songs.length} músicas, ${hours}h ${minutes}min`;
     return `${songs.length} músicas, ${minutes} min`;
+};
+
+const getSafeArtistName = (obj) => {
+    if (!obj) return 'Desconhecido';
+
+    if (Array.isArray(obj.artists) && obj.artists.length > 0) {
+        const names = obj.artists
+            .filter(a => typeof a === 'object' && a.name)
+            .map(a => a.name);
+        
+        if (names.length > 0) return names.join(', ');
+    }
+
+    if (obj.artist && typeof obj.artist === 'object' && obj.artist.name) {
+        return obj.artist.name;
+    }
+
+    if (typeof obj.artist === 'string') {
+        if (obj.artist.length > 20 && !obj.artist.includes(' ')) return 'Artista Desconhecido';
+        return obj.artist;
+    }
+
+    return 'Desconhecido';
 };
 
 export default function AlbumDetail({ albumID }) {
@@ -64,16 +88,19 @@ export default function AlbumDetail({ albumID }) {
 
   useEffect(() => {
     if (album) {
-        const mainArtistId = album.artists?.[0]?._id || album.artists?.[0]?.id;
+        const mainArtist = (album.artists && album.artists[0]) || album.artist;
+        const mainArtistId = (typeof mainArtist === 'object') ? (mainArtist._id || mainArtist.id) : null;
         
         if (mainArtistId) {
-            api.get(`/artists/${mainArtistId}`)
-                .then(res => {
-                    if (res.data.image || res.data.cover) {
-                        setArtistImage(res.data.image || res.data.cover);
-                    }
-                })
-                .catch(err => console.error("Erro ao buscar imagem do artista:", err));
+            if (!artistImage) {
+                api.get(`/artists/${mainArtistId}`)
+                    .then(res => {
+                        if (res.data.image || res.data.cover) {
+                            setArtistImage(res.data.image || res.data.cover);
+                        }
+                    })
+                    .catch(err => console.error("Erro ao buscar imagem do artista:", err));
+            }
 
             api.get(`/artists/${mainArtistId}/albums`)
                 .then(res => {
@@ -83,7 +110,7 @@ export default function AlbumDetail({ albumID }) {
                 .catch(err => console.error("Erro ao buscar álbuns relacionados:", err));
         }
     }
-  }, [album]);
+  }, [album, artistImage]);
 
   const handlePlayTrack = (track) => {
     dispatch(playSong(track));
@@ -96,7 +123,7 @@ export default function AlbumDetail({ albumID }) {
   };
 
   if (loading) {
-    return <main><h1 style={{color:'white', textAlign:'center', marginTop:'50px'}}>Carregando músicas...</h1></main>;
+    return <main><h1 style={{color:'white', textAlign:'center', marginTop:'50px'}}>Carregando...</h1></main>;
   }
 
   if (error || !album) {
@@ -107,11 +134,11 @@ export default function AlbumDetail({ albumID }) {
     );
   }
 
-  const artistNames = Array.isArray(album.artists) 
-      ? album.artists.map(a => a.name).join(', ') 
-      : (album.artist || 'Desconhecido');
+  const artistNames = getSafeArtistName(album);
 
-  const mainArtistId = album.artists?.[0]?._id || album.artists?.[0]?.id;
+  const mainArtist = (album.artists && album.artists[0]) || album.artist;
+  const mainArtistId = (typeof mainArtist === 'object') ? (mainArtist._id || mainArtist.id) : null;
+  
   const releaseYear = album.releaseDate ? new Date(album.releaseDate).getFullYear() : "";
 
   const filteredAlbums = relatedAlbums.filter(relAlbum => {
@@ -131,7 +158,7 @@ export default function AlbumDetail({ albumID }) {
             cover={album.cover} 
             type={'Álbum'} 
             title={album.title} 
-            artist={artistNames}  
+            artist={artistNames}
             artistId={mainArtistId}
             artistImg={artistImage} 
             year={releaseYear}  
@@ -157,12 +184,7 @@ export default function AlbumDetail({ albumID }) {
             <Section title={`Mais de ${artistNames}`} className="section-mais-do-artista">
                 <div className="section-scroll-container">
                     {filteredAlbums.map((relAlbum) => {
-                        let albArtist = 'Desconhecido';
-                        if (relAlbum.artists && Array.isArray(relAlbum.artists) && relAlbum.artists.length > 0) {
-                            albArtist = relAlbum.artists.map(a => a.name).join(', ');
-                        } else if (relAlbum.artist) {
-                             albArtist = typeof relAlbum.artist === 'string' ? relAlbum.artist : relAlbum.artist.name;
-                        }
+                        const albArtist = getSafeArtistName(relAlbum);
 
                         return (
                             <AlbumCard
@@ -170,7 +192,7 @@ export default function AlbumDetail({ albumID }) {
                                 id={relAlbum.id || relAlbum._id}
                                 cover={relAlbum.cover || relAlbum.image}
                                 title={relAlbum.title || relAlbum.name}
-                                artist={albArtist}
+                                artist={albArtist} 
                             />
                         );
                     })}
