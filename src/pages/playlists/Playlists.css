@@ -26,6 +26,7 @@ main h1 {
     transition: all 0.3s ease;
     cursor: pointer;
     box-shadow: 0 4px 12px var(--shadow-color-dark);
+    max-width: 35em;
 }
 
 .box-playlist:hover {
