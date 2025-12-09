@@ -81,7 +81,7 @@ function Home() {
                         const capa = s.cover || s.album?.cover;
                         if (!capa || capa === '') return false;
 
-                        if (s.popularity !== undefined && s.popularity < 10) return false;
+                        if (s.popularity !== undefined && s.popularity < 20) return false;
 
                         if (isGarbage(s.title)) return false;
 
@@ -143,7 +143,7 @@ function Home() {
                         const img = a.cover || a.image;
                         if (!img || img === '') return false;
                         
-                        if (a.popularity !== undefined && a.popularity < 10 ) return false;
+                        if (a.popularity !== undefined && a.popularity < 20 ) return false;
                      
                         if (isGarbage(a.name)) return false;
 

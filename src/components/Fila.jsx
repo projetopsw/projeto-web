@@ -91,7 +91,7 @@ function QueueOverlay() {
 
                         <ListItemText
                             primary={song.title}
-                            secondary={song.artist + ' • ' + song.album}
+                            secondary={song.artist}
                             primaryTypographyProps={{
                                 fontWeight: 'bold', fontSize: '1rem',
                                 color: isCurrentlyPlaying ? 'var(--orange)' : 'var(--text-color)',
