@@ -18,9 +18,11 @@ import ArtistCircle from '../../components/ArtistCircle.jsx';
 import ProfileHeader from '../../components/ProfileHeader.jsx'; 
 import SongList from '../../components/SongList.jsx';
 
+// IMPORTANTE: Usar o serviço configurado para garantir acesso ao MongoDB
+import mongoApi from '../../services/mongoApi.js';
+
 const USER_API_URL = 'http://localhost:3000'; 
 const DEFAULT_USER_IMAGE = 'https://placehold.co/400x400?text=User'; 
-
 
 const fetchTargetUser = async (targetId) => {
     if (!targetId || targetId === 'undefined') {
@@ -28,31 +30,28 @@ const fetchTargetUser = async (targetId) => {
     }
     try {
         const response = await fetch(`${USER_API_URL}/users/${targetId}`);
-        if (!response.ok) {
-            throw new Error('Falha ao carregar dados do usuário alvo.');
-        }
+        if (!response.ok) throw new Error('Falha ao carregar dados do usuário alvo.');
         return await response.json();
     } catch (error) {
-        console.error("Erro ao buscar usuário na Perfil Page:", error);
+        console.error("Erro ao buscar usuário:", error);
         return null; 
     }
 };
 
+// Função auxiliar para buscar listas (amigos, musicas) via ID
 const fetchJsonOrEmptyArray = async (url) => {
     if (!url) return [];
     try {
         const res = await fetch(url);
-        if (!res.ok) {
-            console.error(`Erro ao buscar dados secundários (Status ${res.status}): ${url}`);
-            return [];
-        }
-        return await res.json();
+        if (!res.ok) return [];
+        const json = await res.json();
+        if (json.data && Array.isArray(json.data)) return json.data;
+        if (Array.isArray(json)) return json;
+        return []; 
     } catch (error) {
-        console.error(`Erro de rede/JSON ao buscar dados secundários (URL: ${url}):`, error);
         return [];
     }
 };
-
 
 export default function Perfil() {
     const dispatch = useDispatch();
@@ -61,6 +60,7 @@ export default function Perfil() {
 
     const userLogado = useSelector(state => state.user.user); 
     
+    // Conexões (Amigos)
     const { 
         friends: loggedInFriends, 
         sentRequests: loggedInSentRequests,
@@ -68,21 +68,24 @@ export default function Perfil() {
         status: connectionsStatus
     } = useSelector((state) => state.connections);
 
+    // Seletores do Redux para Artistas/Músicas (apenas para complementar dados)
+    const followedArtistsRedux = useSelector(state => state.catalog?.artists?.items || state.catalog?.followedArtists || []); 
+    const allSongsCatalog = useSelector(state => state.catalog?.songs?.items || []);
+    const likedSongsIds = userLogado?.likedSongs || [];
+    const likedSongsDetailsRedux = allSongsCatalog.filter(song => likedSongsIds.includes(song._id || song.id));
+
+    // ESTADOS LOCAIS (Preenchidos diretamente do MongoDB)
     const [targetUser, setTargetUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [targetPlaylists, setTargetPlaylists] = useState([]);
+    const [profilePlaylists, setProfilePlaylists] = useState([]); // Unificado!
+    
+    // Estados para visitante
     const [targetFriendsDetails, setTargetFriendsDetails] = useState([]);
     const [targetLikedSongsDetails, setTargetLikedSongsDetails] = useState([]);
     const [targetFollowedArtistsDetails, setTargetFollowedArtistsDetails] = useState([]);
 
-    const targetId = id || (userLogado ? String(userLogado.id) : null);
-    
-    const isOwner = userLogado && targetId && String(userLogado.id) === String(targetId);
-
-    const friendDetailsRedux = loggedInFriends; 
-    const { items: userPlaylistsRedux } = useSelector(state => state.playlists?.userPlaylists || { items: [] });
-    const { items: followedArtistsRedux } = useSelector(state => state.catalog?.followedArtists || { items: [] });
-    const { items: likedSongsDetailsRedux } = useSelector(state => state.catalog?.likedSongsDetails || { items: [] });
+    const targetId = id || (userLogado ? String(userLogado.id || userLogado._id) : null);
+    const isOwner = userLogado && targetId && String(userLogado.id || userLogado._id) === String(targetId);
 
     const targetUserIdStr = String(targetUser?._id || targetUser?.id);
     
@@ -93,18 +96,13 @@ export default function Perfil() {
     useEffect(() => {
         if (userLogado?.id || userLogado?._id) {
             const loggedId = String(userLogado.id || userLogado._id);
-            
-            if (connectionsStatus === 'idle' || connectionsStatus === 'refetching' || connectionsStatus === 'failed') {
+            if (connectionsStatus === 'idle' || connectionsStatus === 'failed') {
                 dispatch(fetchConnectionsData(loggedId));
             }
         }
-    }, [
-        dispatch, 
-        userLogado?.id, 
-        userLogado?._id,
-        connectionsStatus
-    ]);
+    }, [dispatch, userLogado, connectionsStatus]);
 
+    // --- CARREGAMENTO DE DADOS DO PERFIL ---
     useEffect(() => {
         if (!targetId) {
             setIsLoading(false);
@@ -114,100 +112,74 @@ export default function Perfil() {
         const loadProfileData = async () => {
             setIsLoading(true);
             
-            setTargetUser(null);
-            setTargetPlaylists([]);
-            setTargetFriendsDetails([]);
-            setTargetLikedSongsDetails([]);
-            setTargetFollowedArtistsDetails([]);
-            
-            let finalUserData;
-
+            // 1. Identificar o Usuário
+            let userData;
             if (isOwner) {
-                finalUserData = userLogado;
-                dispatch(fetchArtistsByIds(userLogado.following || []));
-                dispatch(fetchSongsByIds(userLogado.likedSongs || []));
+                userData = userLogado;
+                // Dispara Redux para dados globais se necessário
+                if (userLogado.following?.length) dispatch(fetchArtistsByIds(userLogado.following));
+                if (userLogado.likedSongs?.length) dispatch(fetchSongsByIds(userLogado.likedSongs));
             } else {
-                finalUserData = await fetchTargetUser(targetId);
-                
-                if (finalUserData) {
-                    console.log(`%c[DIAG] Dados do Perfil de ${finalUserData.name || 'Alvo'}:`, 'color: #1E90FF; font-weight: bold;');
-                    console.log(`%cAmigos IDs:`, 'color: #3CB371;', finalUserData.friends);
-                    console.log(`%cMúsicas Curtidas IDs:`, 'color: #FF8C00;', finalUserData.likedSongs);
-                }
+                userData = await fetchTargetUser(targetId);
             }
             
-            if (finalUserData) {
-                setTargetUser(finalUserData);
-                
+            setTargetUser(userData);
+
+            if (userData) {
+                const userId = userData._id || userData.id;
+
+                // 2. BUSCAR PLAYLISTS DO MONGODB (Para Dono E Visitante)
+                // Isso garante que pegamos o que está no banco agora.
+                try {
+                    // Usa a query 'user' que bate com o campo no seu print do MongoDB
+                    const playlistsRes = await mongoApi.get('/playlists', { 
+                        params: { user: userId } 
+                    });
+                    
+                    if (playlistsRes.data) {
+                        setProfilePlaylists(playlistsRes.data);
+                    }
+                } catch (error) {
+                    console.error("Erro ao buscar playlists do MongoDB:", error);
+                }
+
+                // 3. Buscar detalhes extras (Amigos/Musicas) se for visitante
                 if (!isOwner) {
-                    const fetchDetailsForFriend = async (user) => {
-                        const [playlists, friendsDetails, songsDetails, artistsDetails] = await Promise.all([
-                            fetchJsonOrEmptyArray(`${DATA_API_URL}/userPlaylists?creatorId=${user.id}`), 
-                            
-                            user.friends?.length 
-                                ? fetchJsonOrEmptyArray(`${USER_API_URL}/users?${user.friends.map(id => `id=${id}`).join('&')}`)
-                                : [],
-                        
-                            user.likedSongs?.length 
-                                ? fetchJsonOrEmptyArray(`${DATA_API_URL}/songs?${user.likedSongs.map(id => `id=${id}`).join('&')}`) 
-                                : [], 
-                            
-                            user.following?.length 
-                                ? fetchJsonOrEmptyArray(`${DATA_API_URL}/artists?${user.following.map(id => `id=${id}`).join('&')}`) 
-                                : []
+                    const friendsQuery = userData.friends?.length ? userData.friends.map(id => `id=${id}`).join('&') : null;
+                    const songsQuery = userData.likedSongs?.length ? userData.likedSongs.map(id => `id=${id}`).join('&') : null;
+                    const artistsQuery = userData.following?.length ? userData.following.map(id => `id=${id}`).join('&') : null;
+
+                    try {
+                        const [friendsDetails, songsDetails, artistsDetails] = await Promise.all([
+                            friendsQuery ? fetchJsonOrEmptyArray(`${USER_API_URL}/users?${friendsQuery}`) : [],
+                            songsQuery ? fetchJsonOrEmptyArray(`http://localhost:3000/songs?${songsQuery}`) : [], 
+                            artistsQuery ? fetchJsonOrEmptyArray(`http://localhost:3000/artists?${artistsQuery}`) : []
                         ]);
                         
-                        console.log(`%c[DIAG] Nomes de Amigos Buscados:`, 'color: #3CB371;', friendsDetails.map(f => f.name || f.username));
-
-                        setTargetPlaylists(playlists.filter(p => p)); 
-                        setTargetFriendsDetails(friendsDetails.filter(f => f));
-                        setTargetLikedSongsDetails(songsDetails.filter(s => s));
-                        setTargetFollowedArtistsDetails(artistsDetails.filter(a => a));
-                    }
-                    fetchDetailsForFriend(finalUserData);
+                        setTargetFriendsDetails(friendsDetails);
+                        setTargetLikedSongsDetails(songsDetails);
+                        setTargetFollowedArtistsDetails(artistsDetails);
+                    } catch (err) { console.error(err); }
                 }
-            } else {
-                setTargetUser(null);
             }
-            
             setIsLoading(false);
         };
         
-        if (isOwner && !userLogado) {
-             setIsLoading(false);
-             return;
-        }
-
         loadProfileData();
-    }, [
-        targetId, 
-        isOwner, 
-        dispatch, 
-        userLogado, 
-    ]); 
-
+    }, [targetId, isOwner, dispatch, userLogado]); 
 
     const handleToggleAction = async () => {
         if (!userLogado || !targetUser) return;
-        
         const currentUserIdStr = String(userLogado.id || userLogado._id);
         const targetIdCorrect = String(targetUser._id || targetUser.id);
-
-        const cleanTargetUser = {
-            ...targetUser,
-            id: targetIdCorrect,
-            _id: targetIdCorrect
-        };
+        const cleanTargetUser = { ...targetUser, id: targetIdCorrect, _id: targetIdCorrect };
 
         if (currentIsFriend) {
             dispatch(removeFriend({ currentUserId: currentUserIdStr, targetUserId: targetIdCorrect }));
         } else if (currentHasReceivedRequest) {
             dispatch(acceptFriendRequest({ accepterId: currentUserIdStr, requester: cleanTargetUser }));
         } else {
-            dispatch(toggleFriendRequest({ 
-                currentUserId: currentUserIdStr, 
-                targetUser: cleanTargetUser
-            }));
+            dispatch(toggleFriendRequest({ currentUserId: currentUserIdStr, targetUser: cleanTargetUser }));
         }
     };
 
@@ -215,29 +187,33 @@ export default function Perfil() {
     const handleViewFriends = () => navigate('/conexoes'); 
     const handleEditProfile = () => navigate('/perfil/editar');
     
+    if (isLoading) return <main><Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box></main>;
+    if (!targetUser) return <main><Box sx={{ p: 4 }}><Typography color="error">Usuário não encontrado.</Typography></Box></main>;
+
+    // --- RENDERIZAÇÃO ---
     
-    if (isLoading) {
-        return <main><Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box></main>;
-    }
+    // Normaliza as Playlists vindas do MongoDB
+    const displayedPlaylists = profilePlaylists.map(p => ({
+        id: p._id || p.id,
+        // Banco tem 'img' (vaca) e 'cover' (vecteezy). Priorizamos cover.
+        cover: p.cover || p.img || '/assets/img/vacateste.jpg',
+        // Banco tem 'name' ("eu") e 'title' ("teste"). Priorizamos title.
+        title: p.title || p.name || 'Sem Título',
+        author: targetUser.name || targetUser.username
+    }));
 
-    if (!targetUser) {
-        return <main><Box sx={{ p: 4 }}><Typography color="error">Perfil do usuário não encontrado. 😢</Typography></Box></main>;
-    }
-
-    const displayedPlaylists = isOwner ? userPlaylistsRedux : targetPlaylists;
     const allFriends = isOwner ? loggedInFriends : targetFriendsDetails;
     const limitedDisplayedFriends = allFriends.slice(0, 6); 
 
-    const MAX_LIKED_SONGS_TO_SHOW = 10; 
-    const allLikedSongs = isOwner ? likedSongsDetailsRedux : targetLikedSongsDetails;
-    const displayedLikedSongs = allLikedSongs.slice(0, MAX_LIKED_SONGS_TO_SHOW);
+    const likedSongsSource = isOwner ? likedSongsDetailsRedux : targetLikedSongsDetails;
+    const displayedLikedSongs = Array.isArray(likedSongsSource) 
+        ? likedSongsSource.filter(s => s && s.title).slice(0, 10)
+        : [];
     
-    const displayedFollowedArtists = isOwner ? followedArtistsRedux : targetFollowedArtistsDetails;
+    const followedArtistsSource = isOwner ? followedArtistsRedux : targetFollowedArtistsDetails;
+    const displayedFollowedArtists = Array.isArray(followedArtistsSource) ? followedArtistsSource : [];
 
-    const totalFriendCount = isOwner 
-        ? loggedInFriends.length 
-        : targetUser.friends?.length || 0;
-    
+    const totalFriendCount = isOwner ? loggedInFriends.length : targetUser.friends?.length || 0;
     const finalImage = targetUser.img || targetUser.image || DEFAULT_USER_IMAGE;
     
     const profileUserData = {
@@ -250,37 +226,21 @@ export default function Perfil() {
         image: finalImage 
     };
     
-    let friendButtonText = "Adicionar aos Amigos";
+    let friendButtonText = "Adicionar";
     let friendButtonVariant = "contained";
     let isFriendButtonDisabled = false;
-    let friendButtonCustomStyle = {};
+    let friendButtonCustomStyle = { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } };
 
     if (currentIsFriend) {
-        friendButtonText = "Remover Amigo";
+        friendButtonText = "Remover";
         friendButtonVariant = "outlined";
         friendButtonCustomStyle = { color: 'var(--text-primary)', borderColor: 'var(--text-primary)' };
-
     } else if (currentHasRequested) {
-        friendButtonText = "CANCELAR SOLICITAÇÃO";
+        friendButtonText = "Pendente";
         friendButtonVariant = "outlined";
-        isFriendButtonDisabled = false;
-        
-        friendButtonCustomStyle = { 
-            color: 'var(--orange)', 
-            borderColor: 'var(--orange)',
-            '&:hover': {
-                borderColor: 'var(--orange)', 
-                backgroundColor: 'rgba(255, 102, 0, 0.08)'
-            }
-        };
-        
+        friendButtonCustomStyle = { color: 'var(--orange)', borderColor: 'var(--orange)' };
     } else if (currentHasReceivedRequest) {
-        friendButtonText = "Aceitar Pedido"; 
-        friendButtonVariant = "contained";
-        friendButtonCustomStyle = { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } };
-        
-    } else {
-        friendButtonCustomStyle = { bgcolor: 'var(--orange)', '&:hover': { bgcolor: 'darkorange' } };
+        friendButtonText = "Aceitar"; 
     }
 
     return (
@@ -311,6 +271,7 @@ export default function Perfil() {
                     </>
                 )}
                 
+                {/* --- SEÇÃO PLAYLISTS (Agora pegando direto do MongoDB) --- */}
                 <Section key={"Playlists"} title={`Playlists de ${targetUser.name || targetUser.username}`}>
                     {displayedPlaylists.length > 0 ? (
                         displayedPlaylists.map((playlist) => (
@@ -319,7 +280,7 @@ export default function Perfil() {
                                 id={playlist.id}
                                 cover={playlist.cover}
                                 title={playlist.title}
-                                artist={targetUser.name || targetUser.username}
+                                author={playlist.author}
                             />
                         ))
                     ) : (
@@ -340,11 +301,11 @@ export default function Perfil() {
                     {limitedDisplayedFriends.length > 0 ? (
                         limitedDisplayedFriends.map((friend) => (
                             <ArtistCircle
-                                key={friend.id}
-                                id={friend.id}
+                                key={friend.id || friend._id}
+                                id={friend.id || friend._id}
                                 image={friend.img || friend.image || DEFAULT_USER_IMAGE} 
-                                name={friend.name || friend.username || `Amigo ${friend.id}`} 
-                                onClick={() => handleFriendClick(friend.id)}
+                                name={friend.name || friend.username || `Amigo`} 
+                                onClick={() => handleFriendClick(friend.id || friend._id)}
                                 sx={{ cursor: 'pointer' }}
                                 isUser={true} 
                             />
@@ -362,10 +323,10 @@ export default function Perfil() {
                     <Section key={"Artistas Seguidos"} title={`Artistas Seguidos por ${targetUser.name || targetUser.username}`}>
                         {displayedFollowedArtists.map((artist) => (
                             <ArtistCircle
-                                key={artist.id}
-                                id={artist.id}
-                                image={artist.image || DEFAULT_USER_IMAGE} 
-                                name={artist.name || `Artista ${artist.id}`}
+                                key={artist.id || artist._id}
+                                id={artist.id || artist._id}
+                                image={artist.image || artist.cover || DEFAULT_USER_IMAGE} 
+                                name={artist.name}
                             />
                         ))}
                     </Section>
