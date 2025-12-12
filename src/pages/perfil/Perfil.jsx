@@ -18,40 +18,9 @@ import ArtistCircle from '../../components/ArtistCircle.jsx';
 import ProfileHeader from '../../components/ProfileHeader.jsx'; 
 import SongList from '../../components/SongList.jsx';
 
-// IMPORTANTE: Usar o serviço configurado para garantir acesso ao MongoDB
 import mongoApi from '../../services/mongoApi.js';
 
-const USER_API_URL = 'http://localhost:3000'; 
 const DEFAULT_USER_IMAGE = 'https://placehold.co/400x400?text=User'; 
-
-const fetchTargetUser = async (targetId) => {
-    if (!targetId || targetId === 'undefined') {
-        throw new Error('ID do usuário inválido ou ausente.');
-    }
-    try {
-        const response = await fetch(`${USER_API_URL}/users/${targetId}`);
-        if (!response.ok) throw new Error('Falha ao carregar dados do usuário alvo.');
-        return await response.json();
-    } catch (error) {
-        console.error("Erro ao buscar usuário:", error);
-        return null; 
-    }
-};
-
-// Função auxiliar para buscar listas (amigos, musicas) via ID
-const fetchJsonOrEmptyArray = async (url) => {
-    if (!url) return [];
-    try {
-        const res = await fetch(url);
-        if (!res.ok) return [];
-        const json = await res.json();
-        if (json.data && Array.isArray(json.data)) return json.data;
-        if (Array.isArray(json)) return json;
-        return []; 
-    } catch (error) {
-        return [];
-    }
-};
 
 export default function Perfil() {
     const dispatch = useDispatch();
@@ -60,7 +29,7 @@ export default function Perfil() {
 
     const userLogado = useSelector(state => state.user.user); 
     
-    // Conexões (Amigos)
+    // Conexões (Redux) - Usado apenas para saber status de amizade
     const { 
         friends: loggedInFriends, 
         sentRequests: loggedInSentRequests,
@@ -68,21 +37,14 @@ export default function Perfil() {
         status: connectionsStatus
     } = useSelector((state) => state.connections);
 
-    // Seletores do Redux para Artistas/Músicas (apenas para complementar dados)
-    const followedArtistsRedux = useSelector(state => state.catalog?.artists?.items || state.catalog?.followedArtists || []); 
-    const allSongsCatalog = useSelector(state => state.catalog?.songs?.items || []);
-    const likedSongsIds = userLogado?.likedSongs || [];
-    const likedSongsDetailsRedux = allSongsCatalog.filter(song => likedSongsIds.includes(song._id || song.id));
-
-    // ESTADOS LOCAIS (Preenchidos diretamente do MongoDB)
+    // Estados Locais
     const [targetUser, setTargetUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [profilePlaylists, setProfilePlaylists] = useState([]); // Unificado!
     
-    // Estados para visitante
-    const [targetFriendsDetails, setTargetFriendsDetails] = useState([]);
-    const [targetLikedSongsDetails, setTargetLikedSongsDetails] = useState([]);
-    const [targetFollowedArtistsDetails, setTargetFollowedArtistsDetails] = useState([]);
+    const [profilePlaylists, setProfilePlaylists] = useState([]); 
+    const [profileLikedSongs, setProfileLikedSongs] = useState([]); 
+    const [profileFollowedArtists, setProfileFollowedArtists] = useState([]);
+    const [profileFriends, setProfileFriends] = useState([]);
 
     const targetId = id || (userLogado ? String(userLogado.id || userLogado._id) : null);
     const isOwner = userLogado && targetId && String(userLogado.id || userLogado._id) === String(targetId);
@@ -93,6 +55,7 @@ export default function Perfil() {
     const currentHasRequested = loggedInSentRequests.some(req => String(req.id) === targetUserIdStr);
     const currentHasReceivedRequest = loggedInPendingRequests.some(req => String(req.id) === targetUserIdStr);
     
+    // Atualiza conexões do usuário logado
     useEffect(() => {
         if (userLogado?.id || userLogado?._id) {
             const loggedId = String(userLogado.id || userLogado._id);
@@ -102,7 +65,7 @@ export default function Perfil() {
         }
     }, [dispatch, userLogado, connectionsStatus]);
 
-    // --- CARREGAMENTO DE DADOS DO PERFIL ---
+    // --- CARREGAMENTO DE DADOS ---
     useEffect(() => {
         if (!targetId) {
             setIsLoading(false);
@@ -112,62 +75,110 @@ export default function Perfil() {
         const loadProfileData = async () => {
             setIsLoading(true);
             
-            // 1. Identificar o Usuário
-            let userData;
-            if (isOwner) {
-                userData = userLogado;
-                // Dispara Redux para dados globais se necessário
-                if (userLogado.following?.length) dispatch(fetchArtistsByIds(userLogado.following));
-                if (userLogado.likedSongs?.length) dispatch(fetchSongsByIds(userLogado.likedSongs));
-            } else {
-                userData = await fetchTargetUser(targetId);
-            }
-            
-            setTargetUser(userData);
+            // Limpa estados
+            setProfilePlaylists([]);
+            setProfileLikedSongs([]);
+            setProfileFollowedArtists([]);
+            setProfileFriends([]);
 
-            if (userData) {
+            try {
+                // 1. Buscar Dados do Usuário Alvo (A fonte da verdade!)
+                let userData = null;
+                try {
+                    const resUser = await mongoApi.get(`/users/${targetId}`);
+                    userData = resUser.data;
+                } catch (error) {
+                    console.error("Erro ao buscar usuário:", error);
+                    if (isOwner) userData = userLogado;
+                }
+
+                if (!userData) {
+                    setTargetUser(null);
+                    setIsLoading(false);
+                    return;
+                }
+
+                setTargetUser(userData);
                 const userId = userData._id || userData.id;
 
-                // 2. BUSCAR PLAYLISTS DO MONGODB (Para Dono E Visitante)
-                // Isso garante que pegamos o que está no banco agora.
+                // 2. PLAYLISTS (Filtro rigoroso pelo ID do dono)
                 try {
-                    // Usa a query 'user' que bate com o campo no seu print do MongoDB
-                    const playlistsRes = await mongoApi.get('/playlists', { 
-                        params: { user: userId } 
+                    const resPlaylists = await mongoApi.get('/playlists', { params: { user: userId } });
+                    const rawPlaylists = resPlaylists.data || [];
+                    
+                    const filteredPlaylists = rawPlaylists.filter(p => {
+                        const pUserId = p.user ? (p.user._id || p.user) : (p.owner?._id || p.owner);
+                        return String(pUserId) === String(userId);
                     });
                     
-                    if (playlistsRes.data) {
-                        setProfilePlaylists(playlistsRes.data);
-                    }
-                } catch (error) {
-                    console.error("Erro ao buscar playlists do MongoDB:", error);
-                }
+                    setProfilePlaylists(filteredPlaylists);
+                } catch (e) { console.error("Erro Playlists:", e); }
 
-                // 3. Buscar detalhes extras (Amigos/Musicas) se for visitante
-                if (!isOwner) {
-                    const friendsQuery = userData.friends?.length ? userData.friends.map(id => `id=${id}`).join('&') : null;
-                    const songsQuery = userData.likedSongs?.length ? userData.likedSongs.map(id => `id=${id}`).join('&') : null;
-                    const artistsQuery = userData.following?.length ? userData.following.map(id => `id=${id}`).join('&') : null;
 
+                // 3. MÚSICAS CURTIDAS
+                if (userData.likedSongs && userData.likedSongs.length > 0) {
+                    const idsQuery = userData.likedSongs.map(id => `id=${id}`).join('&');
                     try {
-                        const [friendsDetails, songsDetails, artistsDetails] = await Promise.all([
-                            friendsQuery ? fetchJsonOrEmptyArray(`${USER_API_URL}/users?${friendsQuery}`) : [],
-                            songsQuery ? fetchJsonOrEmptyArray(`http://localhost:3000/songs?${songsQuery}`) : [], 
-                            artistsQuery ? fetchJsonOrEmptyArray(`http://localhost:3000/artists?${artistsQuery}`) : []
-                        ]);
+                        const resSongs = await mongoApi.get(`/songs?${idsQuery}`);
+                        let songsData = Array.isArray(resSongs.data) ? resSongs.data : (resSongs.data?.data || []);
                         
-                        setTargetFriendsDetails(friendsDetails);
-                        setTargetLikedSongsDetails(songsDetails);
-                        setTargetFollowedArtistsDetails(artistsDetails);
-                    } catch (err) { console.error(err); }
+                        // FILTRO DE SEGURANÇA: Só aceita se o ID estiver no array likedSongs do usuário
+                        songsData = songsData.filter(s => 
+                            userData.likedSongs.includes(s._id) || userData.likedSongs.includes(s.id)
+                        );
+                        
+                        setProfileLikedSongs(songsData);
+                    } catch (e) { console.error("Erro Músicas:", e); }
+                } 
+
+
+                // 4. ARTISTAS SEGUIDOS (Correção Principal)
+                if (userData.following && userData.following.length > 0) {
+                    const idsQuery = userData.following.map(id => `id=${id}`).join('&');
+                    try {
+                        const resArtists = await mongoApi.get(`/artists?${idsQuery}`);
+                        let artistsData = Array.isArray(resArtists.data) ? resArtists.data : (resArtists.data?.data || []);
+                        
+                        // --- FILTRO RIGOROSO ---
+                        // Compara os resultados com a lista 'following' do MongoDB do usuário
+                        artistsData = artistsData.filter(artist => 
+                            userData.following.includes(artist._id) || userData.following.includes(artist.id)
+                        );
+
+                        setProfileFollowedArtists(artistsData);
+                    } catch (e) { console.error("Erro Artistas:", e); }
                 }
+
+
+                // 5. AMIGOS (Correção Principal)
+                // Se não for dono, busca e filtra. Se for dono, o Redux já cuida (mas aqui garantimos visualização correta para visitante)
+                if (!isOwner && userData.friends && userData.friends.length > 0) {
+                    const idsQuery = userData.friends.map(id => `id=${id}`).join('&');
+                    try {
+                        const resFriends = await mongoApi.get(`/users?${idsQuery}`);
+                        let friendsData = Array.isArray(resFriends.data) ? resFriends.data : (resFriends.data?.data || []);
+
+                        // --- FILTRO RIGOROSO ---
+                        // Compara os resultados com a lista 'friends' do MongoDB do usuário
+                        friendsData = friendsData.filter(friend => 
+                            userData.friends.includes(friend._id) || userData.friends.includes(friend.id)
+                        );
+
+                        setProfileFriends(friendsData);
+                    } catch (e) { console.error("Erro Amigos:", e); }
+                }
+
+            } catch (error) {
+                console.error("Erro crítico no perfil:", error);
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         };
         
         loadProfileData();
-    }, [targetId, isOwner, dispatch, userLogado]); 
+    }, [targetId, isOwner, userLogado]); 
 
+    // --- HANDLERS ---
     const handleToggleAction = async () => {
         if (!userLogado || !targetUser) return;
         const currentUserIdStr = String(userLogado.id || userLogado._id);
@@ -192,28 +203,31 @@ export default function Perfil() {
 
     // --- RENDERIZAÇÃO ---
     
-    // Normaliza as Playlists vindas do MongoDB
     const displayedPlaylists = profilePlaylists.map(p => ({
         id: p._id || p.id,
-        // Banco tem 'img' (vaca) e 'cover' (vecteezy). Priorizamos cover.
         cover: p.cover || p.img || '/assets/img/vacateste.jpg',
-        // Banco tem 'name' ("eu") e 'title' ("teste"). Priorizamos title.
         title: p.title || p.name || 'Sem Título',
         author: targetUser.name || targetUser.username
     }));
 
-    const allFriends = isOwner ? loggedInFriends : targetFriendsDetails;
+    // Se for Owner, usa loggedInFriends (Redux). Se for Visitante, usa profileFriends (Filtrado acima)
+    const allFriends = isOwner ? loggedInFriends : profileFriends;
+    
+    // Slice para mostrar no máximo 6 bolas
     const limitedDisplayedFriends = allFriends.slice(0, 6); 
 
-    const likedSongsSource = isOwner ? likedSongsDetailsRedux : targetLikedSongsDetails;
-    const displayedLikedSongs = Array.isArray(likedSongsSource) 
-        ? likedSongsSource.filter(s => s && s.title).slice(0, 10)
-        : [];
+    const displayedLikedSongs = profileLikedSongs
+        .filter(s => s && (s.title || s.name)) 
+        .slice(0, 10);
     
-    const followedArtistsSource = isOwner ? followedArtistsRedux : targetFollowedArtistsDetails;
-    const displayedFollowedArtists = Array.isArray(followedArtistsSource) ? followedArtistsSource : [];
+    const displayedFollowedArtists = profileFollowedArtists
+        .filter(a => a && (a.name || a.username));
 
-    const totalFriendCount = isOwner ? loggedInFriends.length : targetUser.friends?.length || 0;
+    // IMPORTANTE: O número total vem do array de IDs do objeto do usuário, não do array carregado visualmente
+    const totalFriendCount = isOwner 
+        ? loggedInFriends.length 
+        : (targetUser.friends ? targetUser.friends.length : 0);
+
     const finalImage = targetUser.img || targetUser.image || DEFAULT_USER_IMAGE;
     
     const profileUserData = {
@@ -261,6 +275,7 @@ export default function Perfil() {
                 
                 <Divider sx={{ my: 4 }} />
                 
+                {/* --- SEÇÃO MÚSICAS MAIS MUGIDAS --- */}
                 {displayedLikedSongs.length > 0 && (
                     <>
                         <SongList 
@@ -271,7 +286,7 @@ export default function Perfil() {
                     </>
                 )}
                 
-                {/* --- SEÇÃO PLAYLISTS (Agora pegando direto do MongoDB) --- */}
+                {/* --- SEÇÃO PLAYLISTS --- */}
                 <Section key={"Playlists"} title={`Playlists de ${targetUser.name || targetUser.username}`}>
                     {displayedPlaylists.length > 0 ? (
                         displayedPlaylists.map((playlist) => (
@@ -292,6 +307,7 @@ export default function Perfil() {
                 
                 <Divider sx={{ my: 4 }} />
                 
+                {/* --- SEÇÃO AMIGOS --- */}
                 <Section
                     key={"Amigos"}
                     title={`Peões Amigos (${totalFriendCount})`}
@@ -319,6 +335,7 @@ export default function Perfil() {
 
                 <Divider sx={{ my: 4 }} />
 
+                {/* --- SEÇÃO ARTISTAS SEGUIDOS --- */}
                 {displayedFollowedArtists.length > 0 && (
                     <Section key={"Artistas Seguidos"} title={`Artistas Seguidos por ${targetUser.name || targetUser.username}`}>
                         {displayedFollowedArtists.map((artist) => (
@@ -326,7 +343,7 @@ export default function Perfil() {
                                 key={artist.id || artist._id}
                                 id={artist.id || artist._id}
                                 image={artist.image || artist.cover || DEFAULT_USER_IMAGE} 
-                                name={artist.name}
+                                name={artist.name || artist.username || 'Artista'}
                             />
                         ))}
                     </Section>

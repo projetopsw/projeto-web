@@ -127,6 +127,10 @@ export default function ProfileHeader({
                     >
                         {safeUser.friends} Peões Amigos
                     </Typography>
+                    <Typography variant="body1" sx={{ color: DYNAMIC_TEXT_COLOR }}>•</Typography>
+                    <Typography variant="body1" sx={{ color: DYNAMIC_TEXT_COLOR }}>
+                        Seguindo {safeUser.following.length} artista(s)  
+                    </Typography>
                                         
                 </Box>
 
