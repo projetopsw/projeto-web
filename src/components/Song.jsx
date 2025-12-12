@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
     Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, 
-    DialogActions, Button, TextField, IconButton 
-} from '@mui/material';
+    DialogActions, Button, TextField, IconButton, List, ListItem, 
+    ListItemAvatar, Avatar, ListItemText, Divider 
+} from '@mui/material'; // Adicionei List, ListItem, etc.
 import { 
     FavoriteBorder as FavoriteBorderIcon, 
     Favorite as FavoriteIcon, 
@@ -15,7 +16,9 @@ import {
     Pause as PauseIcon, 
     Close as CloseIcon, 
     Delete as DeleteIcon, 
-    Edit as EditIcon 
+    Edit as EditIcon,
+    Search as SearchIcon, // Novo ícone
+    Audiotrack as AudiotrackIcon // Novo ícone para playlist sem capa
 } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -32,7 +35,7 @@ import EditMusicaModal from './EditMusica.jsx';
 const COR_LARANJA = 'var(--orange)';
 const LIKED_SONGS_ID = "0";
 
-// Função para formatar tempo
+// ... (Mantenha as funções formatTime e isObjectId iguais) ...
 const formatTime = (seconds) => {
     if (!seconds && seconds !== 0) return "0:00";
     if (typeof seconds === 'string' && seconds.includes(':')) return seconds;
@@ -41,9 +44,7 @@ const formatTime = (seconds) => {
     return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
 };
 
-// --- NOVO: Função para detectar se é um código de banco de dados (ObjectId) ---
 const isObjectId = (text) => {
-    // Verifica se é uma string de 24 caracteres hexadecimais (0-9, a-f)
     return typeof text === 'string' && /^[0-9a-fA-F]{24}$/.test(text);
 };
 
@@ -54,45 +55,28 @@ export default function Song({ song }) {
     const songId = song._id || song.id;
     const title = song.title || "Sem título";
 
-    // --- Lógica de Artista BLINDADA ---
+    // ... (Mantenha toda a lógica de Artista e Álbum igual) ...
     let artistDisplay = "Desconhecido";
     let mainArtistId = null;
 
-    // 1. Array de Objetos (Melhor cenário: [{name: 'X'}])
     if (Array.isArray(song.artists) && song.artists.length > 0) {
-        // Filtra para pegar apenas nomes válidos (ignora IDs no meio do array)
         const validNames = song.artists
             .map(a => (typeof a === 'string' ? a : a.name))
-            .filter(name => !isObjectId(name)); // Remove IDs
+            .filter(name => !isObjectId(name)); 
 
-        if (validNames.length > 0) {
-            artistDisplay = validNames.join(', ');
-        }
-        
-        // Tenta pegar o ID do primeiro artista para navegação
+        if (validNames.length > 0) artistDisplay = validNames.join(', ');
         const firstArtist = song.artists[0];
         mainArtistId = typeof firstArtist === 'object' ? (firstArtist._id || firstArtist.id) : firstArtist;
-    } 
-    // 2. Objeto Único ({name: 'X'})
-    else if (song.artist && typeof song.artist === 'object') {
+    } else if (song.artist && typeof song.artist === 'object') {
         artistDisplay = song.artist.name || "Desconhecido";
         mainArtistId = song.artist._id || song.artist.id;
-    } 
-    // 3. String (Aqui estava o problema!)
-    else if (typeof song.artist === 'string') {
-        // Só exibe se NÃO for um código de banco de dados
-        if (!isObjectId(song.artist)) {
-            artistDisplay = song.artist;
-        }
-        // Se for um ID, mantemos "Desconhecido" (melhor que mostrar código)
-        
+    } else if (typeof song.artist === 'string') {
+        if (!isObjectId(song.artist)) artistDisplay = song.artist;
         mainArtistId = song.artistId || null;
     }
 
-    // --- Lógica de Álbum ---
     let albumId = null;
     let isSingle = false; 
-
     if (song.album && typeof song.album === 'object') {
         albumId = song.album._id || song.album.id;
         const type = song.album.type || song.album.album_type || "";
@@ -110,7 +94,6 @@ export default function Song({ song }) {
     const userPlaylistsDetail = useSelector(state => state.auth?.userPlaylistsDetail || []);
     const { currentSong, isPlaying } = useSelector(state => state.player);
 
-    // Lógica robusta de Like
     const likedPlaylist = userPlaylistsDetail.find(p => p.id === LIKED_SONGS_ID);
     const likedSongsList = likedPlaylist ? likedPlaylist.songs : (user?.likedSongs || []);
     const songIdStr = String(songId);
@@ -132,22 +115,30 @@ export default function Song({ song }) {
 
     // --- UI States ---
     const [anchorEl, setAnchorEl] = useState(null);
-    const [playlistAnchorEl, setPlaylistAnchorEl] = useState(null);
+    
+    // NOVO: Controle do Modal de Playlist
+    const [playlistModalOpen, setPlaylistModalOpen] = useState(false);
+    const [playlistSearchTerm, setPlaylistSearchTerm] = useState("");
+
     const [shareModalOpen, setShareModalOpen] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false); 
     const [copied, setCopied] = useState(false);
     
     const aberto = Boolean(anchorEl);
-    const playlistMenuAberto = Boolean(playlistAnchorEl);
     const canManage = isAdmin; 
 
     // --- HANDLERS ---
     const handleMenuClose = () => setAnchorEl(null);
-    const handlePlaylistMenuClose = () => { setPlaylistAnchorEl(null); handleMenuClose(); };
     
+    // Novo Handler para fechar o modal de playlist
+    const handlePlaylistModalClose = () => {
+        setPlaylistModalOpen(false);
+        setPlaylistSearchTerm("");
+    };
+
     const handleLikeClick = async (e) => {
-        e.stopPropagation();
+        e?.stopPropagation();
         if (!user || (!user.id && !user._id)) { navigate('/login'); return; }
 
         const previousState = localIsLiked;
@@ -191,22 +182,25 @@ export default function Song({ song }) {
     const handleMenuClick = (event) => {
         event.stopPropagation();
         setAnchorEl(event.currentTarget);
-        if (user && (user.id || user._id) && userPlaylistsDetail.length === 0) {
+        // Garante que as playlists estejam carregadas ao abrir o menu
+        if (user && (user.id || user._id)) {
             dispatch(fetchUserPlaylistsDetail(user.id || user._id));
         }
     };
     
-    const handleAddPlaylistClick = (currentTarget) => {
+    // ALTERADO: Agora abre o Modal em vez do submenu
+    const handleOpenPlaylistModal = () => {
         if (!user) { navigate('/login'); return; }
-        setPlaylistAnchorEl(currentTarget); 
+        setPlaylistModalOpen(true);
+        handleMenuClose();
     };
 
     const handleAddToSpecificPlaylist = async (playlistId, playlistName) => {
         if (!user) { navigate('/login'); return; }
 
         if (playlistId === LIKED_SONGS_ID) {
-            handleLikeClick({ stopPropagation: () => {} });
-            handlePlaylistMenuClose();
+            handleLikeClick(); // Chama a função de like existente
+            handlePlaylistModalClose();
             return;
         }
         
@@ -224,17 +218,18 @@ export default function Song({ song }) {
             alert(typeof error === 'string' ? error : "Erro ao adicionar música à playlist.");
         }
         
-        handlePlaylistMenuClose();
+        handlePlaylistModalClose();
     };
 
     const handleCreatePlaylist = () => {
-        handlePlaylistMenuClose();
+        handlePlaylistModalClose();
         handleMenuClose();
         navigate('/playlists?openCreateModal=true'); 
     };
 
     const handleAddToQueue = () => {
         dispatch(addSingleSongToQueue(song));
+        handleMenuClose(); // Fechar menu ao clicar
     };
 
     const handleOpenShareModal = () => { setShareModalOpen(true); handleMenuClose(); };
@@ -252,10 +247,10 @@ export default function Song({ song }) {
         { 
             icon: <AddIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Adicionar à playlist', 
-            action: handleAddPlaylistClick, 
-            requiresEvent: true 
+            action: handleOpenPlaylistModal, // Alterado para abrir o modal
+            requiresEvent: false 
         }, 
-        ...(mainArtistId && !isObjectId(mainArtistId) ? [{  // Proteção extra aqui também
+        ...(mainArtistId && !isObjectId(mainArtistId) ? [{ 
             icon: <PersonIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Ir para o artista', 
             action: () => { handleMenuClose(); navigate(`/artista/${mainArtistId}`); } 
@@ -290,10 +285,26 @@ export default function Song({ song }) {
     ];
 
     const corIcone = localIsLiked ? COR_LARANJA : 'var(--secondary-text-color)';
+
+    // Filtra as playlists com base na busca
+    // Filtra as playlists com base na busca (COM PROTEÇÃO CONTRA ERRO)
+    const filteredPlaylists = userPlaylistsDetail
+        .filter(p => p.id !== LIKED_SONGS_ID)
+        .filter(p => {
+            // 1. Tenta pegar o nome, se não tiver, tenta o título, se não, string vazia
+            const playlistName = p.name || p.title || ""; 
+            
+            // 2. Só faz a busca se tivermos um texto válido
+            if (typeof playlistName === 'string') {
+                return playlistName.toLowerCase().includes(playlistSearchTerm.toLowerCase());
+            }
+            return false;
+        });
     
     return (
         <>
             <div className="song flex">
+                {/* ... (Parte visual da música mantida igual) ... */}
                 <div className="song-detail flex">
                     <div onClick={handlePlayPauseClick} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                         {isThisSongPlaying ? (
@@ -317,7 +328,7 @@ export default function Song({ song }) {
                 </div>
             </div>
             
-            {/* Menus e Modais continuam iguais abaixo */}
+            {/* Menu Principal (Opções) */}
             <Menu
                 id="song-options-menu"
                 anchorEl={anchorEl}
@@ -330,7 +341,7 @@ export default function Song({ song }) {
                         key={option.label}
                         onClick={(e) => {
                             if (option.requiresEvent) option.action(e.currentTarget);
-                            else { option.action(); if (option.label !== 'Adicionar à playlist') handleMenuClose(); }
+                            else option.action(); 
                         }}
                         sx={{ '&:hover': { backgroundColor: 'var(--button-hover-bg)' } }}
                     >
@@ -340,42 +351,114 @@ export default function Song({ song }) {
                 ))}
             </Menu>
 
-            <Menu
-                id="playlist-selection-menu"
-                anchorEl={playlistAnchorEl}
-                open={playlistMenuAberto}
-                onClose={handlePlaylistMenuClose}
-                PaperProps={{ sx: { backgroundColor: 'var(--sidebar-bg)', color: 'var(--text-color)' } }}
+            {/* --- NOVO MODAL DE SELEÇÃO DE PLAYLIST --- */}
+            <Dialog 
+                open={playlistModalOpen} 
+                onClose={handlePlaylistModalClose}
+                fullWidth
+                maxWidth="sm"
+                PaperProps={{ 
+                    sx: { 
+                        backgroundColor: 'var(--card-bg)', 
+                        color: 'var(--text-color)',
+                        borderRadius: '12px'
+                    } 
+                }}
             >
-                <MenuItem disabled style={{ opacity: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'var(--secondary-text-color)' }}>Adicionar a:</Typography>
-                </MenuItem>
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)' }}>
+                    Adicionar à playlist
+                    <IconButton onClick={handlePlaylistModalClose} sx={{ color: 'var(--secondary-text-color)' }}>
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
                 
-                <MenuItem onClick={() => handleAddToSpecificPlaylist(LIKED_SONGS_ID, 'Músicas Curtidas')}>
-                    <FavoriteIcon fontSize="small" style={{ marginRight: '8px', color: COR_LARANJA }} />
-                    <Typography variant="body1">Músicas Curtidas</Typography>
-                </MenuItem>
-                
-                <div style={{ margin: '4px 0', borderTop: '1px solid var(--border-color)' }}></div>
+                <DialogContent sx={{ mt: 2, p: 0 }}>
+                    {/* Campo de Busca */}
+                    <div style={{ padding: '16px' }}>
+                        <TextField
+                            fullWidth
+                            variant="outlined"
+                            placeholder="Buscar playlist..."
+                            value={playlistSearchTerm}
+                            onChange={(e) => setPlaylistSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: <SearchIcon sx={{ color: 'var(--secondary-text-color)', mr: 1 }} />,
+                            }}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    backgroundColor: 'var(--input-bg)',
+                                    color: 'var(--text-color)',
+                                    '& fieldset': { borderColor: 'var(--border-color)' },
+                                    '&:hover fieldset': { borderColor: COR_LARANJA },
+                                    '&.Mui-focused fieldset': { borderColor: COR_LARANJA },
+                                }
+                            }}
+                        />
+                    </div>
 
-                {userPlaylistsDetail && userPlaylistsDetail
-                    .filter(p => p.id !== LIKED_SONGS_ID)
-                    .map((playlist) => (
-                        <MenuItem
-                            key={playlist.id || playlist._id}
-                            onClick={() => handleAddToSpecificPlaylist(playlist.id || playlist._id, playlist.name)}
-                        >
-                            <Typography variant="body1">{playlist.name}</Typography>
-                        </MenuItem>
-                ))}
-                
-                <MenuItem onClick={handleCreatePlaylist} sx={{ borderTop: '1px solid var(--border-color)', mt: '4px' }}>
-                    <AddIcon fontSize="small" sx={{ mr: '8px', color: 'var(--secondary-text-color)' }} />
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Criar playlist</Typography>
-                </MenuItem>
-            </Menu>
+                    <List sx={{ width: '100%', pt: 0, pb: 0, maxHeight: '400px', overflowY: 'auto' }}>
+                        {/* Opção Nova Playlist */}
+                        <ListItem button onClick={handleCreatePlaylist} sx={{ '&:hover': { backgroundColor: 'var(--button-hover-bg)' } }}>
+                            <ListItemAvatar>
+                                <Avatar sx={{ bgcolor: 'transparent', border: '1px solid var(--secondary-text-color)' }}>
+                                    <AddIcon sx={{ color: 'var(--text-color)' }} />
+                                </Avatar>
+                            </ListItemAvatar>
+                            <ListItemText primary="Nova Playlist" />
+                        </ListItem>
+
+                        {/* Opção Músicas Curtidas */}
+                        <ListItem button onClick={() => handleAddToSpecificPlaylist(LIKED_SONGS_ID, 'Músicas Curtidas')} sx={{ '&:hover': { backgroundColor: 'var(--button-hover-bg)' } }}>
+                            <ListItemAvatar>
+                                <Avatar sx={{ bgcolor: 'transparent' /*ou um gradiente roxo*/ }}>
+                                    <FavoriteIcon sx={{ color: COR_LARANJA }} />
+                                </Avatar>
+                            </ListItemAvatar>
+                            <ListItemText primary="Músicas Curtidas" />
+                        </ListItem>
+
+                        <Divider sx={{ backgroundColor: 'var(--border-color)' }} />
+
+                        {filteredPlaylists.length > 0 ? (
+                            filteredPlaylists.map((playlist) => {
+                                const displayName = playlist.name || playlist.title || "Playlist sem nome";
+                                
+                                return (
+                                    <ListItem 
+                                        button 
+                                        key={playlist.id || playlist._id} 
+                                        onClick={() => handleAddToSpecificPlaylist(playlist.id || playlist._id, displayName)}
+                                        sx={{ '&:hover': { backgroundColor: 'var(--button-hover-bg)' } }}
+                                    >
+                                        <ListItemAvatar>
+                                            <Avatar 
+                                                src={playlist.img || playlist.cover} 
+                                                variant="square" 
+                                                sx={{ borderRadius: '4px', bgcolor: 'var(--sidebar-bg)' }}
+                                            >
+                                                <AudiotrackIcon /> 
+                                            </Avatar>
+                                        </ListItemAvatar>
+                                        <ListItemText 
+                                            primary={displayName} 
+                                            secondary={`${playlist.songCount || (playlist.songs ? playlist.songs.length : 0)} músicas`}
+                                            primaryTypographyProps={{ style: { color: 'var(--text-color)' } }}
+                                            secondaryTypographyProps={{ style: { color: 'var(--secondary-text-color)' } }}
+                                        />
+                                    </ListItem>
+                                );
+                            })
+                        ) : (
+                            <Typography sx={{ p: 2, textAlign: 'center', color: 'var(--secondary-text-color)' }}>
+                                Nenhuma playlist encontrada.
+                            </Typography>
+                        )}
+                    </List>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={shareModalOpen} onClose={handleCloseShareModal} PaperProps={{ sx: { backgroundColor: 'var(--card-bg)', color: 'var(--text-color)' } }}>
+               {/* (Modal de compartilhar mantido igual) */}
                 <DialogTitle sx={{ color: 'var(--text-color)' }}>
                     Compartilhar Música
                     <IconButton onClick={handleCloseShareModal} sx={{ position: 'absolute', right: 8, top: 8, color: 'var(--secondary-text-color)' }}><CloseIcon /></IconButton>
@@ -390,7 +473,6 @@ export default function Song({ song }) {
             </Dialog>
 
             <DeleteConfirmationModal show={showDeleteModal} onClose={() => setShowDeleteModal(false)} onConfirm={handleDeleteSong} itemTitle={title} />
-            
             {song && <EditMusicaModal show={showEditModal} onClose={() => setShowEditModal(false)} song={song} onUpdateSuccess={handleUpdateSuccess} />}
         </>
     )

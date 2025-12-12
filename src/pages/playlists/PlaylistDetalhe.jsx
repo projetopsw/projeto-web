@@ -178,6 +178,7 @@ function PlaylistDetalhe() {
                 onDelete={handleDeletePlaylist}
                 isOwner={isOwner}
                 isCustom={isCustomPlaylist}
+                playlistId={id}
             />
             
             <SongTable 

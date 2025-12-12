@@ -159,12 +159,31 @@ function Home() {
                 }
 
                 if (playlistsResult.status === 'fulfilled') {
-                    const normPlaylists = playlistsResult.value.data.map(p => ({
-                        id: p._id,
-                        cover: p.img || '/assets/img/vacateste.jpg',
-                        title: p.name,
-                        description: p.description || ''
-                    }));
+                    const normPlaylists = playlistsResult.value.data.map(p => {
+                        let authorName = 'Desconhecido';
+                        
+                        if (p.user && typeof p.user === 'object' && (p.user.name || p.user.username)) {
+                            authorName = p.user.name || p.user.username;
+                        } 
+                        else if (p.description && p.description.includes('criada por')) {
+                            try {
+                                authorName = p.description.split('criada por ')[1].replace('.', '').trim();
+                            } catch (e) {
+                                authorName = 'Usuário';
+                            }
+                        }
+
+                        return {
+                            id: p._id,
+                            
+                            cover: p.cover || p.img || '/assets/img/vacateste.jpg',
+                            
+                            title: p.title || p.name || 'Sem Título',
+                            
+                            description: p.description || '',
+                            author: authorName
+                        };
+                    });
                     setPlaylistsData(normPlaylists);
                 }
 
@@ -291,6 +310,7 @@ function Home() {
                                 id={playlist.id}
                                 cover={playlist.cover}
                                 title={playlist.title}
+                                author={playlist.author} 
                             />
                         ))}
 
