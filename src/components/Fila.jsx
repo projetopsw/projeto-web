@@ -19,7 +19,8 @@ const QueueOverlayContainer = styled(Box)(({ theme }) => ({
     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
     padding: '0',
     overflowY: 'auto',
-    width: { xs: '100%', sm: '350px' }
+    width: { xs: '100%', sm: '350px' },
+    paddingBottom:'110px',
 }));
 
 function QueueOverlay() {
