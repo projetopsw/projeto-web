@@ -16,7 +16,8 @@ const FilaPageContainer = styled(Box)(({ theme }) => ({
     maxWidth: '800px',
     width: '100%', 
     minHeight: 'calc(100vh - 150px)',
-    paddingTop: '80px', 
+    paddingTop: '4em', 
+    paddingBottom: '7em',
 }));
 
 function FilaPage() {
