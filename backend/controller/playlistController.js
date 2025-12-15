@@ -143,30 +143,25 @@ export const addSongToPlaylist = async (req, res) => {
 export const toggleLikeSong = async (req, res) => {
     try {
         const { songId } = req.body;
-        // Pega o ID do usuário de forma segura
         const userId = req.user.id || req.user._id;
 
         if (!songId) {
             return res.status(400).json({ message: 'SongId é obrigatório.' });
         }
 
-        // 1. Busca a playlist existente (pelo user OU owner para garantir)
         let likedPlaylist = await Playlist.findOne({ 
             $or: [{ owner: userId }, { user: userId }],
             isLikedSongs: true 
         });
 
-        // 2. Se NÃO existe, cria uma nova
         if (!likedPlaylist) {
             const userProfile = await User.findById(userId);
             
             likedPlaylist = await Playlist.create({
                 title: 'Músicas Curtidas',
                 
-                // --- AQUI ESTAVA O ERRO, AGORA CORRIGIDO: ---
-                owner: userId, // Fundamental: Define quem é o dono explicitamente!
-                user: userId,  // Mantemos o user por compatibilidade
-                // ---------------------------------------------
+                owner: userId, 
+                user: userId,  
                 
                 isLikedSongs: true,
                 isPublic: false,
@@ -175,28 +170,23 @@ export const toggleLikeSong = async (req, res) => {
                 cover: '/assets/img/liked_cover_0.png'
             });
 
-            // Atualiza a referência no usuário
             await User.findByIdAndUpdate(userId, {
                 $addToSet: { userPlaylists: likedPlaylist._id }
             });
         }
 
-        // 3. Garante que o array songs existe
         if (!likedPlaylist.songs) likedPlaylist.songs = [];
 
-        // 4. Lógica de Toggle (Adicionar/Remover)
         const songIdStr = songId.toString();
         const songIndex = likedPlaylist.songs.findIndex(s => s && s.toString() === songIdStr);
         
         let isLiked = false;
 
         if (songIndex > -1) {
-            // Remover
             likedPlaylist.songs.splice(songIndex, 1);
             await User.findByIdAndUpdate(userId, { $pull: { likedSongs: songId } });
             isLiked = false;
         } else {
-            // Adicionar
             likedPlaylist.songs.push(songId);
             await User.findByIdAndUpdate(userId, { $addToSet: { likedSongs: songId } });
             isLiked = true;

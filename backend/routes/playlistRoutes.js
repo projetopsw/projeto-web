@@ -34,9 +34,8 @@ router.post('/remove-song', async (req, res) => {
 });
 router.get('/limpar-lixo', async (req, res) => {
     try {
-        const Playlist = require('../models/Playlist'); // Ajuste o caminho
+        const Playlist = require('../models/Playlist'); 
         
-        // Deleta qualquer playlist de curtidas que não tenha dono (owner: null)
         const result = await Playlist.deleteMany({ 
             isLikedSongs: true, 
             owner: null 

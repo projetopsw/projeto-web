@@ -257,7 +257,7 @@ const connectionsSlice = createSlice({
         pendingRequests: [],
         sentRequests: [],
         suggestions: [],
-        status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed' | 'refetching'
+        status: 'idle',
         error: null,
     },
     reducers: {},

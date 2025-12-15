@@ -124,20 +124,16 @@ export const removeSongFromPlaylistAsync = createAsyncThunk(
     'auth/removeSongFromPlaylist',
     async ({ playlistId, songId }, { rejectWithValue, dispatch }) => {
         try {
-            // Caso especial: Playlist "Músicas Curtidas" (ID 0)
             if (playlistId === LIKED_SONGS_ID) {
-                // Ao dar toggle numa música que já está curtida, ela é removida
                 const result = await dispatch(toggleLikeSongAsync({ songId })).unwrap();
                 return { 
                     songId, 
                     playlistId: LIKED_SONGS_ID, 
-                    removed: !result.isLiked, // Se isLiked for false, foi removida
+                    removed: !result.isLiked, 
                     message: "Removida das curtidas." 
                 };
             } 
             
-            // Caso padrão: Playlists customizadas
-            // IMPORTANTE: Verifique se essa é a rota correta no seu backend
             const response = await api.post('/playlists/remove-song', { playlistId, songId });
 
             return { 
@@ -313,12 +309,10 @@ const authSlice = createSlice({
             .addCase(removeSongFromPlaylistAsync.fulfilled, (state, action) => {
                 const { playlistId, updatedPlaylist, songId } = action.payload;
                 
-                // Se não for a playlist de curtidas (curtidas já é tratado pelo toggleLikeSongAsync)
                 if (playlistId !== LIKED_SONGS_ID) {
                     const index = state.userPlaylistsDetail.findIndex(p => p.id === playlistId || p._id === playlistId);
                     
                     if (index !== -1) {
-                        // Cenário 1: O backend retornou a playlist atualizada inteira
                         if (updatedPlaylist && updatedPlaylist.songs) {
                             state.userPlaylistsDetail[index] = {
                                 ...state.userPlaylistsDetail[index],
@@ -326,10 +320,8 @@ const authSlice = createSlice({
                                 songCount: updatedPlaylist.songs.length
                             };
                         } 
-                        // Cenário 2: Fallback manual se o backend não retornar a playlist completa
                         else {
                             const currentPlaylist = state.userPlaylistsDetail[index];
-                            // Filtra removendo o ID da música
                             const newSongs = currentPlaylist.songs.filter(s => {
                                 const sId = typeof s === 'string' ? s : s._id;
                                 return sId !== songId;

@@ -4,7 +4,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'; 
 import { useSelector, useDispatch } from 'react-redux'; 
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'; 
-// 1. IMPORTANTE: Importe o playFromQueue
 import { reorderQueue, togglePlayPause, removeSongFromQueue, playFromQueue } from '../redux/playerSlice'; 
 
 const VolumeIcon = () => (<i className="fas fa-volume-up" style={{ color: 'var(--orange)', fontSize: '12px' }} />);
@@ -33,13 +32,10 @@ function FilaPage() {
         dispatch(reorderQueue({ sourceIndex, destinationIndex }));
     };
     
-    // 2. CORREÇÃO: Usar playFromQueue e queueId
     const handlePlayQueueItem = (song) => {
-        // Se for a mesma música (comparando queueId), pausa/toca
         if (currentSong?.queueId === song.queueId) {
             dispatch(togglePlayPause());
         } else {
-            // Se for outra, apenas navega para ela sem recriar a fila
             dispatch(playFromQueue(song.queueId));
         }
     };
@@ -47,7 +43,6 @@ function FilaPage() {
     const handleRemoveSong = (e, songId) => {
         e.stopPropagation();
         
-        // 3. CORREÇÃO: Comparar queueId
         if (currentSong?.queueId === songId) {
             alert("Não é possível remover a música que está tocando no momento.");
             return;
@@ -57,13 +52,10 @@ function FilaPage() {
     };
 
     const renderQueueItem = (song, index) => {
-        // 4. CORREÇÃO: Usar queueId para garantir unicidade e status correto
-        // Fallback para _id apenas se queueId não existir (para compatibilidade)
         const uniqueId = song.queueId || song._id;
         const isCurrentlyPlaying = currentSong?.queueId === uniqueId; 
         
         return (
-            // Usa uniqueId aqui
             <Draggable key={uniqueId} draggableId={String(uniqueId)} index={index}>
                 {(provided, snapshot) => (
                     <ListItem 
@@ -94,7 +86,6 @@ function FilaPage() {
                         
                         <ListItemText
                             primary={song.title} 
-                            // Tratamento para exibir corretamente Artista • Album
                             secondary={(song.artist || 'Artista Desconhecido') + (song.album ? (window.innerWidth > 600 ? ' • ' + (song.album.name || song.album) : '') : '')} 
                             primaryTypographyProps={{ 
                                 fontWeight: 'bold', fontSize: { xs: '0.9rem', sm: '1rem' }, 
@@ -120,7 +111,6 @@ function FilaPage() {
 
                             <IconButton 
                                 size="small" 
-                                // Passa o uniqueId (queueId) para remover
                                 onClick={(e) => handleRemoveSong(e, uniqueId)} 
                                 sx={{ color: INACTIVE_COLOR, '&:hover': { color: 'var(--text-color)' } }}
                             >

@@ -14,10 +14,9 @@ import {
     Add as AddIcon, 
     Search as SearchIcon,
     MusicNote as MusicNoteIcon,
-    RemoveCircle as RemoveCircleIcon // Ícone para remover
+    RemoveCircle as RemoveCircleIcon 
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux'; 
-// Adicionei removeSongFromPlaylistAsync nas importações (certifique-se de criar essa action no redux)
 import { addSongToPlaylistAsync, removeSongFromPlaylistAsync, fetchUserPlaylistsDetail } from '../../redux/loginSlice'; 
 import mongoApi from '../../services/mongoApi'; 
 
@@ -52,7 +51,7 @@ export default function PlaylistActions({
     onSortChange, sortKey, 
     onDelete, isOwner, isCustom,
     playlistId,
-    playlistSongs = [] // NOVA PROP: Recebe as músicas da playlist atual para poder listar na remoção
+    playlistSongs = [] 
 }) {
     const dispatch = useDispatch();
     const user = useSelector(state => state.user?.user || state.auth?.user);
@@ -60,17 +59,14 @@ export default function PlaylistActions({
     const [optionsAnchorEl, setOptionsAnchorEl] = useState(null);
     const [sortAnchorEl, setSortAnchorEl] = useState(null);
 
-    // --- Estados do Modal de Compartilhar ---
     const [shareModalOpen, setShareModalOpen] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    // --- Estados do Modal de Adicionar Músicas ---
     const [addMusicModalOpen, setAddMusicModalOpen] = useState(false);
     const [musicSearchTerm, setMusicSearchTerm] = useState("");
     const [allSongs, setAllSongs] = useState([]); 
     const [loadingSongs, setLoadingSongs] = useState(false);
 
-    // --- NOVOS Estados do Modal de Remover Músicas ---
     const [removeMusicModalOpen, setRemoveMusicModalOpen] = useState(false);
     const [removeSearchTerm, setRemoveSearchTerm] = useState("");
 
@@ -79,7 +75,6 @@ export default function PlaylistActions({
         setSortAnchorEl(null);
     };
 
-    // ================== LÓGICA DE ADICIONAR ==================
     const handleOpenAddMusicModal = async () => {
         setAddMusicModalOpen(true);
         setOptionsAnchorEl(null); 
@@ -118,7 +113,6 @@ export default function PlaylistActions({
         return title.includes(term) || artist.toLowerCase().includes(term);
     });
 
-    // ================== NOVA LÓGICA DE REMOVER ==================
     const handleOpenRemoveMusicModal = () => {
         setRemoveMusicModalOpen(true);
         setOptionsAnchorEl(null);
@@ -133,17 +127,14 @@ export default function PlaylistActions({
         if (!confirm("Tem certeza que deseja remover esta música da playlist?")) return;
 
         try {
-            // Despacha a ação de remover (assumindo que você criou essa action no Redux)
             await dispatch(removeSongFromPlaylistAsync({ playlistId, songId })).unwrap();
             
-            // Recarrega a página imediatamente após remover
             window.location.reload();
         } catch (error) {
             alert("Erro ao remover música: " + (error.message || error));
         }
     };
 
-    // Filtra as músicas QUE JÁ ESTÃO na playlist para exibir na lista de remoção
     const filteredSongsToRemove = playlistSongs.filter(song => {
         const term = removeSearchTerm.toLowerCase();
         const title = song.title ? song.title.toLowerCase() : '';
@@ -151,7 +142,6 @@ export default function PlaylistActions({
         return title.includes(term) || artist.toLowerCase().includes(term);
     });
 
-    // ================== OUTROS HANDLERS ==================
     const handleOpenShareModal = () => {
         setOptionsAnchorEl(null);
         setShareModalOpen(true);
@@ -174,7 +164,6 @@ export default function PlaylistActions({
                 {isPlaying ? <PauseIcon sx={{ fontSize: '32px' }} /> : <PlayArrowIcon sx={{ fontSize: '32px' }} />}
             </PlayButton>
             
-            {/* Botão Atalho Adicionar */}
             {isOwner && isCustom && (
                 <ActionIcon onClick={handleOpenAddMusicModal} title="Adicionar músicas">
                     <AddIcon sx={{ fontSize: '28px' }} />
@@ -185,7 +174,6 @@ export default function PlaylistActions({
                 <MoreVertIcon sx={{ fontSize: '20px' }} />
             </ActionIcon>
 
-            {/* Menu Dropdown */}
             <Menu anchorEl={optionsAnchorEl} open={Boolean(optionsAnchorEl)} onClose={() => setOptionsAnchorEl(null)} PaperProps={{ sx: { bgcolor: 'var(--card-bg)', color: 'var(--text-color)' } }}>
                 <MenuItem onClick={handleOpenShareModal}>
                     <ShareIcon sx={{ mr: 1, fontSize: '18px' }} /> Compartilhar
@@ -206,7 +194,6 @@ export default function PlaylistActions({
                 )}
             </Menu>
             
-            {/* Sort Menu */}
             <Box sx={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', gap: '10px' }}>
                 <SortButton onClick={(e) => setSortAnchorEl(e.currentTarget)} endIcon={<i className="fas fa-chevron-down" style={{ fontSize: '12px' }} />}>
                     <i className="fas fa-list-ul" style={{ fontSize: '18px', color: sortKey !== 'custom' ? 'var(--orange)' : INACTIVE_ICON_COLOR }} /> {sortOptions[sortKey]}
@@ -220,7 +207,6 @@ export default function PlaylistActions({
                 </Menu>
             </Box>
 
-            {/* --- MODAL DE ADICIONAR MÚSICAS --- */}
             <Dialog 
                 open={addMusicModalOpen} 
                 onClose={handleCloseAddMusicModal}
@@ -260,7 +246,6 @@ export default function PlaylistActions({
                 </DialogContent>
             </Dialog>
 
-            {/* --- NOVO: MODAL DE REMOVER MÚSICAS --- */}
             <Dialog 
                 open={removeMusicModalOpen} 
                 onClose={handleCloseRemoveMusicModal}
@@ -296,7 +281,6 @@ export default function PlaylistActions({
                              return (
                                 <ListItem 
                                     key={song._id || song.id} 
-                                    // Não é clicável o item inteiro para evitar clique acidental, apenas o botão
                                     sx={{ '&:hover': { backgroundColor: 'var(--button-hover-bg)' } }}
                                 >
                                     <ListItemAvatar>
@@ -328,7 +312,6 @@ export default function PlaylistActions({
                 </DialogContent>
             </Dialog>
 
-            {/* --- Modal de Compartilhar --- */}
             <Dialog open={shareModalOpen} onClose={handleCloseShareModal} PaperProps={{ sx: { backgroundColor: 'var(--card-bg)', color: 'var(--text-color)' } }}>
                 <DialogTitle sx={{ color: 'var(--text-color)' }}>
                     Compartilhar Playlist

@@ -3,7 +3,7 @@ import {
     Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, 
     DialogActions, Button, TextField, IconButton, List, ListItem, 
     ListItemAvatar, Avatar, ListItemText, Divider 
-} from '@mui/material'; // Adicionei List, ListItem, etc.
+} from '@mui/material'; 
 import { 
     FavoriteBorder as FavoriteBorderIcon, 
     Favorite as FavoriteIcon, 
@@ -17,8 +17,8 @@ import {
     Close as CloseIcon, 
     Delete as DeleteIcon, 
     Edit as EditIcon,
-    Search as SearchIcon, // Novo ícone
-    Audiotrack as AudiotrackIcon // Novo ícone para playlist sem capa
+    Search as SearchIcon,
+    Audiotrack as AudiotrackIcon 
 } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -35,7 +35,6 @@ import EditMusicaModal from './EditMusica.jsx';
 const COR_LARANJA = 'var(--orange)';
 const LIKED_SONGS_ID = "0";
 
-// ... (Mantenha as funções formatTime e isObjectId iguais) ...
 const formatTime = (seconds) => {
     if (!seconds && seconds !== 0) return "0:00";
     if (typeof seconds === 'string' && seconds.includes(':')) return seconds;
@@ -55,7 +54,6 @@ export default function Song({ song }) {
     const songId = song._id || song.id;
     const title = song.title || "Sem título";
 
-    // ... (Mantenha toda a lógica de Artista e Álbum igual) ...
     let artistDisplay = "Desconhecido";
     let mainArtistId = null;
 
@@ -88,7 +86,6 @@ export default function Song({ song }) {
 
     const durationDisplay = formatTime(song.duration);
 
-    // --- Redux e Like ---
     const user = useSelector(state => state.user?.user) || useSelector(state => state.auth?.user);
     const isAdmin = user?.role === 'admin'; 
     const userPlaylistsDetail = useSelector(state => state.auth?.userPlaylistsDetail || []);
@@ -113,10 +110,8 @@ export default function Song({ song }) {
     const isThisSongCurrentlySelected = (currentSong?._id === songId) || (currentSong?.id === songId);
     const isThisSongPlaying = isThisSongCurrentlySelected && isPlaying;
 
-    // --- UI States ---
     const [anchorEl, setAnchorEl] = useState(null);
     
-    // NOVO: Controle do Modal de Playlist
     const [playlistModalOpen, setPlaylistModalOpen] = useState(false);
     const [playlistSearchTerm, setPlaylistSearchTerm] = useState("");
 
@@ -128,10 +123,8 @@ export default function Song({ song }) {
     const aberto = Boolean(anchorEl);
     const canManage = isAdmin; 
 
-    // --- HANDLERS ---
     const handleMenuClose = () => setAnchorEl(null);
     
-    // Novo Handler para fechar o modal de playlist
     const handlePlaylistModalClose = () => {
         setPlaylistModalOpen(false);
         setPlaylistSearchTerm("");
@@ -140,14 +133,6 @@ export default function Song({ song }) {
     const handleLikeClick = async (e) => {
         e?.stopPropagation();
         
-        // --- ADICIONE ESTE LOG ---
-        console.log("Tentando curtir:", { 
-            songId: songId, 
-            userId: user?.id || user?._id, 
-            token: localStorage.getItem('token') 
-        });
-        // -------------------------
-
         if (!user || (!user.id && !user._id)) { navigate('/login'); return; }
 
         const previousState = localIsLiked;
@@ -159,7 +144,7 @@ export default function Song({ song }) {
                 dispatch(fetchUserPlaylistsDetail(user.id || user._id));
             }
         } catch (error) {
-            console.error("Erro no catch do frontend:", error); // Veja o erro real aqui
+            console.error("Erro no catch do frontend:", error); 
             setLocalIsLiked(previousState);
             alert("Erro ao curtir música.");
         }
@@ -192,13 +177,11 @@ export default function Song({ song }) {
     const handleMenuClick = (event) => {
         event.stopPropagation();
         setAnchorEl(event.currentTarget);
-        // Garante que as playlists estejam carregadas ao abrir o menu
         if (user && (user.id || user._id)) {
             dispatch(fetchUserPlaylistsDetail(user.id || user._id));
         }
     };
     
-    // ALTERADO: Agora abre o Modal em vez do submenu
     const handleOpenPlaylistModal = () => {
         if (!user) { navigate('/login'); return; }
         setPlaylistModalOpen(true);
@@ -209,7 +192,7 @@ export default function Song({ song }) {
         if (!user) { navigate('/login'); return; }
 
         if (playlistId === LIKED_SONGS_ID) {
-            handleLikeClick(); // Chama a função de like existente
+            handleLikeClick(); 
             handlePlaylistModalClose();
             return;
         }
@@ -239,7 +222,7 @@ export default function Song({ song }) {
 
     const handleAddToQueue = () => {
         dispatch(addSingleSongToQueue(song));
-        handleMenuClose(); // Fechar menu ao clicar
+        handleMenuClose(); 
     };
 
     const handleOpenShareModal = () => { setShareModalOpen(true); handleMenuClose(); };
@@ -257,7 +240,7 @@ export default function Song({ song }) {
         { 
             icon: <AddIcon fontSize="small" sx={{ color: 'var(--secondary-text-color)' }} />, 
             label: 'Adicionar à playlist', 
-            action: handleOpenPlaylistModal, // Alterado para abrir o modal
+            action: handleOpenPlaylistModal, 
             requiresEvent: false 
         }, 
         ...(mainArtistId && !isObjectId(mainArtistId) ? [{ 
@@ -296,15 +279,11 @@ export default function Song({ song }) {
 
     const corIcone = localIsLiked ? COR_LARANJA : 'var(--secondary-text-color)';
 
-    // Filtra as playlists com base na busca
-    // Filtra as playlists com base na busca (COM PROTEÇÃO CONTRA ERRO)
     const filteredPlaylists = userPlaylistsDetail
         .filter(p => p.id !== LIKED_SONGS_ID)
         .filter(p => {
-            // 1. Tenta pegar o nome, se não tiver, tenta o título, se não, string vazia
             const playlistName = p.name || p.title || ""; 
             
-            // 2. Só faz a busca se tivermos um texto válido
             if (typeof playlistName === 'string') {
                 return playlistName.toLowerCase().includes(playlistSearchTerm.toLowerCase());
             }

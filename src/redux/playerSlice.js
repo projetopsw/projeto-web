@@ -1,6 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// --- FUNÇÕES AUXILIARES ---
 
 const generateQueueId = () => {
     return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -15,18 +14,13 @@ const shuffleArray = (array) => {
     return newArray;
 };
 
-// --- FUNÇÕES DE LIMPEZA DE DADOS (NOVA) ---
-
 const getArtistName = (song) => {
-    // 1. Tenta pegar do array de artistas (formato da API)
     if (song.artists && Array.isArray(song.artists) && song.artists.length > 0) {
         return song.artists[0].name || song.artists[0].username || 'Artista Desconhecido';
     }
-    // 2. Se não tiver array, vê se já é uma string simples (já processado)
     if (typeof song.artist === 'string' && song.artist.trim() !== '') {
         return song.artist;
     }
-    // 3. Fallback para objeto artist simples
     if (song.artist && typeof song.artist === 'object') {
         return song.artist.name || song.artist.username || 'Artista Desconhecido';
     }
@@ -34,16 +28,12 @@ const getArtistName = (song) => {
 };
 
 const getAlbumTitle = (song) => {
-    // 1. Se for string simples, retorna ela
     if (typeof song.album === 'string') return song.album;
-    // 2. Se for objeto (com _id, name, cover), tenta pegar o nome ou título
     if (song.album && typeof song.album === 'object') {
         return song.album.name || song.album.title || '';
     }
     return '';
 };
-
-// --- CONSTANTES E CONFIGURAÇÕES ---
 
 const REPEAT_MODES = { OFF: 0, QUEUE: 1, SONG: 2 };
 const BACKEND_BASE_URL = 'http://localhost:3000'; 
@@ -68,7 +58,6 @@ const loadPlayerState = () => {
         const state = JSON.parse(serializedState);
         
         if (state) {
-            // Garante IDs únicos ao carregar
             const ensureQueueIds = (list) => list?.map(s => ({ ...s, queueId: s.queueId || generateQueueId() })) || [];
             
             state.queue = ensureQueueIds(state.queue);
@@ -81,7 +70,7 @@ const loadPlayerState = () => {
 
             return {
                 ...state,
-                isPlaying: false, // Sempre pausa ao recarregar
+                isPlaying: false,
                 queue: state.queue,
                 originalQueue: state.originalQueue
             };
@@ -107,8 +96,6 @@ const initialState = {
     ...loadPlayerState(),
 };
 
-// --- SLICE ---
-
 export const playerSlice = createSlice({
     name: 'player',
     initialState,
@@ -117,7 +104,6 @@ export const playerSlice = createSlice({
             const songToPlay = action.payload;
             const isApiOrArtist = songToPlay.isArtistUpload === true || !songToPlay.caminho; 
             
-            // Prepara a música base
             let baseSong = songToPlay;
             if (isApiOrArtist) {
                 baseSong = {
@@ -129,7 +115,6 @@ export const playerSlice = createSlice({
                 };
             }
 
-            // APLICA A LIMPEZA DE DADOS (String pura para evitar bugs visuais)
             const finalSong = { 
                 ...baseSong, 
                 artist: getArtistName(songToPlay),
@@ -138,7 +123,7 @@ export const playerSlice = createSlice({
             };
 
             state.currentSong = finalSong;
-            state.selectedSongInfo = songToPlay; // Mantém info original bruta para detalhes se precisar
+            state.selectedSongInfo = songToPlay;
 
             state.queue = [finalSong];
             state.originalQueue = [finalSong];
@@ -167,7 +152,6 @@ export const playerSlice = createSlice({
             
             if (!songsPayload || songsPayload.length === 0) return;
 
-            // Processa TODAS as músicas da fila
             const processedQueue = songsPayload.map(song => {
                 const isApiOrArtist = song.isArtistUpload === true || !song.caminho;
                 let processedSong = song;
@@ -182,7 +166,6 @@ export const playerSlice = createSlice({
                     };
                 }
                 
-                // Retorna objeto limpo com Strings simples
                 return { 
                     ...processedSong, 
                     artist: getArtistName(song),
@@ -251,7 +234,6 @@ export const playerSlice = createSlice({
             }
         },
 
-        // ... (Mantém o restante dos reducers iguais: toggleShuffle, skipNext, etc.)
         toggleShuffle: (state) => {
             state.isShuffling = !state.isShuffling;
             if (state.isShuffling) {

@@ -28,8 +28,7 @@ export default function Perfil() {
     const { id } = useParams(); 
 
     const userLogado = useSelector(state => state.user.user); 
-    
-    // Conexões (Redux) - Usado apenas para saber status de amizade
+   
     const { 
         friends: loggedInFriends, 
         sentRequests: loggedInSentRequests,
@@ -37,7 +36,6 @@ export default function Perfil() {
         status: connectionsStatus
     } = useSelector((state) => state.connections);
 
-    // Estados Locais
     const [targetUser, setTargetUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     
@@ -54,8 +52,7 @@ export default function Perfil() {
     const currentIsFriend = loggedInFriends.some(f => String(f.id) === targetUserIdStr);
     const currentHasRequested = loggedInSentRequests.some(req => String(req.id) === targetUserIdStr);
     const currentHasReceivedRequest = loggedInPendingRequests.some(req => String(req.id) === targetUserIdStr);
-    
-    // Atualiza conexões do usuário logado
+   
     useEffect(() => {
         if (userLogado?.id || userLogado?._id) {
             const loggedId = String(userLogado.id || userLogado._id);
@@ -65,7 +62,6 @@ export default function Perfil() {
         }
     }, [dispatch, userLogado, connectionsStatus]);
 
-    // --- CARREGAMENTO DE DADOS ---
     useEffect(() => {
         if (!targetId) {
             setIsLoading(false);
@@ -75,14 +71,12 @@ export default function Perfil() {
         const loadProfileData = async () => {
             setIsLoading(true);
             
-            // Limpa estados
             setProfilePlaylists([]);
             setProfileLikedSongs([]);
             setProfileFollowedArtists([]);
             setProfileFriends([]);
 
             try {
-                // 1. Buscar Dados do Usuário Alvo (A fonte da verdade!)
                 let userData = null;
                 try {
                     const resUser = await mongoApi.get(`/users/${targetId}`);
@@ -101,7 +95,6 @@ export default function Perfil() {
                 setTargetUser(userData);
                 const userId = userData._id || userData.id;
 
-                // 2. PLAYLISTS (Filtro rigoroso pelo ID do dono)
                 try {
                     const resPlaylists = await mongoApi.get('/playlists', { params: { user: userId } });
                     const rawPlaylists = resPlaylists.data || [];
@@ -115,14 +108,12 @@ export default function Perfil() {
                 } catch (e) { console.error("Erro Playlists:", e); }
 
 
-                // 3. MÚSICAS CURTIDAS
                 if (userData.likedSongs && userData.likedSongs.length > 0) {
                     const idsQuery = userData.likedSongs.map(id => `id=${id}`).join('&');
                     try {
                         const resSongs = await mongoApi.get(`/songs?${idsQuery}`);
                         let songsData = Array.isArray(resSongs.data) ? resSongs.data : (resSongs.data?.data || []);
                         
-                        // FILTRO DE SEGURANÇA: Só aceita se o ID estiver no array likedSongs do usuário
                         songsData = songsData.filter(s => 
                             userData.likedSongs.includes(s._id) || userData.likedSongs.includes(s.id)
                         );
@@ -132,15 +123,12 @@ export default function Perfil() {
                 } 
 
 
-                // 4. ARTISTAS SEGUIDOS (Correção Principal)
                 if (userData.following && userData.following.length > 0) {
                     const idsQuery = userData.following.map(id => `id=${id}`).join('&');
                     try {
                         const resArtists = await mongoApi.get(`/artists?${idsQuery}`);
                         let artistsData = Array.isArray(resArtists.data) ? resArtists.data : (resArtists.data?.data || []);
                         
-                        // --- FILTRO RIGOROSO ---
-                        // Compara os resultados com a lista 'following' do MongoDB do usuário
                         artistsData = artistsData.filter(artist => 
                             userData.following.includes(artist._id) || userData.following.includes(artist.id)
                         );
@@ -150,16 +138,12 @@ export default function Perfil() {
                 }
 
 
-                // 5. AMIGOS (Correção Principal)
-                // Se não for dono, busca e filtra. Se for dono, o Redux já cuida (mas aqui garantimos visualização correta para visitante)
                 if (!isOwner && userData.friends && userData.friends.length > 0) {
                     const idsQuery = userData.friends.map(id => `id=${id}`).join('&');
                     try {
                         const resFriends = await mongoApi.get(`/users?${idsQuery}`);
                         let friendsData = Array.isArray(resFriends.data) ? resFriends.data : (resFriends.data?.data || []);
 
-                        // --- FILTRO RIGOROSO ---
-                        // Compara os resultados com a lista 'friends' do MongoDB do usuário
                         friendsData = friendsData.filter(friend => 
                             userData.friends.includes(friend._id) || userData.friends.includes(friend.id)
                         );
@@ -178,7 +162,6 @@ export default function Perfil() {
         loadProfileData();
     }, [targetId, isOwner, userLogado]); 
 
-    // --- HANDLERS ---
     const handleToggleAction = async () => {
         if (!userLogado || !targetUser) return;
         const currentUserIdStr = String(userLogado.id || userLogado._id);
@@ -201,7 +184,6 @@ export default function Perfil() {
     if (isLoading) return <main><Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box></main>;
     if (!targetUser) return <main><Box sx={{ p: 4 }}><Typography color="error">Usuário não encontrado.</Typography></Box></main>;
 
-    // --- RENDERIZAÇÃO ---
     
     const displayedPlaylists = profilePlaylists.map(p => ({
         id: p._id || p.id,
@@ -210,10 +192,8 @@ export default function Perfil() {
         author: targetUser.name || targetUser.username
     }));
 
-    // Se for Owner, usa loggedInFriends (Redux). Se for Visitante, usa profileFriends (Filtrado acima)
     const allFriends = isOwner ? loggedInFriends : profileFriends;
     
-    // Slice para mostrar no máximo 6 bolas
     const limitedDisplayedFriends = allFriends.slice(0, 6); 
 
     const displayedLikedSongs = profileLikedSongs
@@ -223,7 +203,6 @@ export default function Perfil() {
     const displayedFollowedArtists = profileFollowedArtists
         .filter(a => a && (a.name || a.username));
 
-    // IMPORTANTE: O número total vem do array de IDs do objeto do usuário, não do array carregado visualmente
     const totalFriendCount = isOwner 
         ? loggedInFriends.length 
         : (targetUser.friends ? targetUser.friends.length : 0);
@@ -274,8 +253,7 @@ export default function Perfil() {
                 />
                 
                 <Divider sx={{ my: 4 }} />
-                
-                {/* --- SEÇÃO MÚSICAS MAIS MUGIDAS --- */}
+               
                 {displayedLikedSongs.length > 0 && (
                     <>
                         <SongList 
@@ -286,7 +264,6 @@ export default function Perfil() {
                     </>
                 )}
                 
-                {/* --- SEÇÃO PLAYLISTS --- */}
                 <Section key={"Playlists"} title={`Playlists de ${targetUser.name || targetUser.username}`}>
                     {displayedPlaylists.length > 0 ? (
                         displayedPlaylists.map((playlist) => (
@@ -307,7 +284,6 @@ export default function Perfil() {
                 
                 <Divider sx={{ my: 4 }} />
                 
-                {/* --- SEÇÃO AMIGOS --- */}
                 <Section
                     key={"Amigos"}
                     title={`Peões Amigos (${totalFriendCount})`}
@@ -335,7 +311,6 @@ export default function Perfil() {
 
                 <Divider sx={{ my: 4 }} />
 
-                {/* --- SEÇÃO ARTISTAS SEGUIDOS --- */}
                 {displayedFollowedArtists.length > 0 && (
                     <Section key={"Artistas Seguidos"} title={`Artistas Seguidos por ${targetUser.name || targetUser.username}`}>
                         {displayedFollowedArtists.map((artist) => (
