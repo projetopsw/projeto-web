@@ -179,6 +179,7 @@ function PlaylistDetalhe() {
                 isOwner={isOwner}
                 isCustom={isCustomPlaylist}
                 playlistId={id}
+                playlistSongs={localSongs}
             />
             
             <SongTable 

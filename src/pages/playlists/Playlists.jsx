@@ -225,8 +225,8 @@ function Playlists() {
                                 style={{ objectFit: 'cover' }}
                             />
                             
-                            <p title={playlist.name}>
-                                {playlist.name}
+                            <p title={playlist.title}>
+                                {playlist.title}
                             </p>
                             
                             <p style={{ fontWeight: 'normal', fontSize: '0.9rem' }}>
