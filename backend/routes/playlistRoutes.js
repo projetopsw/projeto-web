@@ -24,20 +24,50 @@ router.post('/remove-song', async (req, res) => {
     const { playlistId, songId } = req.body;
     try {
         const playlist = await Playlist.findById(playlistId);
-        // Remove a música do array
         playlist.songs = playlist.songs.filter(id => id.toString() !== songId);
         await playlist.save();
-        
-        // Retorna a playlist atualizada
-        // (importante popular as músicas se o front espera objetos completos)
         const populatedPlaylist = await Playlist.findById(playlistId).populate('songs'); 
         res.status(200).json(populatedPlaylist);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
+router.get('/limpar-lixo', async (req, res) => {
+    try {
+        const Playlist = require('../models/Playlist'); // Ajuste o caminho
+        
+        // Deleta qualquer playlist de curtidas que não tenha dono (owner: null)
+        const result = await Playlist.deleteMany({ 
+            isLikedSongs: true, 
+            owner: null 
+        });
+        
+        res.json({ message: "Limpeza concluída", deletedCount: result.deletedCount });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 router.post('/like', toggleLikeSong);           
 router.get('/:id', getPlaylistById);
 router.patch('/:id', updatePlaylist);
+
+router.get('/fix-database', async (req, res) => {
+    try {
+        const Playlist = require('../models/Playlist');
+        
+        const deleteResult = await Playlist.deleteMany({ 
+            isLikedSongs: true, 
+            owner: null 
+        });
+
+        res.json({ 
+            message: "Limpeza realizada.", 
+            deleted: deleteResult.deletedCount,
+            info: "Tente dar like novamente agora."
+        });
+    } catch (error) {
+        res.status(500).json(error);
+    }
+});
 
 export default router;

@@ -94,7 +94,7 @@ export default function Song({ song }) {
     const userPlaylistsDetail = useSelector(state => state.auth?.userPlaylistsDetail || []);
     const { currentSong, isPlaying } = useSelector(state => state.player);
 
-    const likedPlaylist = userPlaylistsDetail.find(p => p.id === LIKED_SONGS_ID);
+    const likedPlaylist = userPlaylistsDetail.find(p => p.isLikedSongs === true);
     const likedSongsList = likedPlaylist ? likedPlaylist.songs : (user?.likedSongs || []);
     const songIdStr = String(songId);
 
@@ -139,6 +139,15 @@ export default function Song({ song }) {
 
     const handleLikeClick = async (e) => {
         e?.stopPropagation();
+        
+        // --- ADICIONE ESTE LOG ---
+        console.log("Tentando curtir:", { 
+            songId: songId, 
+            userId: user?.id || user?._id, 
+            token: localStorage.getItem('token') 
+        });
+        // -------------------------
+
         if (!user || (!user.id && !user._id)) { navigate('/login'); return; }
 
         const previousState = localIsLiked;
@@ -150,6 +159,7 @@ export default function Song({ song }) {
                 dispatch(fetchUserPlaylistsDetail(user.id || user._id));
             }
         } catch (error) {
+            console.error("Erro no catch do frontend:", error); // Veja o erro real aqui
             setLocalIsLiked(previousState);
             alert("Erro ao curtir música.");
         }

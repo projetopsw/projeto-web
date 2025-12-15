@@ -143,84 +143,76 @@ export const addSongToPlaylist = async (req, res) => {
 export const toggleLikeSong = async (req, res) => {
     try {
         const { songId } = req.body;
-        const userId = req.user.id;
+        // Pega o ID do usuário de forma segura
+        const userId = req.user.id || req.user._id;
 
         if (!songId) {
             return res.status(400).json({ message: 'SongId é obrigatório.' });
         }
 
-        const userProfile = await User.findById(userId);
-        if (!userProfile) return res.status(404).json({ message: 'Usuário não encontrado.' });
-
+        // 1. Busca a playlist existente (pelo user OU owner para garantir)
         let likedPlaylist = await Playlist.findOne({ 
-            $or: [{ user: userId }, { owner: userId }], 
+            $or: [{ owner: userId }, { user: userId }],
             isLikedSongs: true 
         });
 
+        // 2. Se NÃO existe, cria uma nova
         if (!likedPlaylist) {
-            const initialSongs = userProfile.likedSongs || [];
+            const userProfile = await User.findById(userId);
             
-            if (!initialSongs.includes(songId)) {
-                initialSongs.push(songId);
-            }
-
             likedPlaylist = await Playlist.create({
                 title: 'Músicas Curtidas',
-                user: userId,
+                
+                // --- AQUI ESTAVA O ERRO, AGORA CORRIGIDO: ---
+                owner: userId, // Fundamental: Define quem é o dono explicitamente!
+                user: userId,  // Mantemos o user por compatibilidade
+                // ---------------------------------------------
+                
                 isLikedSongs: true,
                 isPublic: false,
-                songs: initialSongs, 
+                songs: userProfile?.likedSongs || [], 
                 description: 'Músicas que você curtiu',
                 cover: '/assets/img/liked_cover_0.png'
             });
 
+            // Atualiza a referência no usuário
             await User.findByIdAndUpdate(userId, {
                 $addToSet: { userPlaylists: likedPlaylist._id }
             });
-            
-            return res.json({ isLiked: true, playlistId: likedPlaylist._id });
         }
 
-        if (!likedPlaylist.user) {
-            likedPlaylist.user = userId;
-        }
+        // 3. Garante que o array songs existe
+        if (!likedPlaylist.songs) likedPlaylist.songs = [];
 
-        const songIndex = likedPlaylist.songs.findIndex(s => s.toString() === songId);
+        // 4. Lógica de Toggle (Adicionar/Remover)
+        const songIdStr = songId.toString();
+        const songIndex = likedPlaylist.songs.findIndex(s => s && s.toString() === songIdStr);
+        
         let isLiked = false;
 
         if (songIndex > -1) {
+            // Remover
             likedPlaylist.songs.splice(songIndex, 1);
+            await User.findByIdAndUpdate(userId, { $pull: { likedSongs: songId } });
             isLiked = false;
         } else {
+            // Adicionar
             likedPlaylist.songs.push(songId);
+            await User.findByIdAndUpdate(userId, { $addToSet: { likedSongs: songId } });
             isLiked = true;
-        }
-
-        if (likedPlaylist.songs.length < (userProfile.likedSongs?.length || 0)) {
-             const mergedSongs = new Set([
-                 ...likedPlaylist.songs.map(s => s.toString()), 
-                 ...(userProfile.likedSongs || []).map(s => s.toString())
-             ]);
-             
-             if (!isLiked) mergedSongs.delete(songId);
-             
-             likedPlaylist.songs = Array.from(mergedSongs);
         }
 
         likedPlaylist.songCount = likedPlaylist.songs.length;
         await likedPlaylist.save();
 
-        if (isLiked) {
-            await User.findByIdAndUpdate(userId, { $addToSet: { likedSongs: songId } });
-        } else {
-            await User.findByIdAndUpdate(userId, { $pull: { likedSongs: songId } });
-        }
-
-        res.json({ isLiked, playlistId: likedPlaylist._id });
+        return res.json({ 
+            isLiked, 
+            playlistId: likedPlaylist._id 
+        });
 
     } catch (error) {
-        console.error("Erro ao curtir música:", error);
-        res.status(500).json({ message: 'Erro ao curtir música', error: error.message });
+        console.error("ERRO AO CURTIR:", error);
+        return res.status(500).json({ message: 'Erro interno', error: error.message });
     }
 };
 
