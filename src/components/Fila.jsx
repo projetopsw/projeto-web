@@ -20,7 +20,7 @@ const QueueOverlayContainer = styled(Box)(({ theme }) => ({
     padding: '0',
     overflowY: 'auto',
     width: { xs: '100%', sm: '350px' },
-    paddingBottom:'110px',
+    paddingBottom:'110px',
 }));
 
 function QueueOverlay() {
@@ -37,10 +37,12 @@ function QueueOverlay() {
     };
 
     const handlePlayQueueItem = (song) => {
-        if (currentSong?._id === song._id) { 
+        const uniqueId = song.queueId || song._id; 
+        
+        if (currentSong?.queueId === uniqueId) { 
             dispatch(togglePlayPause());
         } else {
-            const startIndex = queue.findIndex(s => s._id === song._id); 
+            const startIndex = queue.findIndex(s => (s.queueId || s._id) === uniqueId); 
             if (startIndex !== -1) {
                 dispatch(setQueue({ songs: queue, startIndex: startIndex }));
             }
@@ -50,7 +52,7 @@ function QueueOverlay() {
     const handleRemoveSong = (e, songId) => {
         e.stopPropagation(); 
         
-        if (currentSong?._id === songId) { 
+        if (currentSong?.queueId === songId) { 
              alert("Não é possível remover a música que está tocando no momento.");
              return;
         }
@@ -59,10 +61,11 @@ function QueueOverlay() {
     };
 
     const renderQueueItem = (song, index) => {
-        const isCurrentlyPlaying = currentSong?._id === song._id; 
+        const uniqueId = song.queueId || song._id;
+        const isCurrentlyPlaying = currentSong?.queueId === uniqueId; 
 
         return (
-            <Draggable key={song._id} draggableId={String(song._id)} index={index}>
+            <Draggable key={uniqueId} draggableId={String(uniqueId)} index={index}>
                 {(provided, snapshot) => (
                     <ListItem
                         ref={provided.innerRef}
@@ -111,7 +114,7 @@ function QueueOverlay() {
                             
                             <IconButton 
                                 size="small" 
-                                onClick={(e) => handleRemoveSong(e, song._id)} 
+                                onClick={(e) => handleRemoveSong(e, uniqueId)} 
                                 sx={{ color: INACTIVE_COLOR, '&:hover': { color: 'var(--text-color)' } }}
                             >
                                 <CloseIcon fontSize="small" />
@@ -126,7 +129,7 @@ function QueueOverlay() {
     return (
         <QueueOverlayContainer>
             <Typography variant="h6" sx={{ color: 'var(--text-color)', fontWeight: 'bold', padding: '15px 15px 10px', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, backgroundColor: 'var(--sidebar-bg)', zIndex: 1 }}>
-                Próximas na  ({queue.length})
+                Próximas Músicas ({queue.length})
             </Typography>
 
             <DragDropContext onDragEnd={onDragEnd}>
