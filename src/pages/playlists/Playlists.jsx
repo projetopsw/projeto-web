@@ -93,7 +93,7 @@ function Playlists() {
 
             const formattedCustomPlaylists = customPlaylists.map(p => ({
                 id: p._id,
-                name: p.name,
+                name: p.title || p.name || 'Minha Playlist', 
                 img: p.cover || DEFAULT_PLAYLIST_COVER,
                 description: p.description,
                 creator: 'Você',
@@ -153,7 +153,7 @@ function Playlists() {
                 const cover = coverUrlTrimmed === '' ? DEFAULT_PLAYLIST_COVER : coverUrlTrimmed; 
 
                 const newPlaylist = {
-                    name: title,
+                    name: title, 
                     description: newPlaylistDescription.trim() || `Playlist criada por ${user?.name || user?.username || 'usuário'}.`,
                     cover: cover,
                     isPublic: isPublic 
@@ -225,11 +225,18 @@ function Playlists() {
                                 style={{ objectFit: 'cover' }}
                             />
                             
-                            <p title={playlist.title}>
-                                {playlist.title}
+                            <p 
+                                title={playlist.name} 
+                                style={{ 
+                                    color: 'var(--text-color)', 
+                                    marginTop: '10px', 
+                                    fontWeight: 'bold', 
+                                }}
+                            >
+                                {playlist.name}
                             </p>
                             
-                            <p style={{ fontWeight: 'normal', fontSize: '0.9rem' }}>
+                            <p style={{ fontWeight: 'normal', fontSize: '0.9rem', color: 'var(--secondary-text-color)' }}>
                                 {playlist.songCount} músicas
                             </p>
                         </div>
