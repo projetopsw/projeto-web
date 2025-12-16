@@ -23,7 +23,6 @@ const CATEGORY_MAP = {
     "Usuários": "usuario"
 };
 
-// URLs de fallback garantem que NENHUMA string vazia seja passada para 'src'
 const DEFAULT_COVER = '/assets/img/default_song_cover.png';
 const DEFAULT_ALBUM_COVER = '/assets/img/default_album_cover.png';
 const DEFAULT_USER_AVATAR = '/assets/img/default_user_avatar.png';
@@ -142,7 +141,7 @@ const mapTrack = (track) => {
                        track.image ||
                        (track.album && track.album.cover) || 
                        (track.album && track.album.images && track.album.images[0]?.url) ||
-                       DEFAULT_COVER; // Garante fallback
+                       DEFAULT_COVER; 
 
     return {
         ...track,
@@ -151,7 +150,7 @@ const mapTrack = (track) => {
         artist: artistNames, 
         subtitle: artistNames, 
         image: imageCover,
-        cover: imageCover // A SongCard provavelmente espera 'cover'
+        cover: imageCover 
     };
 };
 
