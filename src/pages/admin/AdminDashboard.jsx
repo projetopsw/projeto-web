@@ -150,7 +150,7 @@ const AdminDashboard = () => {
     return (
         <div className="admin-dashboard">
             <h1 className="admin-header">
-                Painel de Administração Moosica 👑🐄
+                Painel de Administração Moosica
             </h1>
 
             <div className="admin-tabs-container">

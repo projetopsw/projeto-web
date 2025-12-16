@@ -127,7 +127,7 @@ function UserProfileIcon() {
             onClick={handleAdminClick}
             sx={{ fontWeight: 'bold', color: 'var(--orange)' }}
           >
-            Admin Dashboard 👑
+            Admin Dashboard 
           </MenuItem>
         ]}
         
