@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateProfile } from '../redux/userSlice';
 import ProfileHeader from './ProfileHeader';
+import ConfirmationModal from './ConfirmationModal';
 
 const API_URL = 'http://localhost:3000';
 const SESSION_STORAGE_KEY = (userId) => `tempProfileImage_${userId}`;
@@ -32,6 +33,16 @@ export default function ProfileEdition() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
+    const [modalState, setModalState] = useState({
+        open: false,
+        title: '',
+        message: '',
+        isConfirmation: false,
+        onConfirm: null,
+        confirmText: "Confirmar",
+        cancelText: "Cancelar",
+    });
 
     const [formData, setFormData] = useState({
         name: '',
@@ -65,6 +76,37 @@ export default function ProfileEdition() {
             setIsLoading(false); 
         }
     }, [user]); 
+
+    const handleCloseModal = () => {
+        setModalState(prev => ({ ...prev, open: false }));
+    };
+
+    const showErrorModal = (message, title = "Erro") => {
+        setModalState({
+            open: true,
+            title: title,
+            message: message,
+            isConfirmation: false, 
+            onConfirm: handleCloseModal, 
+            confirmText: "OK",
+            cancelText: null, 
+        });
+    };
+
+    const showSuccessModal = (message, title = "Sucesso") => {
+        setModalState({
+            open: true,
+            title: title,
+            message: message,
+            isConfirmation: false, 
+            onConfirm: () => {
+                handleCloseModal();
+                navigate('/perfil'); 
+            },
+            confirmText: "OK",
+            cancelText: null,
+        });
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -107,7 +149,7 @@ export default function ProfileEdition() {
         setErrors({});
 
         if (!userId || !authToken) {
-            alert("Erro: Usuário não autenticado ou token ausente. Por favor, faça login novamente.");
+            showErrorModal("Usuário não autenticado ou token ausente. Por favor, faça login novamente.");
             setIsSaving(false);
             return;
         }
@@ -117,7 +159,7 @@ export default function ProfileEdition() {
 
         if (nameTrimmed === '') {
             setErrors({ name: "O Username não pode estar vazio." });
-            alert("Erro: O campo Username não pode estar vazio.");
+            showErrorModal("O campo Username não pode estar vazio.");
             setIsSaving(false);
             return;
         }
@@ -128,7 +170,7 @@ export default function ProfileEdition() {
 
         if (isChangingPassword && currentPasswordTrimmed === '') {
             setErrors({ currentPassword: "É obrigatório fornecer a Senha Atual para alterar a senha." });
-            alert("Erro: Você deve fornecer a Senha Atual para alterar a senha.");
+            showErrorModal("Você deve fornecer a Senha Atual para alterar a senha.");
             setIsSaving(false);
             return;
         }
@@ -182,14 +224,13 @@ export default function ProfileEdition() {
                 dispatch(updateProfile(finalUserPayload));
 
                 setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
-                alert("Perfil atualizado com sucesso!");
-                navigate('/perfil');
+                showSuccessModal("Perfil atualizado com sucesso!");
             } else {
                 const errorData = await response.json().catch(() => ({ message: response.statusText }));
-                alert(`Erro: ${errorData.message || response.statusText}. Por favor, verifique seus dados.`);
+                showErrorModal(`Erro: ${errorData.message || response.statusText}. Por favor, verifique seus dados.`);
             }
         } catch (error) {
-            alert("Erro de conexão. Verifique se o servidor está online e na porta 3000.");
+            showErrorModal("Erro de conexão. Verifique se o servidor está online e na porta 3000.");
         } finally {
             setIsSaving(false);
         }
@@ -347,6 +388,7 @@ export default function ProfileEdition() {
                         InputLabelProps={{ shrink: true }}
                         disabled={isSaving}
                     />
+                    
                     <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'flex-start' }}>
                         <Button
                             variant="outlined"
@@ -492,6 +534,18 @@ export default function ProfileEdition() {
                     </Grid>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmationModal
+                open={modalState.open}
+                onClose={handleCloseModal}
+                title={modalState.title}
+                message={modalState.message}
+                isConfirmation={modalState.isConfirmation}
+                onConfirm={modalState.onConfirm}
+                confirmText={modalState.confirmText}
+                cancelText={modalState.cancelText}
+                isLoading={isSaving} 
+            />
         </main>
     );
 }

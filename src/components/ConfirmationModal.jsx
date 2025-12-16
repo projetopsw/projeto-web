@@ -1,5 +1,6 @@
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, CircularProgress } from '@mui/material';
+
 export default function ConfirmationModal({ 
     open, 
     onClose, 
@@ -17,15 +18,16 @@ export default function ConfirmationModal({
         if (onConfirm) {
             onConfirm();
         }
-        onClose(); 
+        if (!isConfirmation) {
+            onClose(); 
+        }
     };
 
     const handleCancel = () => {
-        if (!isConfirmation && onConfirm) {
-            onConfirm();
-        }
         onClose();
     };
+
+    const mainButtonText = isConfirmation ? confirmText : (confirmText || "OK");
 
     return (
         <Dialog 
@@ -49,27 +51,30 @@ export default function ConfirmationModal({
                 )}
             </DialogContent>
             <DialogActions>
-                <Button 
-                    onClick={handleCancel}
-                    sx={{ color: 'var(--secondary-text-color)' }}
-                    disabled={isLoading}
-                >
-                    {cancelText}
-                </Button>
-                {isConfirmation && (
-                    <Button
-                        onClick={handleConfirm}
-                        variant="contained"
+                
+                {(isConfirmation && cancelText) && (
+                    <Button 
+                        onClick={handleCancel}
+                        sx={{ color: 'var(--secondary-text-color)' }}
                         disabled={isLoading}
-                        sx={{
-                            backgroundColor: COR_LARANJA,
-                            '&:hover': { backgroundColor: 'var(--darker-orange)' },
-                            color: 'white',
-                        }}
                     >
-                        {confirmText}
+                        {cancelText}
                     </Button>
                 )}
+                
+                <Button
+                    onClick={handleConfirm}
+                    variant="contained"
+                    disabled={isLoading}
+                    sx={{
+                        backgroundColor: COR_LARANJA,
+                        '&:hover': { backgroundColor: 'var(--darker-orange)' },
+                        color: 'white',
+                    }}
+                >
+                    {mainButtonText}
+                </Button>
+
             </DialogActions>
         </Dialog>
     );
