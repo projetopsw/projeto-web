@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import mongoApi from '../../services/mongoApi'; 
 import '../login/login.css'
 
+import ConfirmationModal from '../../components/ConfirmationModal'; 
+
 export default function Cadastro() {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
@@ -11,7 +13,31 @@ export default function Cadastro() {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false); 
 
+    const [modal, setModal] = useState({
+        open: false,
+        title: '',
+        message: '',
+        isConfirmation: false,
+        onConfirmAction: () => {}, 
+        cancelText: "Fechar"
+    });
+
     const navigate = useNavigate();
+
+    const handleOpenModal = (title, message, isSuccess = false) => {
+        setModal({
+            open: true,
+            title: title,
+            message: message,
+            isConfirmation: false, 
+            cancelText: isSuccess ? "Ir para Login" : "Entendi",
+            onConfirmAction: isSuccess ? () => navigate('/login') : () => handleCloseModal(),
+        });
+    };
+
+    const handleCloseModal = () => {
+        setModal({ ...modal, open: false });
+    };
 
     const handleCadastro = async (e) => {
         e.preventDefault();
@@ -19,8 +45,10 @@ export default function Cadastro() {
         setIsLoading(true);
 
         if (!username || !email || !password) {
-            setError('Todos os campos são obrigatórios!');
+            const requiredError = 'Todos os campos são obrigatórios!';
+            setError(requiredError);
             setIsLoading(false);
+            handleOpenModal("Erro de Cadastro", requiredError);
             return;
         }
 
@@ -31,12 +59,16 @@ export default function Cadastro() {
                 password,
             });
 
-            alert('Cadastro realizado com sucesso! Agora você pode entrar no pasto.');
-            navigate('/login');
+            handleOpenModal(
+                "Cadastro Concluído!", 
+                'Cadastro realizado com sucesso! Clique para entrar no pasto.',
+                true
+            );
 
         } catch (err) {
             const mensagemErro = err.response?.data?.message || 'Ocorreu um erro ao criar a conta.';
             setError(mensagemErro);
+            handleOpenModal("Erro", mensagemErro);
         } finally {
             setIsLoading(false);
         }
@@ -83,13 +115,23 @@ export default function Cadastro() {
                     <button type="submit" className="btn orange-btn" disabled={isLoading}>
                         {isLoading ? 'Abrindo porteira...' : 'Entrar no pasto'}
                     </button>
-                </form>            
+                </form>          
             </div>
 
             <div className="footer">
                 <span className="lighter-text">Já é da fazenda?</span>
                 <Link to="/login">Abra a porteira aqui</Link>
             </div>
+            
+            <ConfirmationModal
+                open={modal.open}
+                onClose={handleCloseModal}
+                title={modal.title}
+                message={modal.message}
+                isConfirmation={modal.isConfirmation}
+                onConfirm={modal.onConfirmAction}
+                cancelText={modal.cancelText} 
+            />
         </div>
     );
 }

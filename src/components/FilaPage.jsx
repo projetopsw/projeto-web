@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Typography, List, ListItem, ListItemText, ListItemAvatar, Avatar, IconButton, styled } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'; 
 import { useSelector, useDispatch } from 'react-redux'; 
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'; 
 import { reorderQueue, togglePlayPause, removeSongFromQueue, playFromQueue } from '../redux/playerSlice'; 
+
+import ConfirmationModal from './ConfirmationModal.jsx'; 
 
 const VolumeIcon = () => (<i className="fas fa-volume-up" style={{ color: 'var(--orange)', fontSize: '12px' }} />);
 const INACTIVE_COLOR = 'var(--secondary-text-color)';
@@ -22,6 +24,18 @@ const FilaPageContainer = styled(Box)(({ theme }) => ({
 function FilaPage() {
     const { queue, currentSong } = useSelector(state => state.player); 
     const dispatch = useDispatch();
+
+    const [modal, setModal] = useState({
+        open: false,
+        title: '',
+        message: '',
+        isConfirmation: false,
+        cancelText: "Entendi",
+    });
+
+    const handleCloseModal = () => {
+        setModal({ ...modal, open: false });
+    };
 
     const onDragEnd = (result) => {
         if (!result.destination) return; 
@@ -44,7 +58,13 @@ function FilaPage() {
         e.stopPropagation();
         
         if (currentSong?.queueId === songId) {
-            alert("Não é possível remover a música que está tocando no momento.");
+            setModal({
+                open: true,
+                title: "Aviso",
+                message: "Não é possível remover a música que está tocando no momento.",
+                isConfirmation: false,
+                cancelText: "Entendi",
+            });
             return;
         }
 
@@ -159,6 +179,16 @@ function FilaPage() {
                     </Droppable>
                 </DragDropContext>
             </Box>
+
+            <ConfirmationModal
+                open={modal.open}
+                onClose={handleCloseModal}
+                title={modal.title}
+                message={modal.message}
+                isConfirmation={modal.isConfirmation}
+                cancelText={modal.cancelText}
+                onConfirm={() => {}}
+            />
         </FilaPageContainer>
     );
 }

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Divider, Button, CircularProgress } from '@mui/material';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux'; 
 import { useNavigate } from 'react-router-dom';
 import '../index.css'; 
 
 import Navigation from '../components/Navigation.jsx'; 
 import Section from '../components/Section.jsx'; 
 import ArtistCircle from '../components/ArtistCircle.jsx'; 
+import ConfirmationModal from '../components/ConfirmationModal.jsx'; 
 
 import { 
     fetchConnectionsData, 
@@ -39,6 +40,21 @@ export default function Conexoes() {
 
     const [selectedFilter, setSelectedFilter] = useState('Amigos');
     
+    const [modal, setModal] = useState({
+        open: false,
+        title: '',
+        message: '',
+        isConfirmation: false,
+        confirmAction: () => {},
+        confirmText: 'Confirmar',
+        cancelText: 'Cancelar',
+        targetUser: null,
+    });
+
+    const handleCloseModal = () => {
+        setModal({ ...modal, open: false, targetUser: null });
+    };
+
     const handleUserClick = (id) => navigate(`/perfil/${id}`);
 
     useEffect(() => {
@@ -49,36 +65,88 @@ export default function Conexoes() {
         } 
     }, [dispatch, currentUserId, userStatus, connectionsStatus]);
     
-    
     const handleToggleRequest = (targetUser) => {
         if (!currentUserId) {
-            alert("Você precisa estar logado para fazer isso.");
+            setModal({ 
+                open: true, 
+                title: "Acesso Negado", 
+                message: "Você precisa estar logado para fazer isso.", 
+                isConfirmation: false,
+                targetUser: null,
+            });
             return;
         }
         
         const isFriend = friends.some(f => String(f.id) === String(targetUser.id));
+        const userName = targetUser.name || targetUser.username;
         
         if (isFriend) {
-            dispatch(removeFriend({ currentUserId, targetUserId: targetUser.id }));
-            alert(`Processando remoção de ${targetUser.name || targetUser.username}...`);
+            setModal({
+                open: true,
+                title: "Remover Conexão?",
+                message: `Tem certeza que deseja remover ${userName} dos seus amigos?`,
+                isConfirmation: true,
+                confirmText: "Remover",
+                confirmAction: () => dispatch(removeFriend({ currentUserId, targetUserId: targetUser.id })),
+                targetUser: targetUser,
+            });
         } else {
-            dispatch(toggleFriendRequest({ currentUserId, targetUser }));
-            alert(`Processando pedido de amizade para ${targetUser.name || targetUser.username}.`);
+             dispatch(toggleFriendRequest({ currentUserId, targetUser }));
+             setModal({
+                open: true,
+                title: "Solicitação Enviada",
+                message: `Pedido de amizade para ${userName} enviado com sucesso!`,
+                isConfirmation: false,
+                cancelText: "Fechar",
+                targetUser: null,
+            });
         }
     };
 
     const handleAcceptRequest = (requester) => {
         if (!currentUserId) return;
-        dispatch(acceptFriendRequest({ accepterId: currentUserId, requester: requester }));
-        alert(`Aceitando pedido de ${requester.name || requester.username}...`);
+        const userName = requester.name || requester.username;
+
+        setModal({
+            open: true,
+            title: "Aceitar Pedido",
+            message: `Você deseja aceitar o pedido de amizade de ${userName}?`,
+            isConfirmation: true,
+            confirmText: "Aceitar",
+            confirmAction: () => dispatch(acceptFriendRequest({ accepterId: currentUserId, requester: requester })),
+            targetUser: requester,
+        });
     };
 
     const handleDeclineRequest = (requester) => {
         if (!currentUserId) return;
-        dispatch(declineFriendRequest({ recipientId: currentUserId, requesterId: requester.id }));
-        alert(`Recusando pedido de ${requester.name || requester.username}...`);
-    };
+        const userName = requester.name || requester.username;
 
+        setModal({
+            open: true,
+            title: "Recusar Pedido",
+            message: `Tem certeza que deseja recusar o pedido de amizade de ${userName}?`,
+            isConfirmation: true,
+            confirmText: "Recusar",
+            confirmAction: () => dispatch(declineFriendRequest({ recipientId: currentUserId, requesterId: requester.id })),
+            targetUser: requester,
+        });
+    };
+    
+    const handleCancelSentRequest = (targetUser) => {
+        if (!currentUserId) return;
+        const userName = targetUser.name || targetUser.username;
+
+        setModal({
+            open: true,
+            title: "Cancelar Solicitação",
+            message: `Tem certeza que deseja cancelar a solicitação de amizade enviada para ${userName}?`,
+            isConfirmation: true,
+            confirmText: "Cancelar Solicitação",
+            confirmAction: () => dispatch(toggleFriendRequest({ currentUserId, targetUser })),
+            targetUser: targetUser,
+        });
+    }
 
     const renderContent = () => {
         
@@ -152,11 +220,11 @@ export default function Conexoes() {
                                                             color: 'var(--text-primary)', 
                                                             borderColor: 'var(--text-primary)',
                                                             '&:hover': { bgcolor: '#444', borderColor: 'var(--text-primary)' } 
-                                                          } 
+                                                        } 
                                                         : { 
                                                             bgcolor: 'var(--orange)', 
                                                             '&:hover': { bgcolor: 'darkorange' } 
-                                                          })
+                                                        })
                                                 }}
                                                 onClick={() => handleToggleRequest(sug)}>
                                                 {isSent ? 'CANCELAR SOLICITAÇÃO' : 'Adicionar'}
@@ -232,7 +300,7 @@ export default function Conexoes() {
                                         />
                                         <Button variant="outlined" size="small"
                                             sx={{ mt: 1, color: 'var(--text-primary)', borderColor: 'var(--text-primary)', minWidth: '100px' }}
-                                            onClick={() => handleToggleRequest(request)} >
+                                            onClick={() => handleCancelSentRequest(request)} >
                                             CANCELAR SOLICITAÇÃO 
                                         </Button>
                                     </Box>
@@ -264,6 +332,20 @@ export default function Conexoes() {
                 {renderContent()}
                 <div className="margin-bottom"></div>
             </Box>
+            
+            <ConfirmationModal
+                open={modal.open}
+                onClose={handleCloseModal}
+                title={modal.title}
+                message={modal.message}
+                isConfirmation={modal.isConfirmation}
+                confirmText={modal.confirmText}
+                cancelText={modal.cancelText}
+                onConfirm={() => {
+                    modal.confirmAction();
+
+                }}
+            />
         </main>
     );
 }
