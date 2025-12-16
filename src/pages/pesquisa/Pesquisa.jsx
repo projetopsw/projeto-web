@@ -6,20 +6,18 @@ import Navigation from '../../components/Navigation';
 import Section from '../../components/Section'; 
 import SongCard from '../../components/SongCard';
 import AlbumCard from '../../components/AlbumCard';
-import PlaylistCard from '../../components/PlaylistCard';
 import ArtistCircle from '../../components/ArtistCircle';
 import UserCard from '../../components/UserCard'; 
 import './Pesquisa.css'; 
 import api from '../../services/api.js'; 
 
-const navItemsData = ["Tudo", "Usuários", "Playlists", "Músicas", "Álbuns", "Artistas"];
+const navItemsData = ["Tudo", "Usuários", "Músicas", "Álbuns", "Artistas"];
 
 const CATEGORY_MAP = {
     "Tudo": "tudo",
     "Músicas": "musica",
     "Álbuns": "album",
     "Artistas": "artista",
-    "Playlists": "playlist",
     "Usuários": "usuario"
 };
 
@@ -27,7 +25,6 @@ const DEFAULT_COVER = '/assets/img/default_song_cover.png';
 const DEFAULT_ALBUM_COVER = '/assets/img/default_album_cover.png';
 const DEFAULT_USER_AVATAR = '/assets/img/default_user_avatar.png';
 const DEFAULT_ARTIST_IMAGE = '/assets/img/default_artist_image.png';
-const DEFAULT_PLAYLIST_COVER = '/assets/img/default_playlist_cover.png';
 
 const isGarbage = (text) => {
     if (!text) return false;
@@ -56,12 +53,6 @@ const mapUser = (user) => ({
     id: user._id || user.id,
     name: user.name || user.username || 'Usuário',
     image: user.image || user.avatar || DEFAULT_USER_AVATAR
-});
-
-const mapPlaylist = (playlist) => ({
-    ...playlist,
-    id: playlist._id || playlist.id,
-    image: playlist.cover || playlist.image || (playlist.images && playlist.images[0]?.url) || DEFAULT_PLAYLIST_COVER
 });
 
 const mapArtist = (artist) => {
@@ -177,7 +168,6 @@ const adaptResults = (data, categoryFilter) => {
         artists: { priority: [], related: [] },
         albums: { priority: [], related: [] },
         tracks: { priority: [], related: [] },
-        playlists: { priority: [], related: [] },
         users: { priority: [], related: [] }
     };
 
@@ -188,7 +178,6 @@ const adaptResults = (data, categoryFilter) => {
             artists: normalizeSectionData(data.artistas),
             albums: normalizeSectionData(data.albuns),
             tracks: normalizeSectionData(data.musicas),
-            playlists: normalizeSectionData(data.playlists),
             users: normalizeSectionData(data.usuarios),
         };
     } 
@@ -199,7 +188,6 @@ const adaptResults = (data, categoryFilter) => {
         case 'musica': rawDataToNormalize = data.musicas; break;
         case 'album': rawDataToNormalize = data.albuns; break;
         case 'artista': rawDataToNormalize = data.artistas; break;
-        case 'playlist': rawDataToNormalize = data.playlists; break;
         case 'usuario': rawDataToNormalize = data.usuarios; break;
         default: break;
     }
@@ -210,7 +198,6 @@ const adaptResults = (data, categoryFilter) => {
         case 'musica': return { ...emptyState, tracks: normalized };
         case 'album': return { ...emptyState, albums: normalized };
         case 'artista': return { ...emptyState, artists: normalized };
-        case 'playlist': return { ...emptyState, playlists: normalized };
         case 'usuario': return { ...emptyState, users: normalized };
         default: return emptyState;
     }
@@ -225,12 +212,11 @@ function Pesquisa() {
         artists: { priority: [], related: [] }, 
         albums: { priority: [], related: [] }, 
         tracks: { priority: [], related: [] }, 
-        playlists: { priority: [], related: [] }, 
         users: { priority: [], related: [] }
     });
 
     const [randomSuggestions, setRandomSuggestions] = useState({
-        artists: [], albums: [], tracks: [], playlists: [], users: []
+        artists: [], albums: [], tracks: [], users: []
     });
     
     const [isLoading, setIsLoading] = useState(false);
@@ -276,7 +262,6 @@ function Pesquisa() {
             getCombinedResults(results.tracks).length + 
             getCombinedResults(results.artists).length + 
             getCombinedResults(results.albums).length + 
-            getCombinedResults(results.playlists).length + 
             getCombinedResults(results.users).length;
         
         if (query && totalCount === 0 && !isLoading) {
@@ -292,7 +277,6 @@ function Pesquisa() {
                         tracks: getRandomItems(songsRes.data),
                         artists: getRandomItems(artistsRes.data),
                         albums: getRandomItems(albumsRes.data),
-                        playlists: [],
                         users: []
                     });
                 } catch (e) {
@@ -311,14 +295,12 @@ function Pesquisa() {
         getCombinedResults(results.tracks).length + 
         getCombinedResults(results.artists).length + 
         getCombinedResults(results.albums).length + 
-        getCombinedResults(results.playlists).length + 
         getCombinedResults(results.users).length;
     
     const sectionsData = [
         { title: "Músicas", type: "musica", data: results.tracks, mapFn: mapTrack, renderCard: (item) => <SongCard key={item.id} {...item} /> },
         { title: "Álbuns", type: "album", data: results.albums, mapFn: mapAlbum, renderCard: (item) => <AlbumCard key={item.id} {...item} />},
         { title: "Artistas", type: "artista", data: results.artists, mapFn: mapArtist, renderCard: (item) => <ArtistCircle key={item.id} id={item.id} image={item.image} name={item.name} />},
-        { title: "Playlists", type: "playlist", data: results.playlists, mapFn: mapPlaylist, renderCard: (item) => <PlaylistCard key={item.id} {...item} />},
         { title: "Usuários", type: "usuario", data: results.users, mapFn: mapUser, renderCard: (item) => <UserCard key={item.id} {...item} /> }, 
     ];
 

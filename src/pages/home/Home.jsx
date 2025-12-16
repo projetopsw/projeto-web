@@ -4,7 +4,6 @@ import { fetchAlbums } from '../../redux/catalogoSlice';
 import Section from '../../components/Section';
 import SongCard from '../../components/SongCard';
 import AlbumCard from '../../components/AlbumCard';
-import PlaylistCard from '../../components/PlaylistCard';
 import ArtistCircle from '../../components/ArtistCircle';
 import Navigation from '../../components/Navigation';
 import './Home.css';
@@ -13,12 +12,11 @@ import mongoApi from '../../services/mongoApi.js';
 const sectionsData = [
     { id: "top_hits", title: "Top Hits do Rebanho", type: "song", criteria: "popularity", path: "/songDetail" },
     { id: "top_artists", title: "Artistas mais ouvidos", type: "artist", criteria: "random", path: "/artistDetail" },
-    { id: "featured_playlists", title: "Playlists em Destaque", type: "playlist", criteria: "random", path: "/playlistDetail" },
     { id: "acoustic", title: "Acús-ticos do Campo", type: "song", criteria: "acoustic", path: "/songDetail" },
     { id: "dance_albums", title: "Pista de Dança Malhada", type: "album", criteria: "random", path: "/albumDetail" },
 ];
 
-const navItemsData = ["Tudo", "Playlists", "Músicas", "Álbuns", "Artistas"];
+const navItemsData = ["Tudo", "Músicas", "Álbuns", "Artistas"];
 
 const shuffleArray = (array) => {
     const newArray = [...array];
@@ -46,7 +44,6 @@ function Home() {
 
     const [songsData, setSongsData] = useState([]);
     const [artistsData, setArtistsData] = useState([]);
-    const [playlistsData, setPlaylistsData] = useState([]);
     
     const albumsData = useSelector(state => state.catalog.albums.items);
     const albumsStatus = useSelector(state => state.catalog.albums.status);
@@ -64,12 +61,11 @@ function Home() {
                 const results = await Promise.allSettled([
                     mongoApi.get('/songs'),
                     mongoApi.get('/artists'),
-                    mongoApi.get('/playlists')
                 ]);
 
                 if (!isMounted) return;
 
-                const [songsResult, artistsResult, playlistsResult] = results;
+                const [songsResult, artistsResult] = results;
 
                 if (songsResult.status === 'fulfilled') {
                     const rawSongs = songsResult.value.data;
@@ -158,35 +154,6 @@ function Home() {
                     setArtistsData(normArtists);
                 }
 
-                if (playlistsResult.status === 'fulfilled') {
-                    const normPlaylists = playlistsResult.value.data.map(p => {
-                        let authorName = 'Desconhecido';
-                        
-                        if (p.user && typeof p.user === 'object' && (p.user.name || p.user.username)) {
-                            authorName = p.user.name || p.user.username;
-                        } 
-                        else if (p.description && p.description.includes('criada por')) {
-                            try {
-                                authorName = p.description.split('criada por ')[1].replace('.', '').trim();
-                            } catch (e) {
-                                authorName = 'Usuário';
-                            }
-                        }
-
-                        return {
-                            id: p._id,
-                            
-                            cover: p.cover || p.img || '/assets/img/vacateste.jpg',
-                            
-                            title: p.title || p.name || 'Sem Título',
-                            
-                            description: p.description || '',
-                            author: authorName
-                        };
-                    });
-                    setPlaylistsData(normPlaylists);
-                }
-
             } catch (e) {
                 console.error("Erro crítico:", e);
                 if (isMounted) setError('Falha ao carregar dados do MongoDB.');
@@ -214,9 +181,6 @@ function Home() {
             case 'artist':
                 content = [...artistsData];
                 break;
-            case 'playlist':
-                content = [...playlistsData];
-                break;
             case 'album':
                 content = albumsData.filter(a => {
                     if (!a.cover && !a.image) return false;
@@ -228,10 +192,6 @@ function Home() {
                 content = [];
         }
 
-
-        if (section.type === 'playlist') {
-            return shuffleArray(content);
-        }
      
         if (section.criteria === 'popularity') {
             return content.sort((a, b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 15);
@@ -252,7 +212,6 @@ function Home() {
         'Tudo': null,
         'Músicas': 'song',
         'Artistas': 'artist',
-        'Playlists': 'playlist',
         'Álbuns': 'album',
     };
 
@@ -301,16 +260,6 @@ function Home() {
                                 id={artist.id}
                                 image={artist.image}
                                 name={artist.name}
-                            />
-                        ))}
-
-                        {section.type === 'playlist' && sectionItems.map((playlist) => (
-                            <PlaylistCard
-                                key={playlist.id}
-                                id={playlist.id}
-                                cover={playlist.cover}
-                                title={playlist.title}
-                                author={playlist.author} 
                             />
                         ))}
 
