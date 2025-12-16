@@ -64,7 +64,7 @@ userSchema.statics.searchByTerm = async function(searchRegexStart, searchRegexCo
                 { username: { $regex: searchRegexStart } },
                 { email: { $regex: searchRegexStart } }
             ]
-        }).select(fieldsToSelect).limit(limit).exec();
+        }).select(fieldsToSelect).limit(limit).lean().exec();
 
         const relatedResults = await this.find({
             $and: [
@@ -78,7 +78,7 @@ userSchema.statics.searchByTerm = async function(searchRegexStart, searchRegexCo
                     _id: { $nin: priorityResults.map(u => u._id) } 
                 }
             ]
-        }).select(fieldsToSelect).limit(limit).exec();
+        }).select(fieldsToSelect).limit(limit).lean().exec();
 
         return {
             priority: priorityResults,

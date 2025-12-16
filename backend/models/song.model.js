@@ -64,10 +64,7 @@ songSchema.statics.searchByTerm = async function(searchRegexStart, searchRegexCo
         const selectFields = 'title artists album cover duration explicit previewUrl genres';
 
         const priorityQuery = {
-            $or: [
-                { title: { $regex: searchRegexStart } }, 
-                { 'artists.name': { $regex: searchRegexStart } }
-            ]
+            title: { $regex: searchRegexStart } 
         };
 
         const priorityResults = await this.find(priorityQuery)
@@ -81,17 +78,15 @@ songSchema.statics.searchByTerm = async function(searchRegexStart, searchRegexCo
 
         const relatedQuery = {
             _id: { $nin: priorityIds }, 
-            $or: [
-                { title: { $regex: searchRegexContains } }, 
-                { 'artists.name': { $regex: searchRegexContains } } 
-            ]
+            title: { $regex: searchRegexContains }
         };
 
         const relatedResults = await this.find(relatedQuery)
             .select(selectFields)
             .populate('artists', 'name')
             .populate('album', 'title')
-            .limit(10);
+            .limit(10)
+            .lean();
             
         return {
             priority: priorityResults,

@@ -15,6 +15,8 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import api from '../services/api.js'; 
+import useDebounce from '../../backend/hooks/useDebounce'; 
+
 
 const SearchContainer = styled('div')(({ theme }) => ({
     position: 'relative',
@@ -90,9 +92,14 @@ const SearchMusicBackend = ({ onSongSelect }) => {
                     }
                 });
                 
-                const tracks = response.data.results || [];
+                const musicResults = response.data.results.musicas;
+                
+                const allTracks = [
+                    ...(musicResults?.priority || []),
+                    ...(musicResults?.related || [])
+                ];
 
-                const adaptedTracks = tracks.map(track => {
+                const adaptedTracks = allTracks.map(track => {
                     const artistNames = Array.isArray(track.artists)
                         ? track.artists.map(a => a.name).join(', ')
                         : 'Desconhecido';
@@ -101,7 +108,7 @@ const SearchMusicBackend = ({ onSongSelect }) => {
                         ...track,
                         id: track._id,
                         artist: artistNames,
-                        cover: track.cover 
+                        cover: track.cover || '/assets/img/default_song_cover.png'
                     };
                 });
                 

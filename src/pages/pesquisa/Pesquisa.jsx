@@ -23,6 +23,13 @@ const CATEGORY_MAP = {
     "Usuários": "usuario"
 };
 
+// URLs de fallback garantem que NENHUMA string vazia seja passada para 'src'
+const DEFAULT_COVER = '/assets/img/default_song_cover.png';
+const DEFAULT_ALBUM_COVER = '/assets/img/default_album_cover.png';
+const DEFAULT_USER_AVATAR = '/assets/img/default_user_avatar.png';
+const DEFAULT_ARTIST_IMAGE = '/assets/img/default_artist_image.png';
+const DEFAULT_PLAYLIST_COVER = '/assets/img/default_playlist_cover.png';
+
 const isGarbage = (text) => {
     if (!text) return false;
     const lower = text.toLowerCase();
@@ -49,13 +56,13 @@ const mapUser = (user) => ({
     ...user,
     id: user._id || user.id,
     name: user.name || user.username || 'Usuário',
-    image: user.image || user.avatar || ''
+    image: user.image || user.avatar || DEFAULT_USER_AVATAR
 });
 
 const mapPlaylist = (playlist) => ({
     ...playlist,
     id: playlist._id || playlist.id,
-    image: playlist.cover || playlist.image || (playlist.images && playlist.images[0]?.url)
+    image: playlist.cover || playlist.image || (playlist.images && playlist.images[0]?.url) || DEFAULT_PLAYLIST_COVER
 });
 
 const mapArtist = (artist) => {
@@ -63,9 +70,8 @@ const mapArtist = (artist) => {
     
     if (isGarbage(artist.name)) return null;
 
-    const image = artist.image || artist.cover || (artist.images && artist.images[0]?.url);
-    if (!image || image === '') return null;
-
+    const image = artist.image || artist.cover || (artist.images && artist.images[0]?.url) || DEFAULT_ARTIST_IMAGE;
+    
     return {
         id: artist._id || artist.id, 
         name: artist.name,
@@ -78,9 +84,8 @@ const mapAlbum = (album) => {
 
     if (isGarbage(album.name || album.title)) return null;
 
-    const cover = album.cover || (album.images && album.images[0]?.url) || album.image;
-    if (!cover || cover === '') return null;
-
+    const cover = album.cover || (album.images && album.images[0]?.url) || album.image || DEFAULT_ALBUM_COVER;
+    
     let artistNames = 'Vários Artistas';
 
     if (Array.isArray(album.artists) && album.artists.length > 0) {
@@ -126,9 +131,9 @@ const mapTrack = (track) => {
         artistNames = track.owner.name || track.owner.username;
     }
     else if (track.album && Array.isArray(track.album.artists) && track.album.artists.length > 0) {
-         if (track.album.artists[0].name) {
+          if (track.album.artists[0].name) {
             artistNames = track.album.artists.map(a => a.name).join(', ');
-         }
+          }
     }
 
     if (isGarbage(artistNames)) return null;
@@ -137,9 +142,7 @@ const mapTrack = (track) => {
                        track.image ||
                        (track.album && track.album.cover) || 
                        (track.album && track.album.images && track.album.images[0]?.url) ||
-                       ''; 
-
-    if (!imageCover || imageCover === '') return null;
+                       DEFAULT_COVER; // Garante fallback
 
     return {
         ...track,
@@ -147,7 +150,8 @@ const mapTrack = (track) => {
         title: track.title || track.name,
         artist: artistNames, 
         subtitle: artistNames, 
-        image: imageCover
+        image: imageCover,
+        cover: imageCover // A SongCard provavelmente espera 'cover'
     };
 };
 
@@ -190,7 +194,18 @@ const adaptResults = (data, categoryFilter) => {
         };
     } 
     
-    const normalized = normalizeSectionData(data);
+    let rawDataToNormalize = null;
+    
+    switch (categoryFilter) {
+        case 'musica': rawDataToNormalize = data.musicas; break;
+        case 'album': rawDataToNormalize = data.albuns; break;
+        case 'artista': rawDataToNormalize = data.artistas; break;
+        case 'playlist': rawDataToNormalize = data.playlists; break;
+        case 'usuario': rawDataToNormalize = data.usuarios; break;
+        default: break;
+    }
+    
+    const normalized = normalizeSectionData(rawDataToNormalize);
     
     switch (categoryFilter) {
         case 'musica': return { ...emptyState, tracks: normalized };
@@ -236,7 +251,7 @@ function Pesquisa() {
                 }
             });
 
-            const rawData = response.data.results || response.data; 
+            const rawData = response.data.results || {}; 
             const finalResults = adaptResults(rawData, backendCategory);
             setResults(finalResults);
 

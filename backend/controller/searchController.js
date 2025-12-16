@@ -1,28 +1,50 @@
 import SearchService from '../services/searchService.js';
 
+const POSSIBLE_FILTER_PARAMS = ['category', 'filter', 'type', 'scope'];
+
+const CATEGORY_MAP = {
+    'musica': 'musica',
+    'music': 'musica',
+    'song': 'musica',
+    'album': 'album',
+    'artista': 'artista',
+    'artist': 'artista',
+    'playlist': 'playlist',
+    'usuario': 'usuario',
+    'user': 'usuario',
+    'tudo': 'tudo',
+    'all': 'tudo',
+};
+
 class SearchController {
     static async index(req, res) {
-        let { query, category } = req.query;
+        let { query } = req.query;
+        let category = 'tudo'; 
 
         if (!query && req.query.q) query = req.query.q;
 
         if (!query) {
-             return res.status(400).json({ error: 'O parâmetro "query" é obrigatório.' });
+            return res.status(400).json({ error: 'O parâmetro "query" é obrigatório.' });
         }
         
-        if (!category) category = 'tudo';
+        for (const paramName of POSSIBLE_FILTER_PARAMS) {
+            const frontendValue = req.query[paramName]?.toLowerCase();
+            if (frontendValue) {
+                category = CATEGORY_MAP[frontendValue] || 'tudo';
+                break; 
+            }
+        }
 
         try {
             const results = await SearchService.executeSearch(query, category);
 
             const calculateTotalCount = (resObj) => {
                 let total = 0;
-                if (resObj.priority || resObj.related) {
-                     return (resObj.priority?.length || 0) + (resObj.related?.length || 0);
-                }
                 for (const key in resObj) {
-                    if (resObj[key]?.priority) total += resObj[key].priority.length;
-                    if (resObj[key]?.related) total += resObj[key].related.length;
+                    const categoryResults = resObj[key];
+                    if (categoryResults && (categoryResults.priority || categoryResults.related)) {
+                        total += (categoryResults.priority?.length || 0) + (categoryResults.related?.length || 0);
+                    }
                 }
                 return total;
             };

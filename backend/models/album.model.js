@@ -44,9 +44,10 @@ albumSchema.statics.searchByTerm = async function(searchRegexStart, searchRegexC
         };
 
         const relatedResults = await this.find(relatedQuery)
-            .select(selectFields)
-            .populate('artists', 'name')
-            .limit(10);
+            .select(selectFields)
+            .populate('artists', 'name')
+            .limit(10)
+            .lean();
             
         return {
             priority: priorityResults,

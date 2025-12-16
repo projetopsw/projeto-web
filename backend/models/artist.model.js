@@ -37,8 +37,9 @@ artistSchema.statics.searchByTerm = async function(searchRegexStart, searchRegex
         };
 
         const relatedResults = await this.find(relatedQuery)
-            .select(selectFields)
-            .limit(10);
+            .select(selectFields)
+            .limit(10)
+            .lean();
             
         return {
             priority: priorityResults,
